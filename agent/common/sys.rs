@@ -1,1 +1,0 @@
-// Raw syscall interface (NTAPI)
