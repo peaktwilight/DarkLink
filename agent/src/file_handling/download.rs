@@ -26,3 +26,30 @@ pub async fn download_file(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    
+    #[tokio::test]
+    async fn test_download_functionality() {
+        let test_file = "test_download.txt";
+        let download_path = PathBuf::from("downloaded_file.txt");
+        
+        // Test download
+        let result = download_file(
+            test_file,
+            download_path.to_str().unwrap(),
+            "127.0.0.1:1080",  // SOCKS5 proxy address
+            "127.0.0.1:8080"   // Test server address
+        ).await;
+        
+        assert!(result.is_ok());
+        
+        // Cleanup
+        if download_path.exists() {
+            std::fs::remove_file(download_path).unwrap();
+        }
+    }
+}

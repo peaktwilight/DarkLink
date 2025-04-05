@@ -219,6 +219,8 @@ mod tests {
 /// * Starts the command shell
 /// * Handles user input until exit
 fn main() {
-    println!("Starting command shell test...");
+    println!("Test interface for command shell");
+    println!("Type 'exit' to quit");
+    println!("Type 'help' for available commands");
     run_shell();
 }
