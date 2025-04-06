@@ -1,9 +1,13 @@
 [package]
-name = "microc2-agent"
+name = "agent"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.0", features = ["full", "macros"] }
+hyper = { version = "0.14", features = ["full", "http1", "server"] }
+tokio = { version = "1", features = ["full"] }
 tokio-socks = "0.5"
-futures = "0.3"
+
+[[bin]]
+name = "test_server"
+path = "src/file_handling/test_server.rs"
