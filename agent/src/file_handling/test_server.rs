@@ -13,7 +13,7 @@ fn generate_file_list_html() -> String {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>MicroC2 Test Server</title>
+            <title>MicroC2 File Drop Test Server</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 40px; }
                 .file { padding: 10px; border-bottom: 1px solid #eee; }
@@ -66,22 +66,30 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible
 }
 
 async fn handle_upload(req: Request<Body>) -> Result<Response<Body>, Infallible> {
-    // Ensure upload directory exists
     if !Path::new(UPLOAD_DIR).exists() {
         fs::create_dir_all(UPLOAD_DIR).unwrap();
     }
 
+    // Extract filename from headers before consuming the request
+    let filename = if let Some(name) = req.headers().get("X-Filename") {
+        format!("{}/{}_{}", UPLOAD_DIR,
+            chrono::Local::now().format("%Y%m%d_%H%M%S"),
+            name.to_str().unwrap_or("uploaded_file"))
+    } else {
+        format!("{}/uploaded_file_{}", UPLOAD_DIR,
+            chrono::Local::now().format("%Y%m%d_%H%M%S"))
+    };
+
+    // Now consume the request body
     let body_bytes = hyper::body::to_bytes(req.into_body())
         .await
         .unwrap();
 
-    let filename = format!("{}/uploaded_file_{}", UPLOAD_DIR, 
-        chrono::Local::now().format("%Y%m%d_%H%M%S"));
-
     let mut file = File::create(&filename).await.unwrap();
     file.write_all(&body_bytes).await.unwrap();
 
-    Ok(Response::new(Body::from("File uploaded successfully")))
+    Ok(Response::new(Body::from(format!("File uploaded as: {}", 
+        Path::new(&filename).file_name().unwrap().to_string_lossy()))))
 }
 
 async fn handle_download(path: &str) -> Result<Response<Body>, Infallible> {

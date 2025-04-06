@@ -1,21 +1,53 @@
-use std::io;
+use std::io::{self, Read};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
 pub async fn download_file(
     local_path: &str,
-    _remote_path: &str,
+    remote_path: &str,
     _proxy_addr: &str,
     target_addr: &str,
 ) -> io::Result<()> {
-    let url = format!("http://{}{}", target_addr, _remote_path);
-    let response = ureq::get(&url).call().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    // Ensure remote_path starts with '/'
+    let path = if !remote_path.starts_with('/') {
+        format!("/{}", remote_path)
+    } else {
+        remote_path.to_string()
+    };
+
+    // Construct proper URL with filename
+    let url = format!("http://{}/download/{}", target_addr, 
+                     path.trim_start_matches('/').trim_start_matches("download/"));
+
+    println!("Downloading from: {}", url);
+
+    // Get response with better error handling
+    let response = ureq::get(&url)
+        .call()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Download failed: {}", e)))?;
+
+    if response.status() != 200 {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("Server returned status: {}", response.status())
+        ));
+    }
+
+    // Read response body
     let mut bytes = Vec::new();
-    response.into_reader().read_to_end(&mut bytes)?;
-    
+    response.into_reader()
+        .read_to_end(&mut bytes)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to read response: {}", e)))?;
+
+    if bytes.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::Other, "Received empty response"));
+    }
+
+    // Write to file
     let mut file = File::create(local_path).await?;
     file.write_all(&bytes).await?;
     
+    println!("Successfully downloaded {} bytes to {}", bytes.len(), local_path);
     Ok(())
 }
 
