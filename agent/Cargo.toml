@@ -1,7 +1,13 @@
-# Use `panic = "abort"`, `lto = true`
 [package]
 name = "agent"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+hyper = { version = "0.14", features = ["full", "http1", "server"] }
+tokio = { version = "1", features = ["full"] }
+tokio-socks = "0.5"
+
+[[bin]]
+name = "test_server"
+path = "src/file_handling/test_server.rs"
