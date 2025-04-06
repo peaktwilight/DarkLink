@@ -1,69 +1,10 @@
-use std::io::{self, Write}; 
-use std::process::Command; 
-use std::path::Path;
+use std::io::{self, Write, Read};
+use std::process::Command;
+use std::env;
 use std::fs;
-use std::time::SystemTime;
+use std::path::Path;
 
-#[derive(Debug)]
-enum OpCode {
-    Exec = 0x01,
-    Cd = 0x02,
-    Exit = 0x03,
-    Help = 0x04,
-    Tree = 0x05,
-}
-
-struct CommandLogger {
-    entries: Vec<(SystemTime, String)>,
-}
-
-impl CommandLogger {
-    fn new() -> Self {
-        CommandLogger {
-            entries: Vec::new(),
-        }
-    }
-
-    fn log(&mut self, command: &str) {
-        self.entries.push((SystemTime::now(), command.to_string()));
-        println!("[DEBUG] Logged command: {}", command);
-    }
-}
-
-#[derive(Debug)]
-enum ShellCommand {
-    Execute(String, Vec<String>),
-    ChangeDir(String),
-    Exit,
-    Help,
-    TreeView(String),
-}
-
-impl ShellCommand {
-    fn from_opcode(code: u8, args: &[u8]) -> Option<Self> {
-        match code {
-            0x01 => Some(ShellCommand::Execute(
-                String::from_utf8_lossy(&args[0..args.iter().position(|&x| x == 0).unwrap_or(args.len())]).to_string(),
-                Vec::new()
-            )),
-            0x02 => Some(ShellCommand::ChangeDir(
-                String::from_utf8_lossy(&args[0..args.iter().position(|&x| x == 0).unwrap_or(args.len())]).to_string()
-            )),
-            0x03 => Some(ShellCommand::Exit),
-            0x04 => Some(ShellCommand::Help),
-            0x05 => Some(ShellCommand::TreeView(".".to_string())),
-            _ => None,
-        }
-    }
-}
-
-/// Recursively displays a directory tree structure
-/// # Arguments
-/// * `path` - The starting path to display
-/// * `prefix` - The prefix to use for the current line (for formatting)
-/// * `is_last` - Whether this is the last item in the current directory
-/// # Returns
-/// * `io::Result<()>` - Success or error status
+// Add tree-related functions
 fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
     let display = path.file_name()
         .unwrap_or_else(|| path.as_os_str())
@@ -78,7 +19,7 @@ fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
             .collect::<Result<Vec<_>, io::Error>>()?;
         
         for (i, entry) in entries.iter().enumerate() {
-            let new_prefix = format!("{}{}",
+            let new_prefix = format!("{}{}", 
                 prefix,
                 if is_last { "    " } else { "│   " }
             );
@@ -88,139 +29,96 @@ fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
     Ok(())
 }
 
-/// Parses user input into a shell command
-/// # Arguments
-/// * `input` - The raw string input from the user
-/// # Returns
-/// * `Option<ShellCommand>` - None if input is invalid, Some(command) if valid
-/// # Examples
-/// ```
-/// let cmd = parse_command("cd /home");
-/// assert!(matches!(cmd, Some(ShellCommand::ChangeDir(_))));
-/// ```
-fn parse_command(input: &str) -> Option<ShellCommand> {
-    let mut parts = input.split_whitespace(); // Split the input into parts
-    match parts.next()? {
-        "cd" => Some(ShellCommand::ChangeDir(parts.collect::<Vec<_>>().join(" "))),
-        "exit" => Some(ShellCommand::Exit),
-        "help" => Some(ShellCommand::Help),
-        "tree" => Some(ShellCommand::TreeView(
-            parts.next().unwrap_or(".").to_string()
-        )),
-        cmd => Some(ShellCommand::Execute(
-            cmd.to_string(),
-            parts.map(String::from).collect(),
-        )),
-    }
-}
+pub async fn run_shell(server_addr: &str) -> io::Result<()> {
+    println!("Enhanced Command Shell started. Type 'help' for commands.");
 
-/// Executes a parsed shell command
-/// # Arguments
-/// * `cmd` - The ShellCommand to execute
-/// * `logger` - The CommandLogger for logging commands
-/// # Effects
-/// * May change current directory (cd)
-/// * May spawn new processes (execute)
-/// * May print to stdout (help, tree)
-fn execute_shell_command(cmd: ShellCommand, logger: &mut CommandLogger) {
-    logger.log(&format!("{:?}", cmd));
-    
-    match cmd {
-        ShellCommand::Execute(program, args) => {
-            match Command::new(&program).args(&args).spawn() {
-                Ok(mut child) => { let _ = child.wait(); },
-                Err(e) => eprintln!("Error: {}", e),
-            }
-        },
-        ShellCommand::ChangeDir(dir) => {
-            if let Err(e) = std::env::set_current_dir(&dir) {
-                eprintln!("cd: {}", e);
-            }
-        },
-        ShellCommand::TreeView(path) => {
-            println!(".");
-            if let Err(e) = display_tree(Path::new(&path), "", true) {
-                eprintln!("Error displaying tree: {}", e);
-            }
-        },
-        ShellCommand::Help => {
-            println!("Available commands:");
-            println!("  cd <dir>  - Change directory");
-            println!("  help      - Show this help");
-            println!("  exit      - Exit the shell");
-            println!("  <command> - Execute command");
-            println!("  tree [dir] - Display directory tree");
-        },
-        ShellCommand::Exit => {},
-    }
-}
-
-/// Main shell loop that handles user interaction
-/// # Effects
-/// * Continuously reads from stdin
-/// * Prints prompt to stdout
-/// * Executes commands
-/// * Maintains shell state until exit
-pub fn run_shell() {
-    let mut input = String::new();
-    let mut logger = CommandLogger::new();
-    
-    println!("Enhanced Command Shell (type 'help' for commands)");
-    
     loop {
-        print!("{} > ", std::env::current_dir().unwrap().display());
-        io::stdout().flush().unwrap();
-        input.clear();
+        print!("{} > ", env::current_dir()?.display());
+        io::stdout().flush()?;
         
-        if io::stdin().read_line(&mut input).is_err() {
-            break;
-        }
-
-        // Try parsing as binary first
-        if let Some(bytes) = input.trim().as_bytes().first() {
-            if let Some(cmd) = ShellCommand::from_opcode(*bytes, &input.as_bytes()[1..]) {
-                match cmd {
-                    ShellCommand::Exit => break,
-                    cmd => execute_shell_command(cmd, &mut logger),
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        
+        let input = input.trim();
+        if input.is_empty() { continue; }
+        
+        let parts: Vec<&str> = input.split_whitespace().collect();
+        match parts[0] {
+            "exit" => break,
+            "cd" => {
+                let path = parts.get(1).map(|s| *s).unwrap_or(".");
+                if let Err(e) = env::set_current_dir(path) {
+                    eprintln!("cd: {}", e);
                 }
-                continue;
+            },
+            "upload" => {
+                if let Some(file) = parts.get(1) {
+                    match fs::read(file) {
+                        Ok(contents) => {
+                            match ureq::post(&format!("http://{}/upload", server_addr))
+                                .send_bytes(&contents) {
+                                Ok(_) => println!("Upload successful"),
+                                Err(e) => eprintln!("Upload failed: {}", e),
+                            }
+                        },
+                        Err(e) => eprintln!("Failed to read file: {}", e),
+                    }
+                } else {
+                    println!("Usage: upload <filename>");
+                }
+            },
+            "download" => {
+                if let Some(file) = parts.get(1) {
+                    match ureq::get(&format!("http://{}/download/{}", server_addr, file))
+                        .call() {
+                        Ok(response) => {
+                            let mut bytes = Vec::new();
+                            if let Ok(_) = response.into_reader().read_to_end(&mut bytes) {
+                                if let Err(e) = fs::write(file, bytes) {
+                                    eprintln!("Failed to save file: {}", e);
+                                } else {
+                                    println!("Download successful");
+                                }
+                            }
+                        },
+                        Err(e) => eprintln!("Download failed: {}", e),
+                    }
+                } else {
+                    println!("Usage: download <filename>");
+                }
+            },
+            "tree" => {
+                let path = parts.get(1).map(|s| *s).unwrap_or(".");
+                println!(".");
+                if let Err(e) = display_tree(Path::new(path), "", true) {
+                    eprintln!("Error displaying tree: {}", e);
+                }
+            },
+            "help" => {
+                println!("Available commands:");
+                println!("  cd <dir>        - Change directory");
+                println!("  upload <file>   - Upload file to server");
+                println!("  download <file> - Download file from server");
+                println!("  tree [dir]      - Display directory tree");
+                println!("  help            - Show this help");
+                println!("  exit            - Exit shell");
+                println!("  <command>       - Execute system command");
+            },
+            cmd => {
+                let status = Command::new(cmd)
+                    .args(&parts[1..])
+                    .status();
+                
+                match status {
+                    Ok(exit) => {
+                        if !exit.success() {
+                            eprintln!("Command failed with exit code: {}", exit);
+                        }
+                    },
+                    Err(e) => eprintln!("Failed to execute '{}': {}", cmd, e),
+                }
             }
         }
-
-        // Fall back to text parsing
-        match parse_command(input.trim()) {
-            Some(ShellCommand::Exit) => break,
-            Some(cmd) => execute_shell_command(cmd, &mut logger),
-            None => if !input.trim().is_empty() {
-                eprintln!("Invalid command");
-            },
-        }
     }
-}
-
-/// Unit tests for shell functionality
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_parse_command() {
-        if let Some(ShellCommand::Execute(cmd, args)) = parse_command("ls -la") {
-            assert_eq!(cmd, "ls");
-            assert_eq!(args, vec!["-la"]);
-        } else {
-            panic!("Failed to parse command");
-        }
-    }
-}
-
-/// Entry point for testing the shell directly
-/// # Effects
-/// * Starts the command shell
-/// * Handles user input until exit
-fn main() {
-    println!("Test interface for command shell");
-    println!("Type 'exit' to quit");
-    println!("Type 'help' for available commands");
-    run_shell();
+    Ok(())
 }

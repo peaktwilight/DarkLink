@@ -1,29 +1,21 @@
-use std::fs::File;
-use std::io::{self, Write};
-use tokio::io::AsyncReadExt;
-use tokio_socks::tcp::Socks5Stream;
-
-const BUFFER_SIZE: usize = 8192;
+use std::io;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 pub async fn download_file(
-    remote_path: &str,
-    local_path: &str, 
-    proxy_addr: &str,
-    target_addr: &str
+    local_path: &str,
+    _remote_path: &str,
+    _proxy_addr: &str,
+    target_addr: &str,
 ) -> io::Result<()> {
-    let mut stream = Socks5Stream::connect(proxy_addr, target_addr)
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-    let mut file = File::create(local_path)?;
-    let mut buffer = vec![0u8; BUFFER_SIZE];
-
-    loop {
-        let bytes_read = stream.read(&mut buffer).await?;
-        if bytes_read == 0 { break; }
-        file.write_all(&buffer[..bytes_read])?;
-    }
-
+    let url = format!("http://{}{}", target_addr, _remote_path);
+    let response = ureq::get(&url).call().map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    let mut bytes = Vec::new();
+    response.into_reader().read_to_end(&mut bytes)?;
+    
+    let mut file = File::create(local_path).await?;
+    file.write_all(&bytes).await?;
+    
     Ok(())
 }
 
@@ -39,9 +31,9 @@ mod tests {
         
         // Test download
         let result = download_file(
-            test_file,
             download_path.to_str().unwrap(),
-            "127.0.0.1:1080",  // SOCKS5 proxy address
+            test_file,
+            "",
             "127.0.0.1:8080"   // Test server address
         ).await;
         
