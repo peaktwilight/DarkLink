@@ -1,6 +1,3 @@
-extern crate tokio;
-extern crate tokio_socks;
-
 mod file_handling;
 
 use file_handling::{download::download_file, upload::upload_file, test_server};
