@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MicroC2 Server</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .file { padding: 10px; border-bottom: 1px solid #eee; }
+        .file:hover { background: #f5f5f5; }
+        .download-link { float: right; }
+        #command-section { margin-top: 30px; padding: 20px; background: #f8f8f8; border-radius: 5px; }
+        #command-input { width: 80%; padding: 10px; }
+        #command-output { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; min-height: 200px; }
+        .command-entry { margin: 5px 0; }
+        .command { color: #0f0; }
+        .result { color: #aaa; margin-left: 20px; }
+        .command-result { 
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 0.8em;
+        }
+        .command-result.error {
+            background: #ffcccc;
+            color: #ff0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>MicroC2 Server</h1>
+    
+    <div id="command-section">
+        <h2>Command Shell</h2>
+        <input type="text" id="command-input" placeholder="Enter command...">
+        <button onclick="sendCommand()">Send</button>
+        <div id="command-output"></div>
+    </div>
+
+    <script>
+    async function sendCommand() {
+        const input = document.getElementById('command-input');
+        const cmd = input.value;
+        input.value = '';
+
+        try {
+            // Queue command
+            await fetch('/queue_command', {
+                method: 'POST',
+                body: cmd
+            });
+
+            // Add command to output immediately
+            const output = document.getElementById('command-output');
+            const cmdDiv = document.createElement('div');
+            cmdDiv.className = 'command-entry';
+            cmdDiv.innerHTML = `<span class="command">> ${cmd}</span>`;
+            output.appendChild(cmdDiv);
+
+            // Check for results with retry
+            checkResultsWithRetry();
+        } catch (e) {
+            console.error('Error:', e);
+            showError(e.message);
+        }
+    }
+
+    async function checkResultsWithRetry(attempts = 3) {
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const response = await fetch('/get_results');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const results = await response.json();
+                
+                if (!Array.isArray(results)) {
+                    console.warn('Expected array of results, got:', results);
+                    return;
+                }
+
+                const output = document.getElementById('command-output');
+                results.forEach(result => {
+                    if (!result) return;
+                    
+                    const div = document.createElement('div');
+                    div.className = 'command-result';
+                    div.innerHTML = `
+                        <span class="timestamp">[${result.timestamp || 'N/A'}]</span>
+                        <span class="command">${result.command || 'unknown'}</span>
+                        <pre>${result.output || ''}</pre>
+                    `;
+                    output.appendChild(div);
+                });
+                return;
+            } catch (e) {
+                console.warn(`Attempt ${i + 1} failed:`, e);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+    }
+
+    function showError(message) {
+        const output = document.getElementById('command-output');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'command-result error';
+        errorDiv.innerHTML = `<span class="timestamp">[ERROR]</span> ${message}`;
+        output.appendChild(errorDiv);
+    }
+
+    // Poll for results every second
+    setInterval(() => checkResultsWithRetry(1), 1000);
+    </script>
+</body>
+</html>

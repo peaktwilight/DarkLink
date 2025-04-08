@@ -1,29 +1,53 @@
-use std::fs::File;
-use std::io::{self, Write};
-use tokio::io::AsyncReadExt;
-use tokio_socks::tcp::Socks5Stream;
-
-const BUFFER_SIZE: usize = 8192;
+use std::io::{self, Read};
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 pub async fn download_file(
+    local_path: &str,
     remote_path: &str,
-    local_path: &str, 
-    proxy_addr: &str,
-    target_addr: &str
+    _proxy_addr: &str,
+    target_addr: &str,
 ) -> io::Result<()> {
-    let mut stream = Socks5Stream::connect(proxy_addr, target_addr)
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    // Ensure remote_path starts with '/'
+    let path = if !remote_path.starts_with('/') {
+        format!("/{}", remote_path)
+    } else {
+        remote_path.to_string()
+    };
 
-    let mut file = File::create(local_path)?;
-    let mut buffer = vec![0u8; BUFFER_SIZE];
+    // Construct proper URL with filename
+    let url = format!("http://{}/download/{}", target_addr, 
+                     path.trim_start_matches('/').trim_start_matches("download/"));
 
-    loop {
-        let bytes_read = stream.read(&mut buffer).await?;
-        if bytes_read == 0 { break; }
-        file.write_all(&buffer[..bytes_read])?;
+    println!("Downloading from: {}", url);
+
+    // Get response with better error handling
+    let response = ureq::get(&url)
+        .call()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Download failed: {}", e)))?;
+
+    if response.status() != 200 {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("Server returned status: {}", response.status())
+        ));
     }
 
+    // Read response body
+    let mut bytes = Vec::new();
+    response.into_reader()
+        .read_to_end(&mut bytes)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to read response: {}", e)))?;
+
+    if bytes.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::Other, "Received empty response"));
+    }
+
+    // Write to file
+    let mut file = File::create(local_path).await?;
+    file.write_all(&bytes).await?;
+    
+    println!("Successfully downloaded {} bytes to {}", bytes.len(), local_path);
     Ok(())
 }
 
@@ -39,9 +63,9 @@ mod tests {
         
         // Test download
         let result = download_file(
-            test_file,
             download_path.to_str().unwrap(),
-            "127.0.0.1:1080",  // SOCKS5 proxy address
+            test_file,
+            "",
             "127.0.0.1:8080"   // Test server address
         ).await;
         

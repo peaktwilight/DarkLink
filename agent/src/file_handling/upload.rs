@@ -1,29 +1,27 @@
-use std::fs::File;
-use std::io::{self, Read};
-use tokio::io::AsyncWriteExt;
-use tokio_socks::tcp::Socks5Stream;
-
-const BUFFER_SIZE: usize = 8192;
+use std::io;
+use std::path::Path;
+use tokio::fs::File;
+use tokio::io::AsyncReadExt;
 
 pub async fn upload_file(
     local_path: &str,
     remote_path: &str,
-    proxy_addr: &str,
-    target_addr: &str
+    _proxy_addr: &str,
+    target_addr: &str,
 ) -> io::Result<()> {
-    let mut stream = Socks5Stream::connect(proxy_addr, target_addr)
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
-    let mut file = File::open(local_path)?;
-    let mut buffer = vec![0u8; BUFFER_SIZE];
-
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 { break; }
-        stream.write_all(&buffer[..bytes_read]).await?;
-    }
+    let mut file = File::open(local_path).await?;
+    let mut contents = Vec::new();
+    file.read_to_end(&mut contents).await?;
     
-    stream.flush().await?;
+    let url = format!("http://{}{}", target_addr, remote_path);
+    let filename = Path::new(local_path).file_name()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid filename"))?
+        .to_string_lossy();
+
+    ureq::post(&url)
+        .set("X-Filename", &filename)
+        .send_bytes(&contents)
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
     Ok(())
 }

