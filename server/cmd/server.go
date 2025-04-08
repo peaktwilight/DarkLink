@@ -22,6 +22,15 @@ type CommandResult struct {
     Timestamp string `json:"timestamp"`
 }
 
+type Agent struct {
+    ID        string    `json:"id"`
+    OS        string    `json:"os"`
+    Hostname  string    `json:"hostname"`
+    IP        string    `json:"ip"`
+    LastSeen  time.Time `json:"last_seen"`
+    Commands  []string  `json:"last_commands"`
+}
+
 var (
     commands = struct {
         sync.Mutex
@@ -32,6 +41,11 @@ var (
         sync.Mutex
         queue []CommandResult
     }{}
+
+    agents = struct {
+        sync.Mutex
+        list map[string]*Agent
+    }{list: make(map[string]*Agent)}
 )
 
 func getLocalIP() string {
@@ -52,8 +66,9 @@ func getLocalIP() string {
 
 func enableCors(w *http.ResponseWriter) {
     (*w).Header().Set("Access-Control-Allow-Origin", "*")
-    (*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    (*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Filename")
+    (*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+    (*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Filename, X-Command")
+    (*w).Header().Set("Access-Control-Max-Age", "86400")
 }
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -227,9 +242,82 @@ func handleListFiles(w http.ResponseWriter, r *http.Request) {
     json.NewEncoder(w).Encode(fileList)
 }
 
+func handleAgentHeartbeat(w http.ResponseWriter, r *http.Request) {
+    enableCors(&w)
+    
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    var agent Agent
+    if err := json.NewDecoder(r.Body).Decode(&agent); err != nil {
+        log.Printf("[ERROR] Failed to decode agent data: %v", err)
+        http.Error(w, "Invalid agent data", http.StatusBadRequest)
+        return
+    }
+
+    // Get the real IP address
+    ip := r.Header.Get("X-Forwarded-For")
+    if ip == "" {
+        ip = r.Header.Get("X-Real-IP")
+    }
+    if ip == "" {
+        ip, _, _ = net.SplitHostPort(r.RemoteAddr)
+    }
+    
+    agents.Lock()
+    _, exists := agents.list[agent.ID]
+    if exists {
+        log.Printf("[HEARTBEAT] Agent %s (%s) checked in", agent.ID, ip)
+    } else {
+        log.Printf("[NEW] Agent %s connected from %s (OS: %s, Hostname: %s)", 
+            agent.ID, ip, agent.OS, agent.Hostname)
+    }
+    
+    agent.IP = ip
+    agent.LastSeen = time.Now()
+    agents.list[agent.ID] = &agent
+    agents.Unlock()
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{
+        "status": "connected",
+        "server_time": time.Now().Format(time.RFC3339),
+    })
+}
+
+func handleListAgents(w http.ResponseWriter, r *http.Request) {
+    enableCors(&w)
+    agents.Lock()
+    defer agents.Unlock()
+
+    // Clean up stale agents (not seen in last 5 minutes)
+    for id, agent := range agents.list {
+        if time.Since(agent.LastSeen) > 5*time.Minute {
+            delete(agents.list, id)
+        }
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(agents.list)
+}
+
 func main() {
-    // Create uploads directory if it doesn't exist
+    // Create required directories
     os.MkdirAll(UPLOAD_DIR, 0755)
+    os.MkdirAll("static/agents", 0755)
+
+    // Get local IP and port
+    port := "8080"
+    if p := os.Getenv("PORT"); p != "" {
+        port = p
+    }
+    localIP := getLocalIP()
+
+    log.Printf("[STARTUP] Server initializing...")
+    log.Printf("[NETWORK] Local IP: %s", localIP)
+    log.Printf("[NETWORK] Port: %s", port)
 
     // Set up routes
     http.HandleFunc("/", handleRoot)
@@ -244,21 +332,34 @@ func main() {
     http.Handle("/files/", http.StripPrefix("/files/", 
         http.FileServer(http.Dir(UPLOAD_DIR))))
 
+    // Add agent routes
+    http.HandleFunc("/agent/heartbeat", handleAgentHeartbeat)
+    http.HandleFunc("/agent/list", handleListAgents)
+
+    // Serve static files and agents
+    fs := http.FileServer(http.Dir("static"))
+    http.Handle("/static/", http.StripPrefix("/static/", fs))
+    http.Handle("/agents/", http.StripPrefix("/agents/", 
+        http.FileServer(http.Dir("static/agents"))))
+
     // Serve static files from uploads directory
     http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(UPLOAD_DIR))))
 
-    // Get local IP and port
-    port := "8080"
-    if p := os.Getenv("PORT"); p != "" {
-        port = p
+    // Update server startup to explicitly set TCP keep-alive
+    server := &http.Server{
+        Addr: ":" + port,
+        Handler: nil,
+        ReadTimeout: 10 * time.Second,
+        WriteTimeout: 10 * time.Second,
+        IdleTimeout: 60 * time.Second,
     }
-    localIP := getLocalIP()
 
     fmt.Printf("\nServer starting...\n")
     fmt.Printf("Local:   http://localhost:%s\n", port)
     fmt.Printf("Network: http://%s:%s\n\n", localIP, port)
     fmt.Printf("Other devices on your network can connect using the Network address\n")
 
-    // Start server on all interfaces
-    log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
+    // Start server with error logging
+    log.Printf("Starting server on 0.0.0.0:%s", port)
+    log.Fatal(server.ListenAndServe())
 }
