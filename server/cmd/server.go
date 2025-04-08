@@ -53,7 +53,8 @@ func getLocalIP() string {
 func enableCors(w *http.ResponseWriter) {
     (*w).Header().Set("Access-Control-Allow-Origin", "*")
     (*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    (*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Filename")
+    (*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Filename, X-Command")
+    (*w).Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 func handleRoot(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +230,11 @@ func handleListFiles(w http.ResponseWriter, r *http.Request) {
 
 func main() {
     // Create uploads directory if it doesn't exist
-    os.MkdirAll(UPLOAD_DIR, 0755)
+    uploadDir := os.Getenv("UPLOAD_DIR")
+    if uploadDir == "" {
+        uploadDir = UPLOAD_DIR
+    }
+    os.MkdirAll(uploadDir, 0755)
 
     // Set up routes
     http.HandleFunc("/", handleRoot)
@@ -242,16 +247,22 @@ func main() {
     http.HandleFunc("/files/upload", handleFileUpload)
     http.HandleFunc("/files/list", handleListFiles)
     http.Handle("/files/", http.StripPrefix("/files/", 
-        http.FileServer(http.Dir(UPLOAD_DIR))))
+        http.FileServer(http.Dir(uploadDir))))
 
     // Serve static files from uploads directory
-    http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(UPLOAD_DIR))))
+    http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(uploadDir))))
 
-    // Get local IP and port
-    port := "8080"
-    if p := os.Getenv("PORT"); p != "" {
-        port = p
+    // Get bind address and port
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080"
     }
+    
+    bindAddr := os.Getenv("BIND_ADDR")
+    if bindAddr == "" {
+        bindAddr = "0.0.0.0"
+    }
+
     localIP := getLocalIP()
 
     fmt.Printf("\nServer starting...\n")
@@ -259,6 +270,6 @@ func main() {
     fmt.Printf("Network: http://%s:%s\n\n", localIP, port)
     fmt.Printf("Other devices on your network can connect using the Network address\n")
 
-    // Start server on all interfaces
-    log.Fatal(http.ListenAndServe("0.0.0.0:"+port, nil))
+    log.Printf("Server starting on %s:%s", bindAddr, port)
+    log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", bindAddr, port), nil))
 }

