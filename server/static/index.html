@@ -32,9 +32,9 @@
         }
         #file-section {
             margin-top: 30px;
-            padding: 20px;
-            background: #f8f8f8;
-            border-radius: 5px;
+            padding: 20px; 
+            background: #f8f8f8; 
+            border-radius: 5px; 
         }
         .file-list {
             list-style: none;
@@ -74,6 +74,74 @@
         .file-actions a:hover {
             background: #0056b3;
         }
+        #agent-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f8f8;
+            border-radius: 5px;
+        }
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .agent-name {
+            font-weight: bold;
+        }
+        .download-btn {
+            padding: 5px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+        .download-btn:hover {
+            background: #218838;
+        }
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            margin: 10px 0;
+            background: #1a1a1a;
+            border-radius: 4px;
+            color: #0f0;
+        }
+        .agent-info {
+            flex: 1;
+        }
+        .agent-status {
+            font-size: 0.8em;
+            color: #888;
+        }
+        .agent-os {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        .os-windows { background: #0078d4; }
+        .os-linux { background: #e95420; }
+        .os-macos { background: #999; }
+        .agent-item.new-connection {
+            animation: highlight 2s ease-in-out;
+        }
+        @keyframes highlight {
+            0% { background: #1a1a1a; }
+            50% { background: #2d5a27; }
+            100% { background: #1a1a1a; }
+        }
+        .connection-status {
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            background: #2d5a27;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -84,6 +152,38 @@
         <input type="text" id="command-input" placeholder="Enter command...">
         <button onclick="sendCommand()">Send</button>
         <div id="command-output"></div>
+    </div>
+
+    <div id="agent-section">
+        <h2>Agent Downloads</h2>
+        <div class="agent-list">
+            <div class="agent-item">
+                <span class="agent-name">Windows (64-bit)</span>
+                <div class="download-links">
+                    <a href="/static/agents/windows_agent.zip" download class="download-btn">Download Package</a>
+                    <a href="/static/agents/agent_windows_amd64.exe" download class="download-btn">Download EXE Only</a>
+                </div>
+            </div>
+            <div class="agent-item">
+                <span class="agent-name">Linux (64-bit)</span>
+                <a href="/static/agents/agent_linux_amd64" download class="download-btn">Download</a>
+            </div>
+            <div class="agent-item">
+                <span class="agent-name">macOS (64-bit)</span>
+                <a href="/static/agents/agent_darwin_amd64" download class="download-btn">Download</a>
+            </div>
+            <div class="agent-item">
+                <span class="agent-name">Checksums</span>
+                <a href="/static/agents/checksums.txt" download class="download-btn">Download</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="agent-section">
+        <h2>Active Agents</h2>
+        <div class="agent-list" id="agent-list">
+            <!-- Agents will be listed here -->
+        </div>
     </div>
 
     <div id="file-section">
@@ -195,12 +295,46 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
+    async function updateAgentList() {
+        try {
+            const response = await fetch('/agent/list');
+            const agents = await response.json();
+            
+            const agentList = document.getElementById('agent-list');
+            agentList.innerHTML = Object.values(agents).map(agent => {
+                const isNew = Date.now() - new Date(agent.last_seen).getTime() < 5000;
+                return `
+                    <div class="agent-item ${isNew ? 'new-connection' : ''}">
+                        <div class="agent-info">
+                            <div class="agent-name">
+                                ${agent.hostname}
+                                <span class="agent-os os-${agent.os.toLowerCase()}">${agent.os}</span>
+                                ${isNew ? '<span class="connection-status">New Connection</span>' : ''}
+                            </div>
+                            <div class="agent-status">
+                                ID: ${agent.id}<br>
+                                IP: ${agent.ip}<br>
+                                Connected: ${new Date(agent.last_seen).toLocaleString()}<br>
+                                Last commands: ${agent.commands.join(', ') || 'None'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {
+            console.error('Error updating agent list:', e);
+        }
+    }
+
     // Poll for results every second
     setInterval(() => checkResultsWithRetry(1), 1000);
     // Update file list every 5 seconds
     setInterval(updateFileList, 5000);
     // Initial file list update
     updateFileList();
+    // Update agent list more frequently for better responsiveness
+    setInterval(updateAgentList, 2000);
+    updateAgentList();
     </script>
 </body>
 </html>
