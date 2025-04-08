@@ -1,1 +1,0 @@
-/home/darkroom/coding/MicroC2/agent/target/debug/microc2-agent: /home/darkroom/coding/MicroC2/agent/src/file_handling/download.rs /home/darkroom/coding/MicroC2/agent/src/file_handling/mod.rs /home/darkroom/coding/MicroC2/agent/src/file_handling/upload.rs /home/darkroom/coding/MicroC2/agent/src/main.rs
