@@ -16,21 +16,6 @@ import (
 
 const UPLOAD_DIR = "uploads"
 
-type CommandResult struct {
-	Command   string `json:"command"`
-	Output    string `json:"output"`
-	Timestamp string `json:"timestamp"`
-}
-
-type Agent struct {
-	ID       string    `json:"id"`
-	OS       string    `json:"os"`
-	Hostname string    `json:"hostname"`
-	IP       string    `json:"ip"`
-	LastSeen time.Time `json:"last_seen"`
-	Commands []string  `json:"last_commands"`
-}
-
 var (
 	commands = struct {
 		sync.Mutex
@@ -46,7 +31,24 @@ var (
 		sync.Mutex
 		list map[string]*Agent
 	}{list: make(map[string]*Agent)}
+
+	uploadDir = "uploads" // Add this line
 )
+
+type CommandResult struct {
+	Command   string `json:"command"`
+	Output    string `json:"output"`
+	Timestamp string `json:"timestamp"`
+}
+
+type Agent struct {
+	ID       string    `json:"id"`
+	OS       string    `json:"os"`
+	Hostname string    `json:"hostname"`
+	IP       string    `json:"ip"`
+	LastSeen time.Time `json:"last_seen"`
+	Commands []string  `json:"last_commands"`
+}
 
 func getLocalIP() string {
 	addrs, err := net.InterfaceAddrs()
@@ -305,7 +307,9 @@ func handleListAgents(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Create required directories
-	os.MkdirAll(UPLOAD_DIR, 0755)
+	if err := os.MkdirAll(uploadDir, 0755); err != nil { // Add this line
+		log.Fatalf("Failed to create upload directory: %v", err)
+	}
 	os.MkdirAll("static/agents", 0755)
 
 	// Get local IP and port
