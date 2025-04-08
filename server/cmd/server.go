@@ -3,11 +3,13 @@ package main
 import (
     "encoding/json"
     "fmt"
+    "io"
     "io/ioutil"
     "log"
     "net"
     "net/http"
     "os"
+    "path/filepath"
     "sync"
     "time"
 )
@@ -158,6 +160,73 @@ func handleGetResults(w http.ResponseWriter, r *http.Request) {
     results.queue = nil
 }
 
+func handleFileUpload(w http.ResponseWriter, r *http.Request) {
+    enableCors(&w)
+    if r.Method != http.MethodPost {
+        http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    filename := r.Header.Get("X-Filename")
+    if filename == "" {
+        http.Error(w, "Missing X-Filename header", http.StatusBadRequest)
+        return
+    }
+
+    // Sanitize filename
+    filename = filepath.Clean(filename)
+    filename = filepath.Base(filename)
+    
+    filepath := filepath.Join(UPLOAD_DIR, filename)
+    file, err := os.Create(filepath)
+    if err != nil {
+        log.Printf("Error creating file: %v", err)
+        http.Error(w, "Failed to create file", http.StatusInternalServerError)
+        return
+    }
+    defer file.Close()
+
+    if _, err := io.Copy(file, r.Body); err != nil {
+        log.Printf("Error writing file: %v", err)
+        http.Error(w, "Failed to write file", http.StatusInternalServerError)
+        return
+    }
+
+    log.Printf("File uploaded: %s", filename)
+    w.WriteHeader(http.StatusOK)
+}
+
+func handleListFiles(w http.ResponseWriter, r *http.Request) {
+    enableCors(&w)
+    files, err := os.ReadDir(UPLOAD_DIR)
+    if err != nil {
+        http.Error(w, "Failed to list files", http.StatusInternalServerError)
+        return
+    }
+
+    type FileInfo struct {
+        Name    string `json:"name"`
+        Size    int64  `json:"size"`
+        ModTime string `json:"modified"`
+    }
+
+    var fileList []FileInfo
+    for _, file := range files {
+        info, err := file.Info()
+        if err != nil {
+            continue
+        }
+        fileList = append(fileList, FileInfo{
+            Name:    file.Name(),
+            Size:    info.Size(),
+            ModTime: info.ModTime().Format(time.RFC3339),
+        })
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(fileList)
+}
+
 func main() {
     // Create uploads directory if it doesn't exist
     os.MkdirAll(UPLOAD_DIR, 0755)
@@ -168,6 +237,12 @@ func main() {
     http.HandleFunc("/get_command", handleGetCommand)
     http.HandleFunc("/submit_result", handleSubmitResult)
     http.HandleFunc("/get_results", handleGetResults)
+
+    // Add new routes
+    http.HandleFunc("/files/upload", handleFileUpload)
+    http.HandleFunc("/files/list", handleListFiles)
+    http.Handle("/files/", http.StripPrefix("/files/", 
+        http.FileServer(http.Dir(UPLOAD_DIR))))
 
     // Serve static files from uploads directory
     http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(UPLOAD_DIR))))
