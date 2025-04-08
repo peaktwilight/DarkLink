@@ -1,0 +1,5 @@
+{
+    "server_url": "172.28.249.104:8080",
+    "sleep_interval": 5,
+    "jitter": 2
+}
