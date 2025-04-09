@@ -1,1 +1,5 @@
 agent/target/*
+server/server
+server/target/*
+server/Cargo.lock
+agent/Cargo.lock
