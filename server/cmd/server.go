@@ -9,9 +9,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/creack/pty"
+	"github.com/gorilla/websocket"
 )
 
 const UPLOAD_DIR = "uploads"
@@ -305,6 +309,56 @@ func handleListAgents(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(agents.list)
 }
 
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func handleTerminal(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade connection: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	// Start bash or your preferred shell
+	cmd := exec.Command("bash")
+	ptmx, err := pty.Start(cmd)
+	if err != nil {
+		log.Printf("Failed to start terminal: %v", err)
+		return
+	}
+	defer ptmx.Close()
+
+	// Handle websocket read/write
+	go func() {
+		for {
+			mt, payload, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
+
+			if mt == websocket.TextMessage {
+				ptmx.Write(payload)
+			}
+		}
+	}()
+
+	buf := make([]byte, 1024)
+	for {
+		n, err := ptmx.Read(buf)
+		if err != nil {
+			return
+		}
+		err = conn.WriteMessage(websocket.TextMessage, buf[:n])
+		if err != nil {
+			return
+		}
+	}
+}
+
 func main() {
 	// Create required directories
 	if err := os.MkdirAll(uploadDir, 0755); err != nil { // Add this line
@@ -348,6 +402,9 @@ func main() {
 
 	// Serve static files from uploads directory
 	http.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(uploadDir))))
+
+	// Add terminal WebSocket handler
+	http.HandleFunc("/terminal", handleTerminal)
 
 	// Update server startup to explicitly set TCP keep-alive
 	server := &http.Server{
