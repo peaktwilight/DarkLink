@@ -1,0 +1,25 @@
+server:
+  port: 8080
+  uploadDir: "uploads"
+  staticDir: "static"
+  
+communication:
+  # Available protocols: http-polling, dns-over-https
+  protocol: http-polling
+  
+  # Protocol-specific settings
+  http-polling:
+    heartbeatInterval: 60  # seconds
+    
+  dns-over-https:
+    # DNS over HTTPS specific settings
+    resolverEndpoint: "/dns-query"
+    maxChunkSize: 255  # Maximum size of DNS message chunks
+    
+security:
+  enableCORS: true
+  corsOrigins: ["*"]
+  
+logging:
+  level: info
+  file: "server.log"

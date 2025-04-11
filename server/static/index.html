@@ -2,9 +2,6 @@
 <html>
 <head>
     <title>MicroC2 Server</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css" />
-    <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
     <style>
         :root {
             --bg-color: #0d0f12;
@@ -52,10 +49,10 @@
             background: var(--accent-color);
             color: var(--bg-color);
             border: none;
-            padding: 12px 20px;
+            padding: 10px 20px;
             cursor: pointer;
             font-weight: bold;
-            border-radius: 4px;
+            border-radius: 5px;
         }
 
         #command-output { 
@@ -116,7 +113,7 @@
         .command-result {
             background: var(--secondary-bg);
             border: 1px solid var(--border-color);
-            color: var(--text-color);
+            color: var (--text-color);
             margin: 10px 0;
         }
 
@@ -126,35 +123,68 @@
         
         .command-result.error {
             border-color: var(--error-color);
-            color: var(--error-color);
+            color: var (--error-color);
         }
 
-        #terminal-container {
+        #log-container {
             background: var(--bg-color);
             border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 10px;
             margin: 20px 0;
-            height: 400px;
+            height: 460px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
         }
 
-        .terminal {
-            padding: 5px;
+        .log-entry {
+            padding: 2px 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .log-entry.agent-connect { color: #50fa7b; }
+        .log-entry.agent-disconnect { color: #ffb86c; }
+        .log-entry.agent-command { color: #8be9fd; }
+        .log-entry.agent-file { color: #bd93f9; }
+        .log-entry.error { color: #ff5555; }
+        .log-entry.warn { color: #f1fa8c; }
+        .log-entry.info { color: #50fa7b; }
+        .log-entry.debug { color: #6272a4; }
+
+        /* Add new styles for side-by-side layout */
+        .main-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        #log-container {
+            flex: 1;
+            margin: 0;
+        }
+
+        #command-section {
+            flex: 1;
+            margin: 0;
         }
     </style>
 </head>
 <body>
-    <h1>MicroC2 Server</h1>
-    
-    <div id="terminal-container">
-        <div id="terminal"></div>
-    </div>
+    <h1>MicroC2 Server</h1>            
 
-    <div id="command-section">
-        <h2>Command Shell</h2>
-        <input type="text" id="command-input" placeholder="Enter command...">
-        <button onclick="sendCommand()">Send</button>
-        <div id="command-output"></div>
+    <div class="main-container">
+        <div id="log-container">
+            <div id="log-content"></div>
+        </div>
+
+        <div id="command-section">
+            <h2>Command Shell</h2>
+            <div id="command-output"></div>
+            <input type="text" id="command-input" placeholder="Enter command..." onkeypress="handleCommandInput(event)">
+            <button onclick="sendCommand()">Send</button>
+        </div>
     </div>
 
     <div id="agent-section">
@@ -197,47 +227,169 @@
     </div>
 
     <script>
-    // Add terminal initialization code at the top of your script
-    const term = new Terminal({
-        cursorBlink: true,
-        fontSize: 14,
-        fontFamily: 'Consolas, monospace',
-        theme: {
-            background: '#0d0f12',
-            foreground: '#00ff9f',
-            cursor: '#00ff9f'
+    function createSIEMLog(eventType, data) {
+        return {
+            timestamp: new Date().toISOString(),
+            event_type: eventType,
+            severity: data.severity || 'info',
+            source_ip: data.ip || 'unknown',
+            source_host: data.hostname || 'unknown',
+            agent_id: data.id || 'unknown',
+            os: data.os || 'unknown',
+            action: data.action || eventType,
+            status: data.status || 'success',
+            command: data.command || '',
+            output: data.output || '',
+            details: data.details || '',
+        };
+    }
+
+    function appendLog(message, className, data = {}) {
+        const logContent = document.getElementById('log-content');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${className}`;
+        
+        // Create SIEM-friendly log entry
+        const siemLog = createSIEMLog(className, data);
+        
+        // Display formatted message for UI
+        entry.textContent = `${siemLog.timestamp} [${siemLog.severity.toUpperCase()}] ${message}`;
+        
+        // Add hidden JSON for SIEM export
+        entry.dataset.siemLog = JSON.stringify(siemLog);
+        
+        logContent.appendChild(entry);
+        logContent.scrollTop = logContent.scrollHeight;
+        
+        while (logContent.children.length > 1000) {
+            logContent.removeChild(logContent.firstChild);
         }
-    });
+    }
 
-    const fitAddon = new FitAddon.FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(document.getElementById('terminal'));
-    fitAddon.fit();
+    async function checkResultsWithRetry(attempts = 3) {
+        for (let i = 0; i < attempts; i++) {
+            try {
+                const response = await fetch('/get_results');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const results = await response.json();
+                
+                if (!Array.isArray(results)) {
+                    console.warn('Expected array of results, got:', results);
+                    return;
+                }
 
-    // Create WebSocket connection
-    const ws = new WebSocket(`ws://${window.location.host}/terminal`);
-    
-    ws.onopen = () => {
-        term.write('\x1b[32mConnected to server terminal.\x1b[0m\r\n');
-    };
+                const output = document.getElementById('command-output');
+                results.forEach(result => {
+                    if (!result) return;
+                    
+                    // Add to command output
+                    const div = document.createElement('div');
+                    div.className = 'command-result';
+                    div.innerHTML = `
+                        <span class="timestamp">[${result.timestamp || 'N/A'}]</span>
+                        <span class="command">${result.command || 'unknown'}</span>
+                        <pre>${result.output || ''}</pre>
+                    `;
+                    output.appendChild(div);
 
-    ws.onmessage = (event) => {
-        term.write(event.data);
-    };
+                    // Add to log with SIEM data
+                    const logData = {
+                        severity: 'info',
+                        action: 'command_execution',
+                        command: result.command,
+                        output: result.output?.trim(),
+                        status: result.error ? 'failure' : 'success',
+                        timestamp: result.timestamp,
+                        details: result.error || ''
+                    };
+                    appendLog(
+                        `Command "${result.command}" executed - ${result.output?.trim() || 'no output'}`,
+                        'agent-command',
+                        logData
+                    );
+                });
+                return;
+            } catch (e) {
+                console.warn(`Attempt ${i + 1} failed:`, e);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+    }
 
-    term.onData(data => {
-        ws.send(data);
-    });
+    async function updateAgentList() {
+        try {
+            const response = await fetch('/agent/list');
+            const agents = await response.json();
+            const currentAgents = new Set();
+            
+            const agentList = document.getElementById('agent-list');
+            agentList.innerHTML = Object.values(agents).map(agent => {
+                const isNew = Date.now() - new Date(agent.last_seen).getTime() < 5000;
+                currentAgents.add(agent.id);
 
-    // Handle resize
-    window.addEventListener('resize', () => {
-        fitAddon.fit();
-        ws.send(JSON.stringify({
-            type: 'resize',
-            cols: term.cols,
-            rows: term.rows
-        }));
-    });
+                // Log new connections with SIEM data
+                if (isNew && !window.previousAgents?.has(agent.id)) {
+                    appendLog(
+                        `New agent connected - ID: ${agent.id} | Host: ${agent.hostname} | OS: ${agent.os} | IP: ${agent.ip}`,
+                        'agent-connect',
+                        {
+                            severity: 'info',
+                            action: 'agent_connect',
+                            id: agent.id,
+                            hostname: agent.hostname,
+                            os: agent.os,
+                            ip: agent.ip
+                        }
+                    );
+                }
+                
+                return `
+                    <div class="agent-item ${isNew ? 'new-connection' : ''}">
+                        <div class="agent-info">
+                            <div class="agent-name">
+                                ${agent.hostname}
+                                <span class="agent-os os-${agent.os.toLowerCase()}">${agent.os}</span>
+                                ${isNew ? '<span class="connection-status">New Connection</span>' : ''}
+                            </div>
+                            <div class="agent-status">
+                                ID: ${agent.id}<br>
+                                IP: ${agent.ip}<br>
+                                Connected: ${new Date(agent.last_seen).toLocaleString()}<br>
+                                Last commands: ${agent.commands.join(', ') || 'None'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Check for disconnected agents
+            if (window.previousAgents) {
+                for (const id of window.previousAgents) {
+                    if (!currentAgents.has(id)) {
+                        appendLog(
+                            `Agent disconnected - ID: ${id}`,
+                            'agent-disconnect',
+                            {
+                                severity: 'warning',
+                                action: 'agent_disconnect',
+                                id: id
+                            }
+                        );
+                    }
+                }
+            }
+
+            window.previousAgents = currentAgents;
+        } catch (e) {
+            console.error('Error updating agent list:', e);
+        }
+    }
+
+    function handleCommandInput(event) {
+        if (event.key === 'Enter') {
+            sendCommand();
+        }
+    }
 
     async function sendCommand() {
         const input = document.getElementById('command-input');
@@ -263,39 +415,6 @@
         } catch (e) {
             console.error('Error:', e);
             showError(e.message);
-        }
-    }
-
-    async function checkResultsWithRetry(attempts = 3) {
-        for (let i = 0; i < attempts; i++) {
-            try {
-                const response = await fetch('/get_results');
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const results = await response.json();
-                
-                if (!Array.isArray(results)) {
-                    console.warn('Expected array of results, got:', results);
-                    return;
-                }
-
-                const output = document.getElementById('command-output');
-                results.forEach(result => {
-                    if (!result) return;
-                    
-                    const div = document.createElement('div');
-                    div.className = 'command-result';
-                    div.innerHTML = `
-                        <span class="timestamp">[${result.timestamp || 'N/A'}]</span>
-                        <span class="command">${result.command || 'unknown'}</span>
-                        <pre>${result.output || ''}</pre>
-                    `;
-                    output.appendChild(div);
-                });
-                return;
-            } catch (e) {
-                console.warn(`Attempt ${i + 1} failed:`, e);
-                await new Promise(r => setTimeout(r, 1000));
-            }
         }
     }
 
@@ -338,37 +457,6 @@
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    async function updateAgentList() {
-        try {
-            const response = await fetch('/agent/list');
-            const agents = await response.json();
-            
-            const agentList = document.getElementById('agent-list');
-            agentList.innerHTML = Object.values(agents).map(agent => {
-                const isNew = Date.now() - new Date(agent.last_seen).getTime() < 5000;
-                return `
-                    <div class="agent-item ${isNew ? 'new-connection' : ''}">
-                        <div class="agent-info">
-                            <div class="agent-name">
-                                ${agent.hostname}
-                                <span class="agent-os os-${agent.os.toLowerCase()}">${agent.os}</span>
-                                ${isNew ? '<span class="connection-status">New Connection</span>' : ''}
-                            </div>
-                            <div class="agent-status">
-                                ID: ${agent.id}<br>
-                                IP: ${agent.ip}<br>
-                                Connected: ${new Date(agent.last_seen).toLocaleString()}<br>
-                                Last commands: ${agent.commands.join(', ') || 'None'}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } catch (e) {
-            console.error('Error updating agent list:', e);
-        }
     }
 
     // Poll for results every second
