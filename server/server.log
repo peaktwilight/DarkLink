@@ -8,3 +8,13 @@
 2025/04/13 23:36:20 [CONFIG] Upload directory: uploads
 2025/04/13 23:36:20 [CONFIG] Static directory: static
 2025/04/13 23:36:20 [NETWORK] Port: 8080
+2025/04/14 00:53:39 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 00:53:39 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 00:53:39 [CONFIG] Upload directory: uploads
+2025/04/14 00:53:39 [CONFIG] Static directory: static
+2025/04/14 00:53:39 [NETWORK] Port: 8080
+2025/04/14 00:54:00 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 00:54:00 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 00:54:00 [CONFIG] Upload directory: uploads
+2025/04/14 00:54:00 [CONFIG] Static directory: static
+2025/04/14 00:54:00 [NETWORK] Port: 8080
