@@ -17,7 +17,7 @@
         body { 
             font-family: 'Segoe UI', sans-serif; 
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background: var(--bg-color);
             color: var(--text-color);
         }
@@ -25,24 +25,6 @@
         h1, h2 { 
             color: var(--header-color);
             font-weight: 400;
-        }
-
-        #command-section { 
-            background: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        #command-input { 
-            width: 85%;
-            padding: 12px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--accent-color);
-            font-family: 'Consolas', monospace;
-            margin-right: 10px;
         }
 
         button {
@@ -55,174 +37,176 @@
             border-radius: 5px;
         }
 
-        #command-output { 
-            margin-top: 20px;
-            padding: 15px;
-            background: var(--bg-color);
-            color: var(--accent-color);
-            font-family: 'Consolas', monospace;
-            min-height: 300px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
+        /* New Havoc-style layout */
+        .havoc-container {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
         }
 
-        .agent-item {
+        .sidebar {
+            background: var(--secondary-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 15px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-rows: 1fr 300px;
+            gap: 1px;
+            background: var(--border-color);
+        }
+
+        .top-panel, .bottom-panel {
+            background: var(--bg-color);
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        .split-panel {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 1px;
+            height: 100%;
+        }
+
+        .agents-list {
+            background: var(--secondary-bg);
+            border-radius: 4px;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .main-panel {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            padding: 0 10px;
+        }
+
+        .nav-header {
+            font-size: 14px;
+            color: var(--accent-color);
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
+        }
+
+        .nav-item {
+            padding: 8px;
+            margin: 2px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--text-color);
+        }
+
+        .nav-item:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .agent-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .agent-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 4px;
+            margin-bottom: 8px;
         }
 
-        .agent-name {
-            color: var(--accent-color);
-        }
-
-        .download-links {
-            display: flex;
-            gap: 10px;
-            margin-left: auto;
-        }
-
-        .download-btn {
-            background: var(--accent-color);
-            color: var(--bg-color);
-            padding: 8px 15px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-
-        .download-btn:hover {
+        .agent-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
             background: var(--success-color);
-            transition: background 0.2s;
+            margin-right: 8px;
         }
 
-        .file-item {
+        .agent-details {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        #command-shell {
             background: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            margin: 10px 0;
+            border-radius: 4px;
             padding: 15px;
-            border-radius: 4px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
-        .command-result {
-            background: var(--secondary-bg);
-            border: 1px solid var(--border-color);
-            color: var (--text-color);
-            margin: 10px 0;
-        }
-
-        .timestamp {
-            color: var(--accent-color);
-        }
-        
-        .command-result.error {
-            border-color: var(--error-color);
-            color: var (--error-color);
-        }
-
-        #log-container {
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 10px;
-            margin: 20px 0;
-            height: 460px;
+        .shell-output {
+            flex: 1;
             overflow-y: auto;
             font-family: 'Consolas', monospace;
             font-size: 12px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
         }
 
-        .log-entry {
-            padding: 2px 5px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .log-entry.agent-connect { color: #50fa7b; }
-        .log-entry.agent-disconnect { color: #ffb86c; }
-        .log-entry.agent-command { color: #8be9fd; }
-        .log-entry.agent-file { color: #bd93f9; }
-        .log-entry.error { color: #ff5555; }
-        .log-entry.warn { color: #f1fa8c; }
-        .log-entry.info { color: #50fa7b; }
-        .log-entry.debug { color: #6272a4; }
-
-        /* Add new styles for side-by-side layout */
-        .main-container {
+        .shell-input {
             display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 10px;
         }
 
-        #log-container {
+        #command-input {
             flex: 1;
             margin: 0;
         }
 
-        #command-section {
-            flex: 1;
+        button {
             margin: 0;
         }
     </style>
 </head>
 <body>
-    <h1>MicroC2 Server</h1>            
-
-    <div class="main-container">
-        <div id="log-container">
-            <div id="log-content"></div>
+    <div class="havoc-container">
+        <div class="sidebar">
+            <div class="nav-header">MICROC2 CONSOLE</div>
+            <div class="nav-item">Listeners</div>
+            <div class="nav-item active">Agents</div>
+            <div class="nav-item">File Browser</div>
+            <div class="nav-item">Settings</div>
         </div>
 
-        <div id="command-section">
-            <h2>Command Shell</h2>
-            <div id="command-output"></div>
-            <input type="text" id="command-input" placeholder="Enter command..." onkeypress="handleCommandInput(event)">
-            <button onclick="sendCommand()">Send</button>
-        </div>
-    </div>
-
-    <div id="agent-section">
-        <h2>Agent Downloads</h2>
-        <div class="agent-list">
-            <div class="agent-item">
-                <span class="agent-name">Windows (64-bit)</span>
-                <div class="download-links">
-                    <a href="/static/agents/windows_agent.zip" download class="download-btn">Download Package</a>
-                    <a href="/static/agents/agent_windows_amd64.exe" download class="download-btn">Download EXE Only</a>
+        <div class="content">
+            <div class="top-panel">
+                <div class="split-panel">
+                    <div class="agents-list">
+                        <div class="nav-header">ACTIVE AGENTS</div>
+                        <div id="agent-list"></div>
+                    </div>
+                    <div class="main-panel">
+                        <div id="agent-details">
+                            <h2>Agent Details</h2>
+                            <div id="selected-agent-info"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="agent-item">
-                <span class="agent-name">Linux (64-bit)</span>
-                <a href="/static/agents/agent_linux_amd64" download class="download-btn">Download</a>
-            </div>
-            <div class="agent-item">
-                <span class="agent-name">macOS (64-bit)</span>
-                <a href="/static/agents/agent_darwin_amd64" download class="download-btn">Download</a>
-            </div>
-            <div class="agent-item">
-                <span class="agent-name">Checksums</span>
-                <a href="/static/agents/checksums.txt" download class="download-btn">Download</a>
-            </div>
-        </div>
-    </div>
 
-    <div id="agent-section">
-        <h2>Active Agents</h2>
-        <div class="agent-list" id="agent-list">
-            <!-- Agents will be listed here -->
-        </div>
-    </div>
-
-    <div id="file-section">
-        <h2>File Drop</h2>
-        <div class="file-list" id="file-list">
-            <!-- Files will be listed here -->
+            <div class="bottom-panel">
+                <div id="command-shell">
+                    <div class="shell-output" id="command-output"></div>
+                    <div class="shell-input">
+                        <input type="text" id="command-input" placeholder="Enter command..." onkeypress="handleCommandInput(event)">
+                        <button onclick="sendCommand()">Send</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -249,13 +233,8 @@
         const entry = document.createElement('div');
         entry.className = `log-entry ${className}`;
         
-        // Create SIEM-friendly log entry
         const siemLog = createSIEMLog(className, data);
-        
-        // Display formatted message for UI
         entry.textContent = `${siemLog.timestamp} [${siemLog.severity.toUpperCase()}] ${message}`;
-        
-        // Add hidden JSON for SIEM export
         entry.dataset.siemLog = JSON.stringify(siemLog);
         
         logContent.appendChild(entry);
@@ -282,7 +261,6 @@
                 results.forEach(result => {
                     if (!result) return;
                     
-                    // Add to command output
                     const div = document.createElement('div');
                     div.className = 'command-result';
                     div.innerHTML = `
@@ -292,7 +270,6 @@
                     `;
                     output.appendChild(div);
 
-                    // Add to log with SIEM data
                     const logData = {
                         severity: 'info',
                         action: 'command_execution',
@@ -327,42 +304,24 @@
                 const isNew = Date.now() - new Date(agent.last_seen).getTime() < 5000;
                 currentAgents.add(agent.id);
 
-                // Log new connections with SIEM data
-                if (isNew && !window.previousAgents?.has(agent.id)) {
-                    appendLog(
-                        `New agent connected - ID: ${agent.id} | Host: ${agent.hostname} | OS: ${agent.os} | IP: ${agent.ip}`,
-                        'agent-connect',
-                        {
-                            severity: 'info',
-                            action: 'agent_connect',
-                            id: agent.id,
-                            hostname: agent.hostname,
-                            os: agent.os,
-                            ip: agent.ip
-                        }
-                    );
-                }
-                
                 return `
-                    <div class="agent-item ${isNew ? 'new-connection' : ''}">
-                        <div class="agent-info">
-                            <div class="agent-name">
-                                ${agent.hostname}
-                                <span class="agent-os os-${agent.os.toLowerCase()}">${agent.os}</span>
-                                ${isNew ? '<span class="connection-status">New Connection</span>' : ''}
+                    <div class="agent-card">
+                        <div class="agent-header">
+                            <div style="display: flex; align-items: center;">
+                                <div class="agent-status"></div>
+                                <span class="agent-name">${agent.hostname}</span>
                             </div>
-                            <div class="agent-status">
-                                ID: ${agent.id}<br>
-                                IP: ${agent.ip}<br>
-                                Connected: ${new Date(agent.last_seen).toLocaleString()}<br>
-                                Last commands: ${agent.commands.join(', ') || 'None'}
-                            </div>
+                            <span class="agent-os">${agent.os}</span>
+                        </div>
+                        <div class="agent-details">
+                            ID: ${agent.id}<br>
+                            IP: ${agent.ip}<br>
+                            Last seen: ${new Date(agent.last_seen).toLocaleString()}
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // Check for disconnected agents
             if (window.previousAgents) {
                 for (const id of window.previousAgents) {
                     if (!currentAgents.has(id)) {
@@ -397,20 +356,17 @@
         input.value = '';
 
         try {
-            // Queue command
             await fetch('/queue_command', {
                 method: 'POST',
                 body: cmd
             });
 
-            // Add command to output immediately
             const output = document.getElementById('command-output');
             const cmdDiv = document.createElement('div');
             cmdDiv.className = 'command-entry';
             cmdDiv.innerHTML = `<span class="command">> ${cmd}</span>`;
             output.appendChild(cmdDiv);
 
-            // Check for results with retry
             checkResultsWithRetry();
         } catch (e) {
             console.error('Error:', e);
@@ -459,13 +415,9 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    // Poll for results every second
     setInterval(() => checkResultsWithRetry(1), 1000);
-    // Update file list every 5 seconds
     setInterval(updateFileList, 5000);
-    // Initial file list update
     updateFileList();
-    // Update agent list more frequently for better responsiveness
     setInterval(updateAgentList, 2000);
     updateAgentList();
     </script>
