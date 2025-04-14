@@ -52,19 +52,28 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 
 func (sm *ServerManager) handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
+		// Serve other static files from the webpage directory
+		if _, err := os.Stat(sm.config.StaticDir + "/webpage" + r.URL.Path); err == nil {
+			http.ServeFile(w, r, sm.config.StaticDir+"/webpage"+r.URL.Path)
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}
-	http.ServeFile(w, r, sm.config.StaticDir+"/index.html")
+	http.ServeFile(w, r, sm.config.StaticDir+"/webpage/index.html")
 }
 
 func (sm *ServerManager) Start() error {
-	// Add root handler for index.html
+	// Add root handler for index.html and other static files
 	http.HandleFunc("/", sm.handleRoot)
 
 	// Set up static file serving
 	fs := http.FileServer(http.Dir(sm.config.StaticDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Set up webpage serving
+	webpageFs := http.FileServer(http.Dir(sm.config.StaticDir + "/webpage"))
+	http.Handle("/webpage/", http.StripPrefix("/webpage/", webpageFs))
 
 	// Set up upload directory serving
 	http.Handle("/download/", http.StripPrefix("/download/",
