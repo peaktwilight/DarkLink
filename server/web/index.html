@@ -58,8 +58,9 @@
     let previousListenerStates = new Map();
     let logWebSocket = null;
     let wsReconnectAttempts = 0;
-    const MAX_RECONNECT_ATTEMPTS = 5;
-    const RECONNECT_DELAY = 5000;
+    const MAX_RECONNECT_ATTEMPTS = 10; // Increased from 5 to 10
+    const RECONNECT_DELAY = 2000; // Reduced from 5000ms to 2000ms for faster recovery
+    let reconnectTimer = null;
 
     function initializeWebSocket() {
         if (wsReconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -73,11 +74,24 @@
         }
 
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/logs`;
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/logs`;
         
+        if (logWebSocket) {
+            logWebSocket.close();
+        }
+
         logWebSocket = new WebSocket(wsUrl);
         
+        // Set a timeout for the initial connection
+        const connectionTimeout = setTimeout(() => {
+            if (logWebSocket.readyState !== WebSocket.OPEN) {
+                logWebSocket.close();
+                handleReconnect();
+            }
+        }, 5000);
+
         logWebSocket.onopen = function() {
+            clearTimeout(connectionTimeout);
             wsReconnectAttempts = 0; // Reset attempts on successful connection
             appendLogEntry({
                 timestamp: new Date().toISOString(),
@@ -85,38 +99,83 @@
                 message: 'Connected to server log stream',
                 source: 'system'
             });
+
+            // Set up ping interval
+            const pingInterval = setInterval(() => {
+                if (logWebSocket.readyState === WebSocket.OPEN) {
+                    logWebSocket.send('ping');
+                } else {
+                    clearInterval(pingInterval);
+                }
+            }, 30000);
+
+            // Clean up ping interval when socket closes
+            logWebSocket.addEventListener('close', () => clearInterval(pingInterval));
         };
 
         logWebSocket.onmessage = function(event) {
-            const log = JSON.parse(event.data);
-            appendLogEntry({
-                timestamp: log.timestamp,
-                severity: log.level.toUpperCase(),
-                message: log.message.trim(),
-                source: 'server'
-            });
+            if (event.data === 'pong') return; // Ignore pong responses
+            
+            try {
+                const log = JSON.parse(event.data);
+                appendLogEntry({
+                    timestamp: log.timestamp,
+                    severity: log.level.toUpperCase(),
+                    message: log.message.trim(),
+                    source: 'server'
+                });
+            } catch (error) {
+                console.error('Error parsing log message:', error);
+            }
         };
 
-        logWebSocket.onclose = function() {
-            wsReconnectAttempts++;
-            appendLogEntry({
-                timestamp: new Date().toISOString(),
-                severity: 'WARNING',
-                message: `WebSocket connection closed. Attempt ${wsReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}. Retrying in ${RECONNECT_DELAY/1000}s...`,
-                source: 'system'
-            });
-            setTimeout(initializeWebSocket, RECONNECT_DELAY);
+        logWebSocket.onclose = function(event) {
+            clearTimeout(connectionTimeout);
+            if (!event.wasClean) {
+                handleReconnect();
+            }
         };
 
         logWebSocket.onerror = function(error) {
             appendLogEntry({
                 timestamp: new Date().toISOString(),
                 severity: 'ERROR',
-                message: 'WebSocket error: ' + error,
+                message: 'WebSocket error occurred',
                 source: 'system'
             });
+            // Don't close here, let the onclose handler manage reconnection
         };
     }
+
+    function handleReconnect() {
+        wsReconnectAttempts++;
+        appendLogEntry({
+            timestamp: new Date().toISOString(),
+            severity: 'WARNING',
+            message: `WebSocket connection closed. Attempt ${wsReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}. Retrying in ${RECONNECT_DELAY/1000}s...`,
+            source: 'system'
+        });
+
+        // Clear any existing reconnect timer
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+        }
+
+        // Set new reconnect timer
+        reconnectTimer = setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+                initializeWebSocket();
+            }
+        }, RECONNECT_DELAY);
+    }
+
+    // Keep track of visibility changes
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && (!logWebSocket || logWebSocket.readyState === WebSocket.CLOSED)) {
+            wsReconnectAttempts = 0; // Reset attempts when page becomes visible
+            initializeWebSocket();
+        }
+    });
 
     function appendLogEntry(entry) {
         const eventLog = document.getElementById('event-log');

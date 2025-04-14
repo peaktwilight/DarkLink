@@ -172,3 +172,60 @@
 2025/04/14 17:10:15 [CONFIG] Static directory: static
 2025/04/14 17:10:15 [CONFIG] File Drop directory: static/file_drop
 2025/04/14 17:10:15 [NETWORK] Port: 8080
+2025/04/14 18:40:37 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 18:40:37 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 18:40:37 [CONFIG] Upload directory: uploads
+2025/04/14 18:40:37 [CONFIG] Static directory: static
+2025/04/14 18:40:37 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 18:40:37 [NETWORK] Port: 8080
+2025/04/14 18:56:13 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 18:56:13 [CONFIG] Upload directory: uploads
+2025/04/14 18:56:13 [CONFIG] Static directory: static
+2025/04/14 18:56:13 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 18:56:13 [NETWORK] Port: 8080
+2025/04/14 18:56:13 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 18:56:13 [CONFIG] Upload directory: uploads
+2025/04/14 18:56:13 [CONFIG] Static directory: static
+2025/04/14 18:56:13 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 18:56:13 [NETWORK] Port: 8080
+2025/04/14 19:18:30 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 19:18:30 [CONFIG] Upload directory: uploads
+2025/04/14 19:18:30 [CONFIG] Static directory: static
+2025/04/14 19:18:30 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:18:30 [NETWORK] Port: 8080
+2025/04/14 19:18:30 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 19:18:30 [CONFIG] Upload directory: uploads
+2025/04/14 19:18:30 [CONFIG] Static directory: static
+2025/04/14 19:18:30 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:18:30 [NETWORK] Port: 8080
+2025/04/14 19:18:30 [ERROR] Server error: listen tcp :8080: bind: address already in use
+2025/04/14 19:19:07 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 19:19:07 [CONFIG] Upload directory: uploads
+2025/04/14 19:19:07 [CONFIG] Static directory: static
+2025/04/14 19:19:07 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:19:07 [NETWORK] Port: 8080
+2025/04/14 19:19:07 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 19:19:07 [CONFIG] Upload directory: uploads
+2025/04/14 19:19:07 [CONFIG] Static directory: static
+2025/04/14 19:19:07 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:19:07 [NETWORK] Port: 8080
+2025/04/14 19:21:45 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 19:21:45 [CONFIG] Upload directory: uploads
+2025/04/14 19:21:45 [CONFIG] Static directory: static
+2025/04/14 19:21:45 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:21:45 [NETWORK] Port: 8080
+2025/04/14 19:21:45 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 19:21:45 [CONFIG] Upload directory: uploads
+2025/04/14 19:21:45 [CONFIG] Static directory: static
+2025/04/14 19:21:45 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:21:45 [NETWORK] Port: 8080
+2025/04/14 19:22:46 [STARTUP] Starting server with http-polling protocol...
+2025/04/14 19:22:46 [CONFIG] Upload directory: uploads
+2025/04/14 19:22:46 [CONFIG] Static directory: static
+2025/04/14 19:22:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:22:46 [NETWORK] Port: 8080
+2025/04/14 19:22:46 [STARTUP] Server initializing with http-polling protocol...
+2025/04/14 19:22:46 [CONFIG] Upload directory: uploads
+2025/04/14 19:22:46 [CONFIG] Static directory: static
+2025/04/14 19:22:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/14 19:22:46 [NETWORK] Port: 8080
