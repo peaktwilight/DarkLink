@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MicroC2 - Listeners</title>
+    <link rel="stylesheet" href="/webpage/css/styles.css">
+</head>
+<body>
+    <div class="havoc-container">
+        <div class="sidebar">
+            <div class="nav-header">MICROC2 CONSOLE</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/index.html'">Mission Control</div>
+            <div class="nav-item active">Listeners</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/payload.html'">Payload</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/file_drop.html'">File Drop</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/server_terminal.html'">Server Terminal</div>
+        </div>
+
+        <div class="content">
+            <div class="top-panel">
+                <div class="config-panel">
+                    <h2>Listener Configuration</h2>
+                    <form id="listenerForm" class="config-form">
+                        <div class="form-section">
+                            <h3>Basic Settings</h3>
+                            <div class="form-group">
+                                <label for="listenerName">Listener Name</label>
+                                <input type="text" id="listenerName" name="listenerName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="payloadType">Payload Connection Type</label>
+                                <select id="payloadType" name="payloadType" required>
+                                    <option value="https">HTTPS</option>
+                                    <option value="http">HTTP</option>
+                                    <option value="dns">DNS over HTTPS</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Connection Settings</h3>
+                            <div class="form-group">
+                                <label for="hosts">Hosts (one per line)</label>
+                                <textarea id="hosts" name="hosts" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hostRotation">Host Rotation Type</label>
+                                <select id="hostRotation" name="hostRotation">
+                                    <option value="round-robin">Round Robin</option>
+                                    <option value="random">Random</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="bindHost">Host (bind)</label>
+                                <input type="text" id="bindHost" name="bindHost" placeholder="0.0.0.0">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="port">Port</label>
+                                <input type="number" id="port" name="port" value="443">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="userAgent">User Agent</label>
+                                <input type="text" id="userAgent" name="userAgent">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="headers">Headers (JSON format)</label>
+                                <textarea id="headers" name="headers" rows="3" placeholder='{"Header-Name": "Value"}'></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="uris">URIs (one per line)</label>
+                                <textarea id="uris" name="uris" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hostHeader">Host Header</label>
+                                <input type="text" id="hostHeader" name="hostHeader">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Proxy Settings</h3>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="enableProxy" name="enableProxy">
+                                    Enable Proxy Connection
+                                </label>
+                            </div>
+
+                            <div id="proxySettings" class="proxy-settings hidden">
+                                <div class="form-group">
+                                    <label for="proxyType">Proxy Type</label>
+                                    <select id="proxyType" name="proxyType">
+                                        <option value="socks5">SOCKS5</option>
+                                        <option value="http">HTTP</option>
+                                        <option value="https">HTTPS</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="proxyHost">Proxy Host</label>
+                                    <input type="text" id="proxyHost" name="proxyHost">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="proxyPort">Proxy Port</label>
+                                    <input type="number" id="proxyPort" name="proxyPort">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="primary">Create Listener</button>
+                            <button type="reset" class="secondary">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('enableProxy').addEventListener('change', function() {
+            const proxySettings = document.getElementById('proxySettings');
+            proxySettings.classList.toggle('hidden', !this.checked);
+        });
+
+        document.getElementById('listenerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const listenerConfig = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/listeners/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(listenerConfig)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create listener');
+                }
+
+                alert('Listener created successfully');
+                updateListenersList();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to create listener: ' + error.message);
+            }
+        });
+
+        async function updateListenersList() {
+            try {
+                const response = await fetch('/api/listeners/list');
+                const listeners = await response.json();
+                
+                const listenersList = document.getElementById('active-listeners');
+                listenersList.innerHTML = listeners.map(listener => `
+                    <div class="listener-card">
+                        <div class="listener-header">
+                            <span class="listener-name">${listener.name}</span>
+                            <span class="listener-type">${listener.type}</span>
+                        </div>
+                        <div class="listener-details">
+                            <div>Host: ${listener.host}:${listener.port}</div>
+                            <div>Status: <span class="status-${listener.status}">${listener.status}</span></div>
+                        </div>
+                        <div class="listener-actions">
+                            <button onclick="stopListener('${listener.id}')">Stop</button>
+                            <button onclick="deleteListener('${listener.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('') || '<div class="empty-state">No active listeners</div>';
+            } catch (error) {
+                console.error('Error fetching listeners:', error);
+            }
+        }
+
+        async function stopListener(id) {
+            try {
+                await fetch(`/api/listeners/${id}/stop`, { method: 'POST' });
+                updateListenersList();
+            } catch (error) {
+                console.error('Error stopping listener:', error);
+                alert('Failed to stop listener');
+            }
+        }
+
+        async function deleteListener(id) {
+            if (!confirm('Are you sure you want to delete this listener?')) return;
+            
+            try {
+                await fetch(`/api/listeners/${id}`, { method: 'DELETE' });
+                updateListenersList();
+            } catch (error) {
+                console.error('Error deleting listener:', error);
+                alert('Failed to delete listener');
+            }
+        }
+
+        // Initial load of listeners
+        updateListenersList();
+    </script>
+</body>
+</html>

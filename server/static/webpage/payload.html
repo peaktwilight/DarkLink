@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MicroC2 - Payload Generator</title>
+    <link rel="stylesheet" href="/webpage/css/styles.css">
+</head>
+<body>
+    <div class="havoc-container">
+        <div class="sidebar">
+            <div class="nav-header">MICROC2 CONSOLE</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/index.html'">Mission Control</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/listeners.html'">Listeners</div>
+            <div class="nav-item active">Payload</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/file_drop.html'">File Drop</div>
+            <div class="nav-item" onclick="window.location.href='/webpage/server_terminal.html'">Server Terminal</div>
+        </div>
+
+        <div class="content">
+            <div class="top-panel">
+                <div class="config-panel">
+                    <h2>Payload Generator</h2>
+                    <form id="payloadForm" class="config-form">
+                        <div class="form-section">
+                            <h3>Agent Configuration</h3>
+                            <div class="form-group">
+                                <label for="agentType">Agent Type</label>
+                                <select id="agentType" name="agentType" required>
+                                    <option value="demon">Demon</option>
+                                    <option value="basic">Basic Agent</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="listener">Listener</label>
+                                <select id="listener" name="listener" required>
+                                    <option value="">Select a listener...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="architecture">Architecture</label>
+                                <select id="architecture" name="architecture" required>
+                                    <option value="x64">x64</option>
+                                    <option value="x86">x86</option>
+                                    <option value="arm64">ARM64</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="format">Format</label>
+                                <select id="format" name="format" required>
+                                    <option value="windows_exe">Windows EXE</option>
+                                    <option value="windows_dll">Windows DLL</option>
+                                    <option value="windows_shellcode">Windows Shellcode</option>
+                                    <option value="windows_service">Windows Service EXE</option>
+                                    <option value="linux_elf">Linux ELF</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>Advanced Options</h3>
+                            <div class="form-group">
+                                <label for="sleep">Sleep Interval (seconds)</label>
+                                <input type="number" id="sleep" name="sleep" value="60">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="indirectSyscall" name="indirectSyscall">
+                                    Enable Indirect Syscalls
+                                </label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="sleepTechnique">Sleep Technique</label>
+                                <select id="sleepTechnique" name="sleepTechnique">
+                                    <option value="standard">Standard</option>
+                                    <option value="winapi">WinAPI</option>
+                                    <option value="modified">Modified/Obfuscated</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="dllSideloading" name="dllSideloading">
+                                    Enable DLL Sideloading
+                                </label>
+                            </div>
+
+                            <div id="sideloadingOptions" class="hidden">
+                                <div class="form-group">
+                                    <label for="sideloadDll">Sideload DLL Name</label>
+                                    <input type="text" id="sideloadDll" name="sideloadDll">
+                                </div>
+                                <div class="form-group">
+                                    <label for="exportName">Export Name</label>
+                                    <input type="text" id="exportName" name="exportName">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="primary">Generate Payload</button>
+                            <button type="reset" class="secondary">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="bottom-panel">
+                <div id="generation-status" class="hidden">
+                    <h3>Generation Status</h3>
+                    <div class="status-content">
+                        <div class="progress-bar">
+                            <div class="progress"></div>
+                        </div>
+                        <div class="status-message">Generating payload...</div>
+                    </div>
+                </div>
+                <div id="download-section" class="hidden">
+                    <h3>Generated Payload</h3>
+                    <div class="download-content">
+                        <div class="file-info">
+                            <span class="filename"></span>
+                            <span class="filesize"></span>
+                        </div>
+                        <button class="download-button">Download Payload</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle DLL sideloading options visibility
+        document.getElementById('dllSideloading').addEventListener('change', function() {
+            document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
+        });
+
+        // Load available listeners
+        async function loadListeners() {
+            try {
+                const response = await fetch('/api/listeners/list');
+                const listeners = await response.json();
+                
+                const listenerSelect = document.getElementById('listener');
+                listenerSelect.innerHTML = '<option value="">Select a listener...</option>' +
+                    listeners.map(l => `<option value="${l.id}">${l.name} (${l.type})</option>`).join('');
+            } catch (error) {
+                console.error('Error loading listeners:', error);
+            }
+        }
+
+        // Update available formats based on architecture
+        document.getElementById('architecture').addEventListener('change', function() {
+            const formatSelect = document.getElementById('format');
+            const isWindows = ['x64', 'x86'].includes(this.value);
+            
+            formatSelect.innerHTML = '';
+            if (isWindows) {
+                ['Windows EXE', 'Windows DLL', 'Windows Shellcode', 'Windows Service EXE'].forEach(format => {
+                    const option = document.createElement('option');
+                    option.value = format.toLowerCase().replace(' ', '_');
+                    option.textContent = format;
+                    formatSelect.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.value = 'linux_elf';
+                option.textContent = 'Linux ELF';
+                formatSelect.appendChild(option);
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('payloadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const config = Object.fromEntries(formData);
+            
+            // Show generation status
+            const generationStatus = document.getElementById('generation-status');
+            const downloadSection = document.getElementById('download-section');
+            generationStatus.classList.remove('hidden');
+            downloadSection.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/payload/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to generate payload');
+                }
+
+                const result = await response.json();
+                
+                // Hide generation status and show download section
+                generationStatus.classList.add('hidden');
+                downloadSection.classList.remove('hidden');
+                
+                // Update download section
+                const fileInfo = downloadSection.querySelector('.file-info');
+                fileInfo.querySelector('.filename').textContent = result.filename;
+                fileInfo.querySelector('.filesize').textContent = formatBytes(result.size);
+                
+                // Set up download button
+                const downloadButton = downloadSection.querySelector('.download-button');
+                downloadButton.onclick = () => {
+                    window.location.href = `/api/payload/download/${result.id}`;
+                };
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate payload: ' + error.message);
+                generationStatus.classList.add('hidden');
+            }
+        });
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Load listeners when page loads
+        loadListeners();
+    </script>
+</body>
+</html>
