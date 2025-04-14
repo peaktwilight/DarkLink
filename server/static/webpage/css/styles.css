@@ -176,6 +176,35 @@ button {
     border-radius: 4px;
     font-family: monospace;
     white-space: pre-wrap;
+    border: 1px solid #333;
+}
+
+.command-result .timestamp {
+    color: #888;
+    font-size: 0.8em;
+    margin-right: 8px;
+}
+
+.command-result .command {
+    color: #66d9ef;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.command-result .output {
+    color: #0f0;
+    margin: 8px 0 0 0;
+    padding: 8px;
+    background: #000;
+    border-radius: 2px;
+    display: block;
+}
+
+.command-entry {
+    color: #66d9ef;
+    font-family: monospace;
+    padding: 4px 10px;
+    margin: 4px 0;
 }
 
 .timestamp {

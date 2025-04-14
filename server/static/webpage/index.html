@@ -313,7 +313,9 @@
     async function checkResultsWithRetry(attempts = 3) {
         for (let i = 0; i < attempts; i++) {
             try {
-                const response = await fetch('/get_results');
+                const response = await fetch('/submit_result', {
+                    method: 'GET'
+                });
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
                 const results = await response.json();
@@ -358,6 +360,44 @@
                 }
                 await new Promise(r => setTimeout(r, 1000));
             }
+        }
+    }
+
+    async function startResultsPolling() {
+        while (true) {
+            try {
+                const response = await fetch('/submit_result', {
+                    method: 'GET'
+                });
+                
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const results = await response.json();
+                if (!Array.isArray(results)) {
+                    console.warn('Expected array of results, got:', results);
+                    continue;
+                }
+
+                if (results.length > 0) {
+                    const output = document.getElementById('command-output');
+                    results.forEach(result => {
+                        if (!result) return;
+                        
+                        const div = document.createElement('div');
+                        div.className = 'command-result';
+                        div.innerHTML = `
+                            <span class="timestamp">[${result.timestamp || 'N/A'}]</span>
+                            <span class="command">${result.command || 'unknown'}</span>
+                            <pre class="output">${result.output || ''}</pre>
+                        `;
+                        output.appendChild(div);
+                        output.scrollTop = output.scrollHeight;
+                    });
+                }
+            } catch (error) {
+                console.error('Error polling results:', error);
+            }
+            await new Promise(r => setTimeout(r, 1000)); // Poll every second
         }
     }
 
@@ -446,6 +486,7 @@
         ];
         debouncedUpdateListeners();
         updateAgentList();
+        startResultsPolling(); // Start continuous polling for results
     }
 
     function cleanup() {

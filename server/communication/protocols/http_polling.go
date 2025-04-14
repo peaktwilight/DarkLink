@@ -144,6 +144,21 @@ func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Re
 
 func (p *HTTPPollingProtocol) handleSubmitResult(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		p.results.Lock()
+		defer p.results.Unlock()
+
+		if len(p.results.queue) == 0 {
+			w.Write([]byte("[]"))
+			return
+		}
+
+		json.NewEncoder(w).Encode(p.results.queue)
+		p.results.queue = nil
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
