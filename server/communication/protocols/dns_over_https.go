@@ -27,6 +27,10 @@ type DNSOverHTTPSProtocol struct {
 		sync.Mutex
 		list map[string]*Agent
 	}
+	listeners struct {
+		sync.Mutex
+		list map[string]*Listener
+	}
 }
 
 func NewDNSOverHTTPSProtocol(config BaseProtocolConfig) *DNSOverHTTPSProtocol {
@@ -36,6 +40,10 @@ func NewDNSOverHTTPSProtocol(config BaseProtocolConfig) *DNSOverHTTPSProtocol {
 			sync.Mutex
 			list map[string]*Agent
 		}{list: make(map[string]*Agent)},
+		listeners: struct {
+			sync.Mutex
+			list map[string]*Listener
+		}{list: make(map[string]*Listener)},
 	}
 }
 
@@ -79,13 +87,41 @@ func (p *DNSOverHTTPSProtocol) HandleAgentHeartbeat(agentData []byte) error {
 	return nil
 }
 
+// Add HTTP handler for agent heartbeat
+func (p *DNSOverHTTPSProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := p.HandleAgentHeartbeat(body); err != nil {
+		http.Error(w, "Error processing agent data", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":      "connected",
+		"server_time": time.Now().Format(time.RFC3339),
+	})
+}
+
 // GetRoutes returns the HTTP routes for DNS over HTTPS protocol
 func (p *DNSOverHTTPSProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
-		"/dns-query":    p.handleDNSQuery,
-		"/files/upload": p.handleFileUpload,
-		"/files/list":   p.handleListFiles,
-		"/agent/list":   p.handleListAgents,
+		"/dns-query":          p.handleDNSQuery,
+		"/files/upload":       p.handleFileUpload,
+		"/files/list":         p.handleListFiles,
+		"/agent/heartbeat":    p.handleAgentHeartbeat,
+		"/agent/list":         p.handleListAgents,
+		"/api/listeners/list": p.handleListeners,
 	}
 }
 
@@ -240,4 +276,23 @@ func (p *DNSOverHTTPSProtocol) handleListAgents(w http.ResponseWriter, r *http.R
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p.agents.list)
+}
+
+func (p *DNSOverHTTPSProtocol) handleListeners(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	w.Header().Set("Content-Type", "application/json")
+
+	p.listeners.Lock()
+	defer p.listeners.Unlock()
+
+	// Convert map to slice for JSON response
+	listenersList := make([]*Listener, 0, len(p.listeners.list))
+	for _, listener := range p.listeners.list {
+		listenersList = append(listenersList, listener)
+	}
+
+	if err := json.NewEncoder(w).Encode(listenersList); err != nil {
+		http.Error(w, "Error encoding listeners", http.StatusInternalServerError)
+		return
+	}
 }

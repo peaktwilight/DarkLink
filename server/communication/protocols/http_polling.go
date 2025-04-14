@@ -26,6 +26,10 @@ type HTTPPollingProtocol struct {
 		sync.Mutex
 		list map[string]*Agent
 	}
+	listeners struct {
+		sync.Mutex
+		list map[string]*Listener
+	}
 }
 
 type CommandResult struct {
@@ -50,6 +54,10 @@ func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
 			sync.Mutex
 			list map[string]*Agent
 		}{list: make(map[string]*Agent)},
+		listeners: struct {
+			sync.Mutex
+			list map[string]*Listener
+		}{list: make(map[string]*Listener)},
 	}
 }
 
@@ -95,14 +103,15 @@ func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
 
 func (p *HTTPPollingProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
-		"/queue_command":   p.handleQueueCommand,
-		"/get_command":     p.handleGetCommand,
-		"/submit_result":   p.handleSubmitResult,
-		"/get_results":     p.handleGetResults,
-		"/files/upload":    p.handleFileUpload,
-		"/files/list":      p.handleListFiles,
-		"/agent/heartbeat": p.handleAgentHeartbeat,
-		"/agent/list":      p.handleListAgents,
+		"/queue_command":      p.handleQueueCommand,
+		"/get_command":        p.handleGetCommand,
+		"/submit_result":      p.handleSubmitResult,
+		"/get_results":        p.handleGetResults,
+		"/files/upload":       p.handleFileUpload,
+		"/files/list":         p.handleListFiles,
+		"/agent/heartbeat":    p.handleAgentHeartbeat,
+		"/agent/list":         p.handleListAgents,
+		"/api/listeners/list": p.handleListeners,
 	}
 }
 
@@ -290,4 +299,23 @@ func (p *HTTPPollingProtocol) handleListAgents(w http.ResponseWriter, r *http.Re
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(p.agents.list)
+}
+
+func (p *HTTPPollingProtocol) handleListeners(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	w.Header().Set("Content-Type", "application/json")
+
+	p.listeners.Lock()
+	defer p.listeners.Unlock()
+
+	// Convert map to slice for JSON response
+	listenersList := make([]*Listener, 0, len(p.listeners.list))
+	for _, listener := range p.listeners.list {
+		listenersList = append(listenersList, listener)
+	}
+
+	if err := json.NewEncoder(w).Encode(listenersList); err != nil {
+		http.Error(w, "Error encoding listeners", http.StatusInternalServerError)
+		return
+	}
 }

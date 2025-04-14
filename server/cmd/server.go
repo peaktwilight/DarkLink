@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -124,6 +128,113 @@ func handleLogWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type TerminalSession struct {
+	WorkingDir string
+}
+
+type TerminalResponse struct {
+	Output string `json:"output,omitempty"`
+	CWD    string `json:"cwd,omitempty"`
+	Error  bool   `json:"error,omitempty"`
+}
+
+func handleTerminalWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("[ERROR] Terminal WebSocket upgrade failed: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	session := &TerminalSession{
+		WorkingDir: os.Getenv("HOME"),
+	}
+
+	// Send initial connection message with working directory
+	initialResponse := TerminalResponse{
+		Output: "Connected to server terminal (Bash shell).\n",
+		CWD:    formatPath(session.WorkingDir),
+	}
+	msg, _ := json.Marshal(initialResponse)
+	conn.WriteMessage(websocket.TextMessage, msg)
+
+	for {
+		// Read message from the WebSocket
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("[ERROR] Failed to read from terminal WebSocket: %v", err)
+			break
+		}
+
+		command := string(message)
+
+		// Handle built-in commands
+		if command == "pwd" {
+			response := TerminalResponse{
+				Output: session.WorkingDir + "\n",
+				CWD:    formatPath(session.WorkingDir),
+			}
+			msg, _ := json.Marshal(response)
+			conn.WriteMessage(websocket.TextMessage, msg)
+			continue
+		}
+
+		if strings.HasPrefix(command, "cd ") {
+			dir := strings.TrimSpace(strings.TrimPrefix(command, "cd "))
+			if dir == "~" {
+				dir = os.Getenv("HOME")
+			} else if strings.HasPrefix(dir, "~/") {
+				dir = filepath.Join(os.Getenv("HOME"), dir[2:])
+			} else if !filepath.IsAbs(dir) {
+				dir = filepath.Join(session.WorkingDir, dir)
+			}
+
+			if _, err := os.Stat(dir); err == nil {
+				session.WorkingDir = dir
+				response := TerminalResponse{
+					CWD: formatPath(session.WorkingDir),
+				}
+				msg, _ := json.Marshal(response)
+				conn.WriteMessage(websocket.TextMessage, msg)
+			} else {
+				response := TerminalResponse{
+					Output: "cd: " + dir + ": No such file or directory\n",
+					Error:  true,
+					CWD:    formatPath(session.WorkingDir),
+				}
+				msg, _ := json.Marshal(response)
+				conn.WriteMessage(websocket.TextMessage, msg)
+			}
+			continue
+		}
+
+		// Execute command
+		cmd := exec.Command("/bin/bash", "-c", command)
+		cmd.Dir = session.WorkingDir
+		cmd.Env = append(os.Environ(), "TERM=xterm-256color")
+
+		output, err := cmd.CombinedOutput()
+
+		response := TerminalResponse{
+			Output: string(output),
+			CWD:    formatPath(session.WorkingDir),
+			Error:  err != nil,
+		}
+
+		msg, _ := json.Marshal(response)
+		conn.WriteMessage(websocket.TextMessage, msg)
+	}
+}
+
+// formatPath formats the path for display in the terminal prompt
+func formatPath(path string) string {
+	home := os.Getenv("HOME")
+	if strings.HasPrefix(path, home) {
+		return "~" + strings.TrimPrefix(path, home)
+	}
+	return path
+}
+
 func main() {
 	// Replace standard logger output with our custom writer
 	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -159,8 +270,9 @@ func main() {
 		log.Fatalf("Failed to create server manager: %v", err)
 	}
 
-	// Add WebSocket handler for logs
+	// Add WebSocket handlers
 	http.HandleFunc("/logs", handleLogWebSocket)
+	http.HandleFunc("/ws/terminal", handleTerminalWebSocket)
 
 	log.Printf("[STARTUP] Starting server with %s protocol...", cfg.Communication.Protocol)
 	if err := serverManager.Start(); err != nil {
