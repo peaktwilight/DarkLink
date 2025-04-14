@@ -61,6 +61,7 @@ func main() {
 	fileHandlers := api.NewFileHandlers(fileStore)
 	staticHandlers := web.New(cfg.Server.StaticDir)
 	wsHandlers := ws.New(logStreamer)
+	listenerHandlers := api.NewListenerHandlers(serverManager.GetListenerManager())
 
 	// Set up HTTP routes
 	staticHandlers.SetupStaticRoutes()
@@ -74,6 +75,9 @@ func main() {
 	// Set up WebSocket routes
 	http.HandleFunc("/ws/logs", wsHandlers.HandleLogStream)
 	http.HandleFunc("/ws/terminal", wsHandlers.HandleTerminal)
+
+	// Set up listener management routes
+	listenerHandlers.SetupRoutes()
 
 	// Set up root handler
 	http.HandleFunc("/", staticHandlers.HandleRoot)

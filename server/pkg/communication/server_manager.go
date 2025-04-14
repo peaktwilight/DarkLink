@@ -3,14 +3,17 @@ package communication
 import (
 	"fmt"
 	"log"
-	"microc2/server/internal/protocols"
 	"net/http"
 	"os"
+	"strings"
+
+	"microc2/server/internal/protocols"
 )
 
 type ServerManager struct {
-	protocol protocols.Protocol
-	config   *ServerConfig
+	protocol        protocols.Protocol
+	config          *ServerConfig
+	listenerManager *protocols.ListenerManager
 }
 
 type ServerConfig struct {
@@ -45,14 +48,20 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 	}
 
 	return &ServerManager{
-		protocol: protocol,
-		config:   config,
+		protocol:        protocol,
+		config:          config,
+		listenerManager: protocols.NewListenerManager(),
 	}, nil
 }
 
 func (sm *ServerManager) Start() error {
 	// Register protocol-specific routes
 	for path, handler := range sm.protocol.GetRoutes() {
+		// Skip routes that might conflict with API handlers
+		if strings.HasPrefix(path, "/api/") {
+			log.Printf("[ROUTES] Skipping protocol route %s to avoid conflicts with API handlers", path)
+			continue
+		}
 		http.HandleFunc(path, handler)
 	}
 
@@ -63,4 +72,8 @@ func (sm *ServerManager) Start() error {
 	log.Printf("[NETWORK] Port: %s", sm.config.Port)
 
 	return http.ListenAndServe(":"+sm.config.Port, nil)
+}
+
+func (sm *ServerManager) GetListenerManager() *protocols.ListenerManager {
+	return sm.listenerManager
 }

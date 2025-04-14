@@ -155,22 +155,45 @@
         // Update available formats based on architecture
         document.getElementById('architecture').addEventListener('change', function() {
             const formatSelect = document.getElementById('format');
-            const isWindows = ['x64', 'x86'].includes(this.value);
+            const architecture = this.value;
+            const isWindows = ['x64', 'x86'].includes(architecture);
             
             formatSelect.innerHTML = '';
+            
             if (isWindows) {
-                ['Windows EXE', 'Windows DLL', 'Windows Shellcode', 'Windows Service EXE'].forEach(format => {
+                const windowsFormats = [
+                    { value: 'windows_exe', label: 'Windows EXE' },
+                    { value: 'windows_dll', label: 'Windows DLL' },
+                    { value: 'windows_shellcode', label: 'Windows Shellcode' },
+                    { value: 'windows_service', label: 'Windows Service EXE' }
+                ];
+                
+                windowsFormats.forEach(format => {
                     const option = document.createElement('option');
-                    option.value = format.toLowerCase().replace(' ', '_');
-                    option.textContent = format;
+                    option.value = format.value;
+                    option.textContent = format.label;
                     formatSelect.appendChild(option);
                 });
+            } else if (architecture === 'arm64') {
+                const option = document.createElement('option');
+                option.value = 'linux_elf';
+                option.textContent = 'Linux ELF';
+                formatSelect.appendChild(option);
+                
+                // Add ARM-specific options if needed
+                const armOption = document.createElement('option');
+                armOption.value = 'linux_arm_binary';
+                armOption.textContent = 'Linux ARM Binary';
+                formatSelect.appendChild(armOption);
             } else {
                 const option = document.createElement('option');
                 option.value = 'linux_elf';
                 option.textContent = 'Linux ELF';
                 formatSelect.appendChild(option);
             }
+            
+            // Trigger a change event to update any dependent elements
+            formatSelect.dispatchEvent(new Event('change'));
         });
 
         // Handle form submission

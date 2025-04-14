@@ -5,16 +5,6 @@ import (
 	"net/http"
 )
 
-// Listener represents a C2 listener configuration
-type Listener struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Protocol string `json:"protocol"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Status   string `json:"status"`
-}
-
 // Protocol defines the interface that all communication protocols must implement
 type Protocol interface {
 	// Initialize sets up the protocol

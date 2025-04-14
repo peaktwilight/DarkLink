@@ -240,6 +240,13 @@
             const listeners = await response.json();
             
             const listenersList = document.getElementById('active-listeners');
+            
+            // Add safety check
+            if (!listenersList) {
+                console.warn('Element "active-listeners" not found');
+                return;
+            }
+            
             listenersList.innerHTML = listeners.map(listener => `
                 <div class="listener-card" data-id="${listener.id}">
                     <div class="listener-header">

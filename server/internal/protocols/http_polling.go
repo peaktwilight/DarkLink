@@ -103,15 +103,14 @@ func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
 
 func (p *HTTPPollingProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
-		"/queue_command":      p.handleQueueCommand,
-		"/get_command":        p.handleGetCommand,
-		"/submit_result":      p.handleSubmitResult,
-		"/get_results":        p.handleGetResults,
-		"/files/upload":       p.handleFileUpload,
-		"/files/list":         p.handleListFiles,
-		"/agent/heartbeat":    p.handleAgentHeartbeat,
-		"/agent/list":         p.handleListAgents,
-		"/api/listeners/list": p.handleListeners,
+		"/queue_command":   p.handleQueueCommand,
+		"/get_command":     p.handleGetCommand,
+		"/submit_result":   p.handleSubmitResult,
+		"/get_results":     p.handleGetResults,
+		"/files/upload":    p.handleFileUpload,
+		"/files/list":      p.handleListFiles,
+		"/agent/heartbeat": p.handleAgentHeartbeat,
+		"/agent/list":      p.handleListAgents,
 	}
 }
 
@@ -301,6 +300,7 @@ func (p *HTTPPollingProtocol) handleListAgents(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(p.agents.list)
 }
 
+// Keep this method for internal use even though we're not exposing it via HTTP
 func (p *HTTPPollingProtocol) handleListeners(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	w.Header().Set("Content-Type", "application/json")

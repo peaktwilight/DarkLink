@@ -3,6 +3,7 @@ package protocols
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -116,12 +117,11 @@ func (p *DNSOverHTTPSProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *ht
 // GetRoutes returns the HTTP routes for DNS over HTTPS protocol
 func (p *DNSOverHTTPSProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
-		"/dns-query":          p.handleDNSQuery,
-		"/files/upload":       p.handleFileUpload,
-		"/files/list":         p.handleListFiles,
-		"/agent/heartbeat":    p.handleAgentHeartbeat,
-		"/agent/list":         p.handleListAgents,
-		"/api/listeners/list": p.handleListeners,
+		"/dns-query":       p.handleDNSQuery,
+		"/files/upload":    p.handleFileUpload,
+		"/files/list":      p.handleListFiles,
+		"/agent/heartbeat": p.handleAgentHeartbeat,
+		"/agent/list":      p.handleListAgents,
 	}
 }
 
@@ -278,6 +278,7 @@ func (p *DNSOverHTTPSProtocol) handleListAgents(w http.ResponseWriter, r *http.R
 	json.NewEncoder(w).Encode(p.agents.list)
 }
 
+// Keep this method for internal use even though we're not exposing it via HTTP
 func (p *DNSOverHTTPSProtocol) handleListeners(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	w.Header().Set("Content-Type", "application/json")
@@ -295,4 +296,106 @@ func (p *DNSOverHTTPSProtocol) handleListeners(w http.ResponseWriter, r *http.Re
 		http.Error(w, "Error encoding listeners", http.StatusInternalServerError)
 		return
 	}
+}
+
+// DNS message types
+const (
+	DNSTypeHeartbeat     byte = 0x01
+	DNSTypeCommand       byte = 0x02
+	DNSTypeCommandResult byte = 0x03
+	DNSTypeFileStart     byte = 0x04
+	DNSTypeFileData      byte = 0x05
+)
+
+// DNSMessageHandler handles incoming DNS-over-HTTPS connections
+type DNSMessageHandler struct {
+	listener *Listener
+}
+
+// NewDNSMessageHandler creates a new DNS message handler
+func NewDNSMessageHandler(listener *Listener) *DNSMessageHandler {
+	return &DNSMessageHandler{
+		listener: listener,
+	}
+}
+
+// HandleDNSMessage processes an incoming DNS message
+func (h *DNSMessageHandler) HandleDNSMessage(data []byte) ([]byte, error) {
+	if len(data) < 1 {
+		return nil, fmt.Errorf("empty DNS message")
+	}
+
+	messageType := data[0]
+	payload := data[1:]
+
+	switch messageType {
+	case DNSTypeHeartbeat:
+		return h.handleHeartbeat(payload)
+	case DNSTypeCommand:
+		return h.handleCommandRequest(payload)
+	case DNSTypeCommandResult:
+		return h.handleCommandResult(payload)
+	case DNSTypeFileStart:
+		return h.handleFileStart(payload)
+	case DNSTypeFileData:
+		return h.handleFileData(payload)
+	default:
+		return nil, fmt.Errorf("unknown message type: %d", messageType)
+	}
+}
+
+func (h *DNSMessageHandler) handleHeartbeat(payload []byte) ([]byte, error) {
+	var agent Agent
+	if err := json.Unmarshal(payload, &agent); err != nil {
+		return nil, fmt.Errorf("invalid heartbeat data: %v", err)
+	}
+
+	h.listener.mu.Lock()
+	h.listener.Stats.BytesReceived += int64(len(payload))
+	h.listener.mu.Unlock()
+
+	// Send acknowledgment
+	response := []byte{DNSTypeHeartbeat}
+	return response, nil
+}
+
+func (h *DNSMessageHandler) handleCommandRequest(payload []byte) ([]byte, error) {
+	// TODO: Get command from queue and send to agent
+	response := []byte{DNSTypeCommand, 0x00} // No command available
+	return response, nil
+}
+
+func (h *DNSMessageHandler) handleCommandResult(payload []byte) ([]byte, error) {
+	// Use the result variable or remove it
+	// Comment out or use the result variable
+	_ = CommandResult{
+		Command:   string(payload),
+		Output:    "",
+		Timestamp: "",
+	}
+
+	h.listener.mu.Lock()
+	h.listener.Stats.BytesReceived += int64(len(payload))
+	h.listener.mu.Unlock()
+
+	// Send acknowledgment
+	response := []byte{DNSTypeCommandResult}
+	return response, nil
+}
+
+func (h *DNSMessageHandler) handleFileStart(payload []byte) ([]byte, error) {
+	// Use the filename variable or remove it
+	// Just log it for now
+	filename := string(payload)
+	log.Printf("File upload started: %s", filename)
+
+	// TODO: Initialize file upload session
+	response := []byte{DNSTypeFileStart}
+	return response, nil
+}
+
+func (h *DNSMessageHandler) handleFileData(payload []byte) ([]byte, error) {
+	// TODO: Handle file data chunk
+	response := []byte{DNSTypeFileData}
+	return response, nil
 }
