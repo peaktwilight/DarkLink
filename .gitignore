@@ -1,5 +1,8 @@
 agent/target/*
+agent/Cargo.lock
 server/server
 server/target/*
 server/Cargo.lock
-agent/Cargo.lock
+server/server.log
+server/go.mod
+server/go.sum
