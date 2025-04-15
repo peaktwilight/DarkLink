@@ -194,12 +194,12 @@
 
                                 <div class="form-group">
                                     <label for="proxyUsername">UserName:</label>
-                                    <input type="text" id="proxyUsername" name="proxyUsername" class="dark-input">
+                                    <input type="text" id="proxyUsername" name="proxyUsername" class="dark-input" autocomplete="username">
                                 </div>
 
                                 <div class="form-group">
                                     <label for="proxyPassword">Password:</label>
-                                    <input type="password" id="proxyPassword" name="proxyPassword" class="dark-input">
+                                    <input type="password" id="proxyPassword" name="proxyPassword" class="dark-input" autocomplete="current-password">
                                 </div>
                             </div>
                         </div>
@@ -473,6 +473,7 @@
                 }
                 
                 const listeners = await response.json();
+                console.log("Received listeners:", listeners); // Add logging to debug
                 
                 if (listeners.length === 0) {
                     listenersList.innerHTML = '<div class="empty-state">No active listeners</div>';
@@ -481,38 +482,63 @@
                 
                 let listenersHTML = '';
                 for (const listener of listeners) {
+                    // Log each listener to debug
+                    console.log("Processing listener:", listener);
+                    
+                    // Extract listener properties, accounting for the nested structure
+                    // The ID and other properties might be in the config object
+                    const config = listener.config || {};
+                    const listenerId = config.id || listener.id;
+                    const listenerName = config.name || listener.name || 'Unnamed';
+                    const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                    const listenerHost = config.host || listener.host || 'Unknown';
+                    const listenerPort = config.port || listener.port || 'Unknown';
+                    const listenerStatus = listener.status || 'Unknown';
+                    const listenerError = listener.error || '';
+                    
+                    // Check for valid ID
+                    if (!listenerId) {
+                        console.warn('Listener missing ID:', listener);
+                        continue;
+                    }
+
+                    // Debug the extracted values
+                    console.log(`Found listener: ID=${listenerId}, Name=${listenerName}, Protocol=${listenerProtocol}`);
+
                     listenersHTML += `
-                        <div class="listener-card">
+                        <div class="listener-card" data-id="${listenerId}">
                             <div class="listener-header">
-                                <span class="listener-name">${listener.name || 'Unnamed'}</span>
-                                <span class="listener-type">${listener.type || listener.protocol || 'Unknown'}</span>
+                                <span class="listener-name">${listenerName}</span>
+                                <span class="listener-type">${listenerProtocol}</span>
                             </div>
                             <div class="listener-details">
-                                <div>Host: ${listener.host || listener.bindHost || 'Unknown'}:${listener.port || 'Unknown'}</div>
-                                <div>Status: <span class="status-${(listener.status || '').toLowerCase()}">${listener.status || 'Unknown'}</span></div>
-                                ${listener.error ? `<div class="error-message">Error: ${listener.error}</div>` : ''}
+                                <div>Host: ${listenerHost}:${listenerPort}</div>
+                                <div>Status: <span class="status-${listenerStatus.toLowerCase()}">${listenerStatus}</span></div>
+                                ${listenerError ? `<div class="error-message">Error: ${listenerError}</div>` : ''}
                             </div>
                             <div class="listener-actions">
-                                <button class="action-button" onclick="stopListener('${listener.id}')">Stop</button>
-                                <button class="action-button delete" onclick="deleteListener('${listener.id}', '${listener.name || 'this listener'}')">Delete</button>
+                                <button class="action-button" onclick="stopListener('${listenerId}')">Stop</button>
+                                <button class="action-button delete" onclick="deleteListener('${listenerId}', '${listenerName}')">Delete</button>
                             </div>
                         </div>
                     `;
                 }
                 
-                // Another safety check before setting innerHTML
-                if (listenersList) {
-                    listenersList.innerHTML = listenersHTML;
-                }
+                listenersList.innerHTML = listenersHTML || '<div class="empty-state">No active listeners</div>';
             } catch (error) {
                 console.error('Error fetching listeners:', error);
-                if (listenersList) {
-                    listenersList.innerHTML = `<div class="error-state">Error loading listeners: ${error.message}</div>`;
-                }
+                listenersList.innerHTML = `<div class="error-state">Error loading listeners: ${error.message}</div>`;
             }
         }
 
         async function stopListener(id) {
+            if (!id || id === 'undefined') {
+                showError('Invalid listener ID');
+                console.error('Attempted to stop a listener with invalid ID:', id);
+                return;
+            }
+
+            console.log(`Stopping listener with ID: ${id}`);
             const statusMessage = document.getElementById('status-message');
             statusMessage.textContent = "Stopping listener...";
             statusMessage.className = "status-message loading";
@@ -526,13 +552,20 @@
                 });
                 
                 if (!response.ok) {
-                    const result = await response.json();
-                    throw new Error(result.error || `Failed to stop listener (${response.status})`);
+                    const responseText = await response.text();
+                    let errorMsg;
+                    try {
+                        const result = JSON.parse(responseText);
+                        errorMsg = result.error || `Failed to stop listener (${response.status})`;
+                    } catch {
+                        errorMsg = responseText || `Failed to stop listener (${response.status})`;
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 statusMessage.textContent = "Listener stopped successfully";
                 statusMessage.className = "status-message success";
-                updateListenersList();
+                await updateListenersList();
                 
                 setTimeout(() => {
                     statusMessage.className = "status-message hidden";
@@ -545,6 +578,13 @@
         }
 
         async function deleteListener(id, name) {
+            if (!id || id === 'undefined') {
+                showError('Invalid listener ID');
+                console.error('Attempted to delete a listener with invalid ID:', id);
+                return;
+            }
+
+            console.log(`Deleting listener with ID: ${id}`);
             if (!confirm(`Are you sure you want to delete ${name}?`)) return;
             
             const statusMessage = document.getElementById('status-message');
@@ -553,17 +593,27 @@
             
             try {
                 const response = await fetch(`/api/listeners/${id}`, { 
-                    method: 'DELETE' 
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
                 });
                 
                 if (!response.ok) {
-                    const result = await response.json();
-                    throw new Error(result.error || `Failed to delete listener (${response.status})`);
+                    const responseText = await response.text();
+                    let errorMsg;
+                    try {
+                        const result = JSON.parse(responseText);
+                        errorMsg = result.error || `Failed to delete listener (${response.status})`;
+                    } catch {
+                        errorMsg = responseText || `Failed to delete listener (${response.status})`;
+                    }
+                    throw new Error(errorMsg);
                 }
                 
                 statusMessage.textContent = `Listener "${name}" deleted successfully`;
                 statusMessage.className = "status-message success";
-                updateListenersList();
+                await updateListenersList();
                 
                 setTimeout(() => {
                     statusMessage.className = "status-message hidden";

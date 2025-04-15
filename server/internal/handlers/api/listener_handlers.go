@@ -38,8 +38,20 @@ func (h *ListenerHandlers) HandleCreateListener(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	response := map[string]interface{}{
+		"status": "success",
+		"listener": map[string]interface{}{
+			"id":     listener.Config.ID,
+			"name":   listener.Config.Name,
+			"type":   listener.Config.Protocol,
+			"host":   listener.Config.BindHost,
+			"port":   listener.Config.Port,
+			"status": listener.Status,
+		},
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(listener)
+	json.NewEncoder(w).Encode(response)
 }
 
 // HandleListListeners handles requests to list all listeners
@@ -75,35 +87,58 @@ func (h *ListenerHandlers) HandleGetListener(w http.ResponseWriter, r *http.Requ
 // HandleStopListener handles requests to stop a listener
 func (h *ListenerHandlers) HandleStopListener(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/api/listeners/")
 	id = strings.TrimSuffix(id, "/stop")
 
-	if err := h.manager.StopListener(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if id == "" {
+		sendJSONError(w, "Listener ID is required", http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	if err := h.manager.StopListener(id); err != nil {
+		sendJSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sendJSONResponse(w, map[string]string{"status": "success"})
 }
 
 // HandleDeleteListener handles requests to delete a listener
 func (h *ListenerHandlers) HandleDeleteListener(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	id := strings.TrimPrefix(r.URL.Path, "/api/listeners/")
-	if err := h.manager.StopListener(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+	if id == "" {
+		sendJSONError(w, "Listener ID is required", http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	if err := h.manager.StopListener(id); err != nil {
+		sendJSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sendJSONResponse(w, map[string]string{"status": "success"})
+}
+
+// Helper functions for consistent JSON responses
+func sendJSONError(w http.ResponseWriter, message string, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+func sendJSONResponse(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
 
 // SetupRoutes registers all listener-related routes

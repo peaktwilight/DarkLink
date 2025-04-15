@@ -84,3 +84,115 @@
 2025/04/15 11:31:51 [INFO] Started listener base-http on 0.0.0.0:8444
 2025/04/15 11:31:54 [ERROR] Error handling connection on listener base-http: connection validation failed: invalid path: /
 2025/04/15 11:31:56 [ERROR] Error handling connection on listener base-http: connection validation failed: invalid path: /
+2025/04/15 11:57:31 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:57:31 [CONFIG] Upload directory: uploads
+2025/04/15 11:57:31 [CONFIG] Static directory: static
+2025/04/15 11:57:31 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:57:31 [NETWORK] Port: 8080
+2025/04/15 11:57:31 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:57:31 [CONFIG] Upload directory: uploads
+2025/04/15 11:57:31 [CONFIG] Static directory: static
+2025/04/15 11:57:31 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:57:31 [NETWORK] Port: 8080
+2025/04/15 11:58:50 [INFO] Listener configuration validated successfully: {ID:997f7fa2-95a6-4e7b-9f2d-20f74ec9576e Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[localhost] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 11:58:50 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:00:44 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:00:44 [CONFIG] Upload directory: uploads
+2025/04/15 12:00:44 [CONFIG] Static directory: static
+2025/04/15 12:00:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:00:44 [NETWORK] Port: 8080
+2025/04/15 12:00:44 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:00:44 [CONFIG] Upload directory: uploads
+2025/04/15 12:00:44 [CONFIG] Static directory: static
+2025/04/15 12:00:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:00:44 [NETWORK] Port: 8080
+2025/04/15 12:01:33 [INFO] Listener configuration validated successfully: {ID:54cb58c5-3410-4311-9758-411d958a4705 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:01:33 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:04:18 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:04:18 [CONFIG] Upload directory: uploads
+2025/04/15 12:04:18 [CONFIG] Static directory: static
+2025/04/15 12:04:18 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:04:18 [NETWORK] Port: 8080
+2025/04/15 12:04:18 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:04:18 [CONFIG] Upload directory: uploads
+2025/04/15 12:04:18 [CONFIG] Static directory: static
+2025/04/15 12:04:18 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:04:18 [NETWORK] Port: 8080
+2025/04/15 12:05:00 [INFO] Listener configuration validated successfully: {ID:7a0b2a70-0484-4b32-98c7-5189d67e1529 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[example.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:05:00 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:10:27 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:10:27 [CONFIG] Upload directory: uploads
+2025/04/15 12:10:27 [CONFIG] Static directory: static
+2025/04/15 12:10:27 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:10:27 [NETWORK] Port: 8080
+2025/04/15 12:10:27 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:10:27 [CONFIG] Upload directory: uploads
+2025/04/15 12:10:27 [CONFIG] Static directory: static
+2025/04/15 12:10:27 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:10:27 [NETWORK] Port: 8080
+2025/04/15 12:10:50 [INFO] Listener configuration validated successfully: {ID:a9ab9373-fa28-42fc-b2e8-2f2f3b6c9448 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:10:50 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:15:10 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:15:10 [CONFIG] Upload directory: uploads
+2025/04/15 12:15:10 [CONFIG] Static directory: static
+2025/04/15 12:15:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:15:10 [NETWORK] Port: 8080
+2025/04/15 12:15:10 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:15:10 [CONFIG] Upload directory: uploads
+2025/04/15 12:15:10 [CONFIG] Static directory: static
+2025/04/15 12:15:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:15:10 [NETWORK] Port: 8080
+2025/04/15 12:15:31 [INFO] Listener configuration validated successfully: {ID:5a8bd207-305a-49a8-addc-b7d0860d4d59 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:15:31 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:19:10 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:19:10 [CONFIG] Upload directory: uploads
+2025/04/15 12:19:10 [CONFIG] Static directory: static
+2025/04/15 12:19:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:19:10 [NETWORK] Port: 8080
+2025/04/15 12:19:10 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:19:10 [CONFIG] Upload directory: uploads
+2025/04/15 12:19:10 [CONFIG] Static directory: static
+2025/04/15 12:19:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:19:10 [NETWORK] Port: 8080
+2025/04/15 12:19:28 [INFO] Listener configuration validated successfully: {ID:84fa9547-1952-4cb7-be51-25b2d0c27bf7 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:19:28 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:23:44 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:23:44 [CONFIG] Upload directory: uploads
+2025/04/15 12:23:44 [CONFIG] Static directory: static
+2025/04/15 12:23:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:23:44 [NETWORK] Port: 8080
+2025/04/15 12:23:44 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:23:44 [CONFIG] Upload directory: uploads
+2025/04/15 12:23:44 [CONFIG] Static directory: static
+2025/04/15 12:23:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:23:44 [NETWORK] Port: 8080
+2025/04/15 12:24:00 [INFO] Listener configuration validated successfully: {ID:3cef48b9-8fc9-4cf6-9910-69d7e6d756ed Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:24:00 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:26:00 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:26:00 [CONFIG] Upload directory: uploads
+2025/04/15 12:26:00 [CONFIG] Static directory: static
+2025/04/15 12:26:00 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:26:00 [NETWORK] Port: 8080
+2025/04/15 12:26:00 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:26:00 [CONFIG] Upload directory: uploads
+2025/04/15 12:26:00 [CONFIG] Static directory: static
+2025/04/15 12:26:00 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:26:00 [NETWORK] Port: 8080
+2025/04/15 12:26:16 [INFO] Listener configuration validated successfully: {ID:d317d39a-b9c1-4aa6-bd08-a55970133cca Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:26:16 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:27:51 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 12:27:51 [CONFIG] Upload directory: uploads
+2025/04/15 12:27:51 [CONFIG] Static directory: static
+2025/04/15 12:27:51 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:27:51 [NETWORK] Port: 8080
+2025/04/15 12:27:51 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 12:27:51 [CONFIG] Upload directory: uploads
+2025/04/15 12:27:51 [CONFIG] Static directory: static
+2025/04/15 12:27:51 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 12:27:51 [NETWORK] Port: 8080
+2025/04/15 12:28:13 [INFO] Listener configuration validated successfully: {ID:62e5283f-6e29-4602-895f-9a3e8738e3ae Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:28:13 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:28:29 [INFO] Stopped listener test-listener
+2025/04/15 12:28:55 [INFO] Listener configuration validated successfully: {ID:492e91e3-1d52-4fb2-886b-4114a7f0ca93 Name:test-listener Protocol:https BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 12:28:55 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 12:29:02 [INFO] Stopped listener test-listener
