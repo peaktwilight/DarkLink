@@ -40,7 +40,7 @@ func (h *StaticHandler) SetupStaticRoutes() {
 	fs := http.FileServer(http.Dir(h.staticDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// Serve web assets from the new web directory
+	// Serve web assets from the web directory
 	webFs := http.FileServer(http.Dir(h.webDir))
-	http.Handle("/webpage/", http.StripPrefix("/webpage/", webFs))
+	http.Handle("/home/", http.StripPrefix("/home/", webFs))
 }

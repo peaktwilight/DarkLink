@@ -15,3 +15,72 @@
 2025/04/14 22:49:41 [CONFIG] Static directory: static
 2025/04/14 22:49:41 [CONFIG] File Drop directory: static/file_drop
 2025/04/14 22:49:41 [NETWORK] Port: 8080
+2025/04/15 11:17:26 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:17:26 [CONFIG] Upload directory: uploads
+2025/04/15 11:17:26 [CONFIG] Static directory: static
+2025/04/15 11:17:26 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:17:26 [NETWORK] Port: 8080
+2025/04/15 11:17:26 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:17:26 [CONFIG] Upload directory: uploads
+2025/04/15 11:17:26 [CONFIG] Static directory: static
+2025/04/15 11:17:26 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:17:26 [NETWORK] Port: 8080
+2025/04/15 11:18:27 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:18:27 [CONFIG] Upload directory: uploads
+2025/04/15 11:18:27 [CONFIG] Static directory: static
+2025/04/15 11:18:27 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:18:27 [NETWORK] Port: 8080
+2025/04/15 11:18:27 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:18:27 [CONFIG] Upload directory: uploads
+2025/04/15 11:18:27 [CONFIG] Static directory: static
+2025/04/15 11:18:27 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:18:27 [NETWORK] Port: 8080
+2025/04/15 11:20:08 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:20:08 [CONFIG] Upload directory: uploads
+2025/04/15 11:20:08 [CONFIG] Static directory: static
+2025/04/15 11:20:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:20:08 [NETWORK] Port: 8080
+2025/04/15 11:20:08 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:20:08 [CONFIG] Upload directory: uploads
+2025/04/15 11:20:08 [CONFIG] Static directory: static
+2025/04/15 11:20:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:20:08 [NETWORK] Port: 8080
+2025/04/15 11:21:49 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:21:49 [CONFIG] Upload directory: uploads
+2025/04/15 11:21:49 [CONFIG] Static directory: static
+2025/04/15 11:21:49 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:21:49 [NETWORK] Port: 8080
+2025/04/15 11:21:49 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:21:49 [CONFIG] Upload directory: uploads
+2025/04/15 11:21:49 [CONFIG] Static directory: static
+2025/04/15 11:21:49 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:21:49 [NETWORK] Port: 8080
+2025/04/15 11:23:53 [INFO] Listener configuration validated successfully: {ID:f311dc50-3393-4646-bf7e-39dd96d6c411 Name:base-http Protocol:https BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 11:23:53 [INFO] Started listener base-http on 0.0.0.0:8443
+2025/04/15 11:26:46 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:26:46 [CONFIG] Upload directory: uploads
+2025/04/15 11:26:46 [CONFIG] Static directory: static
+2025/04/15 11:26:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:26:46 [NETWORK] Port: 8080
+2025/04/15 11:26:46 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:26:46 [CONFIG] Upload directory: uploads
+2025/04/15 11:26:46 [CONFIG] Static directory: static
+2025/04/15 11:26:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:26:46 [NETWORK] Port: 8080
+2025/04/15 11:29:17 [STARTUP] Starting server with http-polling protocol...
+2025/04/15 11:29:17 [CONFIG] Upload directory: uploads
+2025/04/15 11:29:17 [CONFIG] Static directory: static
+2025/04/15 11:29:17 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:29:17 [NETWORK] Port: 8080
+2025/04/15 11:29:17 [STARTUP] Server initializing with http-polling protocol...
+2025/04/15 11:29:17 [CONFIG] Upload directory: uploads
+2025/04/15 11:29:17 [CONFIG] Static directory: static
+2025/04/15 11:29:17 [CONFIG] File Drop directory: static/file_drop
+2025/04/15 11:29:17 [NETWORK] Port: 8080
+2025/04/15 11:31:20 [INFO] Listener configuration validated successfully: {ID:5a7f7830-75c0-42b0-a8f8-59dc4fb44729 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[index.php] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[example.com backup.example.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 11:31:20 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/15 11:31:44 [INFO] Listener configuration validated successfully: {ID:233d4369-ccd1-46ad-af79-294e9df7fa0e Name:base-http Protocol:https BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 11:31:51 [INFO] Listener configuration validated successfully: {ID:9c116c19-471f-441d-b739-54c27b91e6ab Name:base-http Protocol:https BindHost:0.0.0.0 Port:8444 URIs:[] Headers:map[] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[] Proxy:<nil> TLSConfig:<nil>}
+2025/04/15 11:31:51 [INFO] Started listener base-http on 0.0.0.0:8444
+2025/04/15 11:31:54 [ERROR] Error handling connection on listener base-http: connection validation failed: invalid path: /
+2025/04/15 11:31:56 [ERROR] Error handling connection on listener base-http: connection validation failed: invalid path: /
