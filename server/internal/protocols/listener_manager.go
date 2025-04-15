@@ -79,21 +79,49 @@ func (m *ListenerManager) ListListeners() []*Listener {
 	return list
 }
 
-// StopListener stops a listener but keeps it in the manager
+// StopListener stops a running listener
 func (m *ListenerManager) StopListener(id string) error {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	listener, exists := m.listeners[id]
+	m.mu.Unlock()
+
 	if !exists {
-		return fmt.Errorf("listener %s not found", id)
+		return fmt.Errorf("listener not found: %s", id)
+	}
+
+	if listener.Status == "stopped" {
+		return nil // Already stopped
 	}
 
 	if err := listener.Stop(); err != nil {
-		return err
+		return fmt.Errorf("failed to stop listener: %w", err)
 	}
 
-	// No longer delete from map - just keep it with stopped status
+	return nil
+}
+
+// StartListener starts a previously stopped listener
+func (m *ListenerManager) StartListener(id string) error {
+	m.mu.Lock()
+	listener, exists := m.listeners[id]
+	m.mu.Unlock()
+
+	if !exists {
+		return fmt.Errorf("listener not found: %s", id)
+	}
+
+	if listener.Status == StatusActive {
+		return nil // Already running
+	}
+
+	// Create a new stop channel since the old one was closed
+	listener.stopChan = make(chan struct{})
+
+	// Start the listener
+	if err := listener.Start(); err != nil {
+		return fmt.Errorf("failed to start listener: %w", err)
+	}
+
 	return nil
 }
 

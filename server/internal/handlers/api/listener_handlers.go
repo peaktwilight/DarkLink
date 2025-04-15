@@ -130,6 +130,43 @@ func (h *ListenerHandlers) HandleDeleteListener(w http.ResponseWriter, r *http.R
 	sendJSONResponse(w, map[string]string{"status": "success", "message": "Listener deleted successfully"})
 }
 
+// HandleStartListener handles requests to start a stopped listener
+func (h *ListenerHandlers) HandleStartListener(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		sendJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.TrimPrefix(r.URL.Path, "/api/listeners/")
+	id = strings.TrimSuffix(id, "/start")
+
+	if id == "" {
+		sendJSONError(w, "Listener ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get the listener to verify it exists and is in a stopped state
+	listener, err := h.manager.GetListener(id)
+	if err != nil {
+		sendJSONError(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	// Check if it's already running
+	if listener.Status == "active" {
+		sendJSONResponse(w, map[string]string{"status": "success", "message": "Listener is already active"})
+		return
+	}
+
+	// Start the listener
+	if err := h.manager.StartListener(id); err != nil {
+		sendJSONError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sendJSONResponse(w, map[string]string{"status": "success", "message": "Listener started successfully"})
+}
+
 // Helper functions for consistent JSON responses
 func sendJSONError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
@@ -150,6 +187,10 @@ func (h *ListenerHandlers) SetupRoutes() {
 		path := strings.TrimPrefix(r.URL.Path, "/api/listeners/")
 		if strings.HasSuffix(path, "/stop") {
 			h.HandleStopListener(w, r)
+			return
+		}
+		if strings.HasSuffix(path, "/start") {
+			h.HandleStartListener(w, r)
 			return
 		}
 		switch r.Method {
