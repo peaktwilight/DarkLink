@@ -247,21 +247,57 @@
                 return;
             }
             
-            listenersList.innerHTML = listeners.map(listener => `
-                <div class="listener-card" data-id="${listener.id}">
-                    <div class="listener-header">
-                        <span class="listener-name">${listener.name}</span>
-                        <span class="listener-protocol">${listener.protocol}</span>
+            let listenersHTML = '';
+            
+            if (listeners.length === 0) {
+                listenersList.innerHTML = '<div class="empty-state">No active listeners</div>';
+                return;
+            }
+            
+            for (const listener of listeners) {
+                // Extract listener properties, accounting for the nested structure
+                // The ID and other properties might be in the config object
+                const config = listener.config || {};
+                const listenerId = config.id || listener.id;
+                const listenerName = config.name || listener.name || 'Unnamed';
+                const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const listenerHost = config.host || listener.host || 'Unknown';
+                const listenerPort = config.port || listener.port || 'Unknown';
+                const listenerStatus = listener.status || 'Unknown';
+                const listenerError = listener.error || '';
+                
+                // Check for valid ID
+                if (!listenerId) {
+                    console.warn('Listener missing ID:', listener);
+                    continue;
+                }
+                
+                listenersHTML += `
+                    <div class="listener-card" data-id="${listenerId}">
+                        <div class="listener-header">
+                            <span class="listener-name">${listenerName}</span>
+                            <span class="listener-type">${listenerProtocol}</span>
+                        </div>
+                        <div class="listener-details">
+                            <div>Host: ${listenerHost}:${listenerPort}</div>
+                            <div>Status: <span class="status-${listenerStatus.toLowerCase()}">${listenerStatus}</span></div>
+                            ${listenerError ? `<div class="error-message">Error: ${listenerError}</div>` : ''}
+                        </div>
+                        <div class="listener-actions">
+                            <button class="action-button" onclick="stopListener('${listenerId}')">Stop</button>
+                            <button class="action-button delete" onclick="deleteListener('${listenerId}', '${listenerName}')">Delete</button>
+                        </div>
                     </div>
-                    <div class="listener-details">
-                        <div>Host: ${listener.host}:${listener.port}</div>
-                        <div>Status: <span class="status-${listener.status.toLowerCase()}">${listener.status}</span></div>
-                    </div>
-                </div>
-            `).join('') || '<div class="empty-state">No active listeners</div>';
+                `;
+            }
+            
+            listenersList.innerHTML = listenersHTML || '<div class="empty-state">No active listeners</div>';
 
             // Check for state changes
-            const currentIds = new Set(listeners.map(l => l.id));
+            const currentIds = new Set(listeners.map(l => {
+                const config = l.config || {};
+                return config.id || l.id;
+            }));
             const removedIds = [...previousListenerStates.keys()].filter(id => !currentIds.has(id));
 
             // Handle removed listeners
@@ -279,28 +315,35 @@
 
             // Handle new and updated listeners
             listeners.forEach(listener => {
-                const prevState = previousListenerStates.get(listener.id);
+                const config = listener.config || {};
+                const listenerId = config.id || listener.id;
+                const listenerName = config.name || listener.name || 'Unnamed';
+                const listenerStatus = listener.status || 'Unknown';
+                const prevState = previousListenerStates.get(listenerId);
                 if (!prevState) {
                     // New listener
                     appendLogEntry({
                         timestamp: new Date().toISOString(),
                         severity: 'INFO',
-                        message: `Listener "${listener.name}" created - ${listener.protocol} on ${listener.host}:${listener.port}`,
+                        message: `Listener "${listenerName}" created - ${listener.protocol} on ${listener.host}:${listener.port}`,
                         source: 'listener'
                     });
-                } else if (prevState.status !== listener.status) {
+                } else if (prevState.status !== listenerStatus) {
                     // Status change only
                     appendLogEntry({
                         timestamp: new Date().toISOString(),
-                        severity: listener.status === 'ACTIVE' ? 'INFO' : 'WARNING',
-                        message: `Listener "${listener.name}" status changed from ${prevState.status} to ${listener.status}`,
+                        severity: listenerStatus === 'ACTIVE' ? 'INFO' : 'WARNING',
+                        message: `Listener "${listenerName}" status changed from ${prevState.status} to ${listenerStatus}`,
                         source: 'listener'
                     });
                 }
             });
 
             // Update state cache
-            previousListenerStates = new Map(listeners.map(l => [l.id, { ...l }]));
+            previousListenerStates = new Map(listeners.map(l => {
+                const config = l.config || {};
+                return [config.id || l.id, { ...l }];
+            }));
 
         } catch (error) {
             console.error('Error updating listeners list:', error);
