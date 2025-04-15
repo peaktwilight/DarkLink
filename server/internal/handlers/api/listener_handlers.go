@@ -121,12 +121,13 @@ func (h *ListenerHandlers) HandleDeleteListener(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := h.manager.StopListener(id); err != nil {
+	// Now using DeleteListener which completely removes the listener
+	if err := h.manager.DeleteListener(id); err != nil {
 		sendJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	sendJSONResponse(w, map[string]string{"status": "success"})
+	sendJSONResponse(w, map[string]string{"status": "success", "message": "Listener deleted successfully"})
 }
 
 // Helper functions for consistent JSON responses

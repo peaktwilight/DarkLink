@@ -79,7 +79,7 @@ func (m *ListenerManager) ListListeners() []*Listener {
 	return list
 }
 
-// StopListener stops and removes a listener
+// StopListener stops a listener but keeps it in the manager
 func (m *ListenerManager) StopListener(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -93,19 +93,60 @@ func (m *ListenerManager) StopListener(id string) error {
 		return err
 	}
 
+	// No longer delete from map - just keep it with stopped status
+	return nil
+}
+
+// DeleteListener stops (if running) and removes a listener from the manager
+func (m *ListenerManager) DeleteListener(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	listener, exists := m.listeners[id]
+	if !exists {
+		return fmt.Errorf("listener %s not found", id)
+	}
+
+	// If listener is active, stop it first
+	if listener.Status == StatusActive {
+		if err := listener.Stop(); err != nil {
+			return fmt.Errorf("failed to stop listener before deletion: %v", err)
+		}
+	}
+
+	// Remove from listeners map
 	delete(m.listeners, id)
 	return nil
 }
 
-// StopAll stops all active listeners
+// StopAll stops all active listeners but keeps them in the manager
 func (m *ListenerManager) StopAll() []error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	var errors []error
 	for id, listener := range m.listeners {
-		if err := listener.Stop(); err != nil {
-			errors = append(errors, fmt.Errorf("failed to stop listener %s: %v", id, err))
+		if listener.Status == StatusActive {
+			if err := listener.Stop(); err != nil {
+				errors = append(errors, fmt.Errorf("failed to stop listener %s: %v", id, err))
+			}
+		}
+	}
+	return errors
+}
+
+// DeleteAll stops and removes all listeners
+func (m *ListenerManager) DeleteAll() []error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	var errors []error
+	for id, listener := range m.listeners {
+		if listener.Status == StatusActive {
+			if err := listener.Stop(); err != nil {
+				errors = append(errors, fmt.Errorf("failed to stop listener %s: %v", id, err))
+				continue // Skip deletion if stopping fails
+			}
 		}
 		delete(m.listeners, id)
 	}
