@@ -6,6 +6,7 @@ import (
 	"microc2/server/internal/handlers/api/payload"
 	"microc2/server/internal/protocols"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func NewFileHandlers(fileStore *filestore.FileStore) *FileHandlers {
 // HandleFileUpload processes file upload requests
 //
 // Pre-conditions:
-//   - Request is a POST multipart/form-data request
+//   - Request is a POST multipart/form/data request
 //   - Request contains one or more files in the "files" field
 //
 // Post-conditions:
@@ -134,7 +135,7 @@ func (h *FileHandlers) HandleFileDelete(w http.ResponseWriter, r *http.Request) 
 
 	err := h.fileStore.DeleteFile(fileName)
 	if err != nil {
-		if err == http.ErrNotExist {
+		if err == os.ErrNotExist {
 			http.Error(w, "File not found", http.StatusNotFound)
 		} else {
 			http.Error(w, "Failed to delete file: "+err.Error(), http.StatusInternalServerError)

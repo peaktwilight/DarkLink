@@ -667,3 +667,960 @@ Config saved to: static/payloads/debug/7d99b70b-1f7a-49cd-8c9a-1074d6beb018/conf
 2025/04/16 11:16:56 [CONFIG] Static directory: static
 2025/04/16 11:16:56 [CONFIG] File Drop directory: static/file_drop
 2025/04/16 11:16:56 [NETWORK] Port: 8080
+2025/04/16 13:46:14 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 13:46:14 [CONFIG] Upload directory: uploads
+2025/04/16 13:46:14 [CONFIG] Static directory: static
+2025/04/16 13:46:14 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:46:14 [CONFIG] Payloads directory: static/payloads
+2025/04/16 13:46:14 [NETWORK] Port: 8080
+2025/04/16 13:46:14 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 13:46:14 [CONFIG] Upload directory: uploads
+2025/04/16 13:46:14 [CONFIG] Static directory: static
+2025/04/16 13:46:14 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:46:14 [NETWORK] Port: 8080
+2025/04/16 13:46:34 [INFO] Listener configuration validated successfully: {ID:2775d583-d172-480c-90f5-bd6484d75357 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 13:46:34 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 13:46:44 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:2775d583-d172-480c-90f5-bd6484d75357 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 13:46:45 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/78f82471-8942-4f1a-adb2-57e0444f0944
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/78f82471-8942-4f1a-adb2-57e0444f0944/config.json
+Building for x86_64-pc-windows-gnu...
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.53s
+Build complete!
+Agent saved to: static/payloads/debug/78f82471-8942-4f1a-adb2-57e0444f0944/agent.exe
+Config saved to: static/payloads/debug/78f82471-8942-4f1a-adb2-57e0444f0944/config.json
+2025/04/16 13:46:52 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:2775d583-d172-480c-90f5-bd6484d75357 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 13:46:53 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/dfe118db-3135-40ed-a5f1-8e339adf5c1e
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/dfe118db-3135-40ed-a5f1-8e339adf5c1e/config.json
+Building for x86_64-pc-windows-gnu...
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+Build complete!
+Agent saved to: static/payloads/debug/dfe118db-3135-40ed-a5f1-8e339adf5c1e/agent.exe
+Config saved to: static/payloads/debug/dfe118db-3135-40ed-a5f1-8e339adf5c1e/config.json
+2025/04/16 13:47:31 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:2775d583-d172-480c-90f5-bd6484d75357 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 13:47:31 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/750f6af5-aa67-44d4-9fbf-efa5261b03d2
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/750f6af5-aa67-44d4-9fbf-efa5261b03d2/config.json
+Building for x86_64-pc-windows-gnu...
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
+Build complete!
+Agent saved to: static/payloads/debug/750f6af5-aa67-44d4-9fbf-efa5261b03d2/agent.exe
+Config saved to: static/payloads/debug/750f6af5-aa67-44d4-9fbf-efa5261b03d2/config.json
+2025/04/16 13:52:28 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 13:52:28 [CONFIG] Upload directory: uploads
+2025/04/16 13:52:28 [CONFIG] Static directory: static
+2025/04/16 13:52:28 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:52:28 [CONFIG] Payloads directory: static/payloads
+2025/04/16 13:52:28 [NETWORK] Port: 8080
+2025/04/16 13:52:28 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 13:52:28 [CONFIG] Upload directory: uploads
+2025/04/16 13:52:28 [CONFIG] Static directory: static
+2025/04/16 13:52:28 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:52:28 [NETWORK] Port: 8080
+2025/04/16 13:54:44 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 13:54:44 [CONFIG] Upload directory: uploads
+2025/04/16 13:54:44 [CONFIG] Static directory: static
+2025/04/16 13:54:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:54:44 [CONFIG] Payloads directory: static/payloads
+2025/04/16 13:54:44 [NETWORK] Port: 8080
+2025/04/16 13:54:44 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 13:54:44 [CONFIG] Upload directory: uploads
+2025/04/16 13:54:44 [CONFIG] Static directory: static
+2025/04/16 13:54:44 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:54:44 [NETWORK] Port: 8080
+2025/04/16 13:54:44 [ERROR] Server error: listen tcp :8080: bind: address already in use
+2025/04/16 13:55:00 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 13:55:00 [CONFIG] Upload directory: uploads
+2025/04/16 13:55:00 [CONFIG] Static directory: static
+2025/04/16 13:55:00 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:55:00 [CONFIG] Payloads directory: static/payloads
+2025/04/16 13:55:00 [NETWORK] Port: 8080
+2025/04/16 13:55:00 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 13:55:00 [CONFIG] Upload directory: uploads
+2025/04/16 13:55:00 [CONFIG] Static directory: static
+2025/04/16 13:55:00 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:55:00 [NETWORK] Port: 8080
+2025/04/16 13:58:29 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 13:58:29 [CONFIG] Upload directory: uploads
+2025/04/16 13:58:29 [CONFIG] Static directory: static
+2025/04/16 13:58:29 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:58:29 [CONFIG] Payloads directory: static/payloads
+2025/04/16 13:58:29 [NETWORK] Port: 8080
+2025/04/16 13:58:29 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 13:58:29 [CONFIG] Upload directory: uploads
+2025/04/16 13:58:29 [CONFIG] Static directory: static
+2025/04/16 13:58:29 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 13:58:29 [NETWORK] Port: 8080
+2025/04/16 13:59:03 [INFO] Listener configuration validated successfully: {ID:228ed95a-4eba-4d93-b4e1-4e5680b617a4 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 13:59:03 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 14:00:08 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 14:00:08 [CONFIG] Upload directory: uploads
+2025/04/16 14:00:08 [CONFIG] Static directory: static
+2025/04/16 14:00:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:00:08 [CONFIG] Payloads directory: static/payloads
+2025/04/16 14:00:08 [NETWORK] Port: 8080
+2025/04/16 14:00:08 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 14:00:08 [CONFIG] Upload directory: uploads
+2025/04/16 14:00:08 [CONFIG] Static directory: static
+2025/04/16 14:00:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:00:08 [NETWORK] Port: 8080
+2025/04/16 14:01:35 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 14:01:35 [CONFIG] Upload directory: uploads
+2025/04/16 14:01:35 [CONFIG] Static directory: static
+2025/04/16 14:01:35 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:01:35 [CONFIG] Payloads directory: static/payloads
+2025/04/16 14:01:35 [NETWORK] Port: 8080
+2025/04/16 14:01:35 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 14:01:35 [CONFIG] Upload directory: uploads
+2025/04/16 14:01:35 [CONFIG] Static directory: static
+2025/04/16 14:01:35 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:01:35 [NETWORK] Port: 8080
+2025/04/16 14:01:53 [INFO] Listener configuration validated successfully: {ID:e0e19a50-5ee0-4205-8f54-954979fd1e3c Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 14:01:53 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 14:02:04 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:e0e19a50-5ee0-4205-8f54-954979fd1e3c Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 14:02:04 [INFO] Using listener: {ID:e0e19a50-5ee0-4205-8f54-954979fd1e3c Name:test-listener Protocol:http Host:0.0.0.0 Port:8443}
+2025/04/16 14:02:04 [INFO] Created output directory: static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791
+2025/04/16 14:02:04 [INFO] Created agent config file: static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/config.json
+2025/04/16 14:02:04 [INFO] Using build target: x86_64-pc-windows-gnu
+2025/04/16 14:02:04 [INFO] Using build script: ../agent/build.sh
+2025/04/16 14:02:04 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-pc-windows-gnu --output static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791 --build-type debug
+2025/04/16 14:02:04 [INFO] Working directory: ../agent
+2025/04/16 14:02:04 [INFO] Environment variables set: TARGET=x86_64-pc-windows-gnu, OUTPUT_DIR=static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/16 14:02:05 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/config.json
+Building for x86_64-pc-windows-gnu...
+Using cross for Windows build...
+../agent/build.sh: line 101: cross: command not found
+Build complete!
+Agent saved to: static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/agent.exe
+Config saved to: static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/config.json
+2025/04/16 14:02:05 [INFO] Payload filename: agent.dll
+2025/04/16 14:02:05 [INFO] Checking for payload at: static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/agent.dll
+2025/04/16 14:02:05 [ERROR] Payload not found at expected location static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/agent.dll: stat static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791/agent.dll: no such file or directory
+2025/04/16 14:02:05 [INFO] Output directory static/payloads/debug/7ecc8fde-39a8-4316-aa06-57c2b7eca791 contents:
+2025/04/16 14:02:05 [INFO] - config.json
+2025/04/16 14:09:52 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 14:09:52 [CONFIG] Upload directory: uploads
+2025/04/16 14:09:52 [CONFIG] Static directory: static
+2025/04/16 14:09:52 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:09:52 [CONFIG] Payloads directory: static/payloads
+2025/04/16 14:09:52 [NETWORK] Port: 8080
+2025/04/16 14:09:52 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 14:09:52 [CONFIG] Upload directory: uploads
+2025/04/16 14:09:52 [CONFIG] Static directory: static
+2025/04/16 14:09:52 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:09:52 [NETWORK] Port: 8080
+2025/04/16 14:10:08 [INFO] Listener configuration validated successfully: {ID:03f8296b-e8ca-4492-bfec-535a4f1f5557 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 14:10:08 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 14:10:18 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:03f8296b-e8ca-4492-bfec-535a4f1f5557 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 14:10:18 [INFO] Using listener: {ID:03f8296b-e8ca-4492-bfec-535a4f1f5557 Name:test-listener Protocol:http Host:0.0.0.0 Port:8443}
+2025/04/16 14:10:18 [INFO] Created output directory: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a
+2025/04/16 14:10:18 [INFO] Created agent config file: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/config.json
+2025/04/16 14:10:18 [INFO] Using build target: x86_64-pc-windows-gnu
+2025/04/16 14:10:18 [INFO] Using build script: ../agent/build.sh
+2025/04/16 14:10:18 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-pc-windows-gnu --output static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a --build-type debug --format windows_dll
+2025/04/16 14:10:18 [INFO] Working directory: ../agent
+2025/04/16 14:10:18 [INFO] Environment variables set: TARGET=x86_64-pc-windows-gnu, OUTPUT_DIR=static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/16 14:10:18 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+  Format:       windows_dll
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/config.json
+Building for x86_64-pc-windows-gnu...
+Cross tool not found, using direct cargo build...
+info: component 'rust-std' for target 'x86_64-pc-windows-gnu' is up to date
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.09s
+Converting executable to DLL format...
+DLL file created at: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/agent.dll
+Build complete!
+Agent saved to: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/agent.exe
+Config saved to: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/config.json
+2025/04/16 14:10:18 [INFO] Payload filename: agent.dll
+2025/04/16 14:10:18 [INFO] Checking for payload at: static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/agent.dll
+2025/04/16 14:10:18 [ERROR] Payload not found at expected location static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/agent.dll: stat static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a/agent.dll: no such file or directory
+2025/04/16 14:10:18 [INFO] Output directory static/payloads/debug/80016ea0-3878-4a28-9578-9a4e1baee80a contents:
+2025/04/16 14:10:18 [INFO] - config.json
+2025/04/16 14:24:14 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 14:24:14 [CONFIG] Upload directory: uploads
+2025/04/16 14:24:14 [CONFIG] Static directory: static
+2025/04/16 14:24:14 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:24:14 [CONFIG] Payloads directory: static/payloads
+2025/04/16 14:24:14 [NETWORK] Port: 8080
+2025/04/16 14:24:14 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 14:24:14 [CONFIG] Upload directory: uploads
+2025/04/16 14:24:14 [CONFIG] Static directory: static
+2025/04/16 14:24:14 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 14:24:14 [NETWORK] Port: 8080
+2025/04/16 14:24:34 [INFO] Listener configuration validated successfully: {ID:ce490238-3a99-49aa-8727-01ea4cfb4b14 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 14:24:34 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 14:24:44 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:ce490238-3a99-49aa-8727-01ea4cfb4b14 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 14:24:44 [INFO] Using listener: {ID:ce490238-3a99-49aa-8727-01ea4cfb4b14 Name:test-listener Protocol:http Host:0.0.0.0 Port:8443}
+2025/04/16 14:24:44 [INFO] Created output directory: static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6
+2025/04/16 14:24:44 [INFO] Created agent config file: static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/config.json
+2025/04/16 14:24:44 [INFO] Using build target: x86_64-pc-windows-gnu
+2025/04/16 14:24:44 [INFO] Using build script: ../agent/build.sh
+2025/04/16 14:24:44 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-pc-windows-gnu --output static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6 --build-type debug --format windows_dll
+2025/04/16 14:24:44 [INFO] Working directory: ../agent
+2025/04/16 14:24:44 [INFO] Environment variables set: TARGET=x86_64-pc-windows-gnu, OUTPUT_DIR=static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/16 14:25:43 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+  Format:       windows_dll
+Checking dependencies...
+Installing cross...
+    Updating crates.io index
+     Ignored package `cross v0.2.5` is already installed, use --force to override
+Building agent...
+Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/config.json
+Setting up for Windows DLL build with DLL feature enabled
+Created .cargo/config.toml for DLL linking
+Building for x86_64-pc-windows-gnu...
+Cross tool not found, using direct cargo build...
+info: component 'rust-std' for target 'x86_64-pc-windows-gnu' is up to date
+Building with DLL features: cargo build  --features dll --target x86_64-pc-windows-gnu
+   Compiling proc-macro2 v1.0.94
+   Compiling unicode-ident v1.0.18
+   Compiling cfg-if v1.0.0
+   Compiling autocfg v1.4.0
+   Compiling stable_deref_trait v1.2.0
+   Compiling windows_x86_64_gnu v0.52.6
+   Compiling smallvec v1.15.0
+   Compiling icu_locid_transform_data v1.5.1
+   Compiling litemap v0.7.5
+   Compiling windows-targets v0.52.6
+   Compiling writeable v0.5.5
+   Compiling shlex v1.3.0
+   Compiling icu_properties_data v1.5.1
+   Compiling cc v1.2.18
+   Compiling windows-sys v0.52.0
+   Compiling lock_api v0.4.12
+   Compiling quote v1.0.40
+   Compiling getrandom v0.2.15
+   Compiling syn v2.0.100
+   Compiling parking_lot_core v0.9.10
+   Compiling icu_normalizer_data v1.5.1
+   Compiling pin-project-lite v0.2.16
+   Compiling itoa v1.0.15
+   Compiling bytes v1.10.1
+   Compiling ring v0.17.14
+   Compiling winapi-x86_64-pc-windows-gnu v0.4.0
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.3
+   Compiling winapi v0.3.9
+   Compiling synstructure v0.13.1
+   Compiling serde v1.0.219
+   Compiling zerocopy v0.8.24
+   Compiling utf8_iter v1.0.4
+   Compiling futures-core v0.3.31
+   Compiling utf16_iter v1.0.5
+   Compiling write16 v1.0.0
+   Compiling mio v1.0.3
+   Compiling socket2 v0.5.9
+   Compiling parking_lot v0.12.3
+   Compiling slab v0.4.9
+   Compiling rustls-pki-types v1.11.0
+   Compiling fnv v1.0.7
+   Compiling untrusted v0.9.0
+   Compiling http v0.2.12
+   Compiling zerofrom-derive v0.1.6
+   Compiling yoke-derive v0.7.5
+   Compiling zerovec-derive v0.10.3
+   Compiling zerofrom v0.1.6
+   Compiling displaydoc v0.2.5
+   Compiling icu_provider_macros v1.5.0
+   Compiling yoke v0.7.5
+   Compiling tokio-macros v2.5.0
+   Compiling zerovec v0.10.4
+   Compiling serde_derive v1.0.219
+   Compiling tokio v1.44.2
+   Compiling tinystr v0.7.6
+   Compiling icu_locid v1.5.0
+   Compiling icu_collections v1.5.0
+   Compiling icu_provider v1.5.0
+   Compiling tracing-core v0.1.33
+   Compiling icu_locid_transform v1.5.0
+   Compiling num-traits v0.2.19
+   Compiling httparse v1.10.1
+   Compiling icu_properties v1.5.1
+   Compiling pin-utils v0.1.0
+   Compiling getrandom v0.3.2
+   Compiling futures-task v0.3.31
+   Compiling hashbrown v0.15.2
+   Compiling percent-encoding v2.3.1
+   Compiling rustls v0.23.25
+   Compiling icu_normalizer v1.5.0
+   Compiling log v0.4.27
+   Compiling equivalent v1.0.2
+   Compiling adler2 v2.0.0
+   Compiling serde_json v1.0.140
+   Compiling idna_adapter v1.2.0
+   Compiling futures-sink v0.3.31
+   Compiling tokio-util v0.7.14
+   Compiling idna v1.0.3
+   Compiling miniz_oxide v0.8.7
+   Compiling indexmap v2.9.0
+   Compiling form_urlencoded v1.2.1
+   Compiling futures-util v0.3.31
+   Compiling tracing v0.1.41
+   Compiling ppv-lite86 v0.2.21
+   Compiling rustls-webpki v0.103.1
+   Compiling rand_core v0.6.4
+   Compiling crc32fast v1.4.2
+   Compiling ryu v1.0.20
+   Compiling subtle v2.6.1
+   Compiling memchr v2.7.4
+   Compiling zeroize v1.8.1
+   Compiling try-lock v0.2.5
+   Compiling want v0.3.1
+   Compiling h2 v0.3.26
+   Compiling flate2 v1.1.1
+   Compiling rand_chacha v0.3.1
+   Compiling url v2.5.4
+   Compiling dirs-sys v0.3.7
+   Compiling http-body v0.4.6
+   Compiling webpki-roots v0.26.8
+   Compiling futures-channel v0.3.31
+   Compiling base64 v0.22.1
+   Compiling match_cfg v0.1.0
+   Compiling tower-service v0.3.3
+   Compiling windows-link v0.1.1
+   Compiling httpdate v1.0.3
+   Compiling chrono v0.4.40
+   Compiling hyper v0.14.32
+   Compiling ureq v2.12.1
+   Compiling hostname v0.3.1
+   Compiling dirs v4.0.0
+   Compiling uuid v1.16.0
+   Compiling rand v0.8.5
+   Compiling os_info v3.10.0
+   Compiling agent v0.1.0 (/home/darkroom/coding/MicroC2/agent)
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 56.84s
+Build complete in target/x86_64-pc-windows-gnu/debug
+Copying agent binary to output directory
+Creating Windows DLL...
+Copied DLL from target/x86_64-pc-windows-gnu/debug/agent.exe to /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+Verifying DLL exports in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+The Export Tables (interpreted .edata section contents)
+
+Export Flags 			0
+Time/Date stamp 		67ffa1c6
+Major/Minor 			0/0
+Name 				0000000000d05516 agent-cf6eec35aff1b169.exe
+Ordinal Base 			1
+Number in:
+	Export Address Table 		0000854b
+	[Name Pointer/Ordinal] Table	0000854b
+Table Addresses
+	Export Address Table 		0000000000cb2028
+	Name Pointer Table 		0000000000cd3554
+	Ordinal Table 			0000000000cf4a80
+
+Export Address Table -- Ordinal Base 1
+DLL file created successfully at: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+-rwxr-xr-x 1 darkroom darkroom 88807943 Apr 16 14:25 /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+Build complete!
+Agent saved to: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.exe
+DLL saved to: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+Config saved to: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/config.json
+2025/04/16 14:25:43 [INFO] Payload filename: agent.dll
+2025/04/16 14:25:43 [INFO] Checking for payload at: static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll
+2025/04/16 14:25:43 [ERROR] Payload not found at expected location static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll: stat static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6/agent.dll: no such file or directory
+2025/04/16 14:25:43 [INFO] Output directory static/payloads/debug/c27a7703-ef66-45f7-816b-c65fb67bdfd6 contents:
+2025/04/16 14:25:43 [INFO] - config.json

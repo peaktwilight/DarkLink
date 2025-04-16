@@ -199,8 +199,10 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	// Get listener details
 	listener, err := h.listeners.GetListener(config.ListenerID)
 	if err != nil {
+		log.Printf("[ERROR] Failed to get listener %s: %v", config.ListenerID, err)
 		return PayloadResult{}, fmt.Errorf("failed to get listener: %w", err)
 	}
+	log.Printf("[INFO] Using listener: %+v", listener)
 
 	// Generate unique ID for this payload
 	payloadID := uuid.New().String()
@@ -214,8 +216,10 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	// Create a directory for build artifacts
 	outputDir := filepath.Join(h.payloadsDir, buildType, payloadID)
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		log.Printf("[ERROR] Failed to create output directory %s: %v", outputDir, err)
 		return PayloadResult{}, fmt.Errorf("failed to create output directory: %w", err)
 	}
+	log.Printf("[INFO] Created output directory: %s", outputDir)
 
 	// Create agent config file
 	configPath := filepath.Join(outputDir, "config.json")
@@ -227,12 +231,15 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	configJSON, err := json.MarshalIndent(agentConfig, "", "  ")
 	if err != nil {
+		log.Printf("[ERROR] Failed to marshal agent config: %v", err)
 		return PayloadResult{}, fmt.Errorf("failed to marshal agent config: %w", err)
 	}
 
 	if err := os.WriteFile(configPath, configJSON, 0644); err != nil {
+		log.Printf("[ERROR] Failed to write agent config to %s: %v", configPath, err)
 		return PayloadResult{}, fmt.Errorf("failed to write agent config: %w", err)
 	}
+	log.Printf("[INFO] Created agent config file: %s", configPath)
 
 	// Determine build target
 	var buildTarget string
@@ -246,18 +253,25 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	default:
 		buildTarget = "x86_64-unknown-linux-gnu" // Default to Linux x64
 	}
+	log.Printf("[INFO] Using build target: %s", buildTarget)
 
 	// Get the path to the build script
 	buildScript := filepath.Join(h.agentSourceDir, "build.sh")
+	if _, err := os.Stat(buildScript); os.IsNotExist(err) {
+		log.Printf("[ERROR] Build script not found at %s", buildScript)
+		return PayloadResult{}, fmt.Errorf("build script not found at %s", buildScript)
+	}
+	log.Printf("[INFO] Using build script: %s", buildScript)
 
 	// Set up the command
-	cmd := exec.Command("/bin/bash", buildScript,
-		"--target", buildTarget,
-		"--output", outputDir,
-		"--build-type", buildType)
+	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format}
+	log.Printf("[INFO] Command: /bin/bash %s", strings.Join(cmdArgs, " "))
+
+	cmd := exec.Command("/bin/bash", cmdArgs...)
 
 	// Set working directory to agent source directory
 	cmd.Dir = h.agentSourceDir
+	log.Printf("[INFO] Working directory: %s", h.agentSourceDir)
 
 	// Add environment variables
 	cmd.Env = append(os.Environ(),
@@ -268,6 +282,8 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
 	)
+	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
+		buildTarget, outputDir, buildType, listener.Host, listener.Port, config.Sleep)
 
 	// Execute build command
 	output, err := cmd.CombinedOutput()
@@ -290,13 +306,26 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	default:
 		payloadFileName = "agent"
 	}
+	log.Printf("[INFO] Payload filename: %s", payloadFileName)
 
 	// Find the generated payload
 	payloadPath := filepath.Join(outputDir, payloadFileName)
+	log.Printf("[INFO] Checking for payload at: %s", payloadPath)
 
 	// Check if file exists
 	fileInfo, err := os.Stat(payloadPath)
 	if err != nil {
+		log.Printf("[ERROR] Payload not found at expected location %s: %v", payloadPath, err)
+		// List directory contents to aid debugging
+		files, err := os.ReadDir(outputDir)
+		if err != nil {
+			log.Printf("[ERROR] Failed to read output directory: %v", err)
+		} else {
+			log.Printf("[INFO] Output directory %s contents:", outputDir)
+			for _, file := range files {
+				log.Printf("[INFO] - %s", file.Name())
+			}
+		}
 		return PayloadResult{}, fmt.Errorf("payload not found at expected location: %w", err)
 	}
 
@@ -309,7 +338,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		Created:  time.Now().Format(time.RFC3339),
 	}
 
-	log.Printf("[INFO] Generated payload: %+v", result)
+	log.Printf("[INFO] Successfully generated payload: %+v", result)
 	return result, nil
 }
 

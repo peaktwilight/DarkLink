@@ -185,6 +185,7 @@ func (ls *LogStreamer) broadcast(entry LogEntry) {
 	var clientsToRemove []*websocket.Conn
 
 	// Send to all clients
+	ls.clientsMutex.RLock()
 	for client := range ls.clients {
 		// Set a write deadline to avoid blocking on unresponsive clients
 		client.SetWriteDeadline(time.Now().Add(10 * time.Second))
@@ -194,8 +195,10 @@ func (ls *LogStreamer) broadcast(entry LogEntry) {
 			clientsToRemove = append(clientsToRemove, client)
 		}
 	}
-
 	ls.clientsMutex.RUnlock()
+
+	// Ensure proper mutex protection for client management
+	// All accesses to the `clients` map are guarded by `clientsMutex`.
 
 	// Remove failed clients
 	if len(clientsToRemove) > 0 {
