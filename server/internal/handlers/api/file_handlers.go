@@ -2,10 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"microc2/server/internal/filestore"
+	"microc2/server/internal/handlers/api/payload"
+	"microc2/server/internal/protocols"
 	"net/http"
 	"strings"
-
-	"microc2/server/internal/filestore"
 )
 
 // FileHandlers manages file-related HTTP endpoints
@@ -88,4 +89,11 @@ func (h *FileHandlers) HandleFileDelete(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// PayloadHandlerSetup creates and initializes a new payload handler
+func PayloadHandlerSetup(payloadsDir, agentSourceDir string, listenerManager *protocols.ListenerManager) *payload.PayloadHandler {
+	adapter := payload.NewListenerManagerAdapter(listenerManager)
+	handler := payload.NewPayloadHandler(payloadsDir, agentSourceDir, adapter)
+	return handler
 }

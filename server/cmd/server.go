@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"microc2/server/config"
 	"microc2/server/internal/filestore"
@@ -63,6 +64,11 @@ func main() {
 	wsHandlers := ws.New(logStreamer)
 	listenerHandlers := api.NewListenerHandlers(serverManager.GetListenerManager())
 
+	// Initialize payload handler
+	payloadDir := filepath.Join(cfg.Server.StaticDir, "payloads")
+	agentSourceDir := "../agent" // Relative path to agent source code
+	payloadHandler := api.PayloadHandlerSetup(payloadDir, agentSourceDir, serverManager.GetListenerManager())
+
 	// Set up HTTP routes
 	staticHandlers.SetupStaticRoutes()
 
@@ -79,6 +85,9 @@ func main() {
 	// Set up listener management routes
 	listenerHandlers.SetupRoutes()
 
+	// Set up payload generator routes
+	payloadHandler.SetupRoutes()
+
 	// Set up root handler
 	http.HandleFunc("/", staticHandlers.HandleRoot)
 
@@ -87,6 +96,7 @@ func main() {
 	log.Printf("[CONFIG] Upload directory: %s", cfg.Server.UploadDir)
 	log.Printf("[CONFIG] Static directory: %s", cfg.Server.StaticDir)
 	log.Printf("[CONFIG] File Drop directory: %s/file_drop", cfg.Server.StaticDir)
+	log.Printf("[CONFIG] Payloads directory: %s", payloadDir)
 	log.Printf("[NETWORK] Port: %s", cfg.Server.Port)
 
 	if err := serverManager.Start(); err != nil {

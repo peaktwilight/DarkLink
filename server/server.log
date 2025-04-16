@@ -321,3 +321,58 @@
 2025/04/16 00:03:49 [INFO] Stopped listener test-listener
 2025/04/16 00:03:50 [INFO] Started listener test-listener on 0.0.0.0:8443
 2025/04/16 00:03:53 [INFO] Stopped listener test-listener
+2025/04/16 10:37:34 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 10:37:34 [CONFIG] Upload directory: uploads
+2025/04/16 10:37:34 [CONFIG] Static directory: static
+2025/04/16 10:37:34 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:37:34 [NETWORK] Port: 8080
+2025/04/16 10:37:34 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 10:37:34 [CONFIG] Upload directory: uploads
+2025/04/16 10:37:34 [CONFIG] Static directory: static
+2025/04/16 10:37:34 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:37:34 [NETWORK] Port: 8080
+2025/04/16 10:39:02 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 10:39:02 [CONFIG] Upload directory: uploads
+2025/04/16 10:39:02 [CONFIG] Static directory: static
+2025/04/16 10:39:02 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:39:02 [NETWORK] Port: 8080
+2025/04/16 10:39:02 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 10:39:02 [CONFIG] Upload directory: uploads
+2025/04/16 10:39:02 [CONFIG] Static directory: static
+2025/04/16 10:39:02 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:39:02 [NETWORK] Port: 8080
+2025/04/16 10:40:04 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 10:40:04 [CONFIG] Upload directory: uploads
+2025/04/16 10:40:04 [CONFIG] Static directory: static
+2025/04/16 10:40:04 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:40:04 [NETWORK] Port: 8080
+2025/04/16 10:40:04 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 10:40:04 [CONFIG] Upload directory: uploads
+2025/04/16 10:40:04 [CONFIG] Static directory: static
+2025/04/16 10:40:04 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:40:04 [NETWORK] Port: 8080
+2025/04/16 10:48:54 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 10:48:54 [CONFIG] Upload directory: uploads
+2025/04/16 10:48:54 [CONFIG] Static directory: static
+2025/04/16 10:48:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:48:54 [NETWORK] Port: 8080
+2025/04/16 10:48:54 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 10:48:54 [CONFIG] Upload directory: uploads
+2025/04/16 10:48:54 [CONFIG] Static directory: static
+2025/04/16 10:48:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:48:54 [NETWORK] Port: 8080
+2025/04/16 10:49:17 [INFO] Listener configuration validated successfully: {ID:f25de848-d019-4050-9531-8bcb10e27a1f Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 10:49:17 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 10:54:51 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 10:54:51 [CONFIG] Upload directory: uploads
+2025/04/16 10:54:51 [CONFIG] Static directory: static
+2025/04/16 10:54:51 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:54:51 [CONFIG] Payloads directory: static/payloads
+2025/04/16 10:54:51 [NETWORK] Port: 8080
+2025/04/16 10:54:51 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 10:54:51 [CONFIG] Upload directory: uploads
+2025/04/16 10:54:51 [CONFIG] Static directory: static
+2025/04/16 10:54:51 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 10:54:51 [NETWORK] Port: 8080
+2025/04/16 10:55:23 [INFO] Listener configuration validated successfully: {ID:c833b015-1287-4fe5-92ac-b09efc4a1149 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 10:55:23 [INFO] Started listener test-listener on 0.0.0.0:8443

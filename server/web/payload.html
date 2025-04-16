@@ -25,8 +25,8 @@
                             <div class="form-group">
                                 <label for="agentType">Agent Type</label>
                                 <select id="agentType" name="agentType" required>
-                                    <option value="demon">Demon</option>
-                                    <option value="basic">Basic Agent</option>
+                                    <option value="debugAgent">Agent - Debug</option>
+                                    <option value="agent">Agent</option>
                                 </select>
                             </div>
 
@@ -145,8 +145,26 @@
                 const listeners = await response.json();
                 
                 const listenerSelect = document.getElementById('listener');
-                listenerSelect.innerHTML = '<option value="">Select a listener...</option>' +
-                    listeners.map(l => `<option value="${l.id}">${l.name} (${l.type})</option>`).join('');
+                listenerSelect.innerHTML = '<option value="">Select a listener...</option>';
+                
+                listeners.forEach(listener => {
+                    // Handle different possible structures of listener objects
+                    const config = listener.config || {};
+                    const id = config.id || listener.id || '';
+                    const name = config.name || listener.name || 'Unnamed';
+                    const protocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                    
+                    if (id) {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = `${name} (${protocol})`;
+                        listenerSelect.appendChild(option);
+                    }
+                });
+                
+                if (listenerSelect.options.length <= 1) {
+                    console.warn('No valid listeners found');
+                }
             } catch (error) {
                 console.error('Error loading listeners:', error);
             }
