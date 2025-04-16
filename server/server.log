@@ -376,3 +376,294 @@
 2025/04/16 10:54:51 [NETWORK] Port: 8080
 2025/04/16 10:55:23 [INFO] Listener configuration validated successfully: {ID:c833b015-1287-4fe5-92ac-b09efc4a1149 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
 2025/04/16 10:55:23 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 11:03:10 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 11:03:10 [CONFIG] Upload directory: uploads
+2025/04/16 11:03:10 [CONFIG] Static directory: static
+2025/04/16 11:03:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:03:10 [CONFIG] Payloads directory: static/payloads
+2025/04/16 11:03:10 [NETWORK] Port: 8080
+2025/04/16 11:03:10 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 11:03:10 [CONFIG] Upload directory: uploads
+2025/04/16 11:03:10 [CONFIG] Static directory: static
+2025/04/16 11:03:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:03:10 [NETWORK] Port: 8080
+2025/04/16 11:03:38 [INFO] Listener configuration validated successfully: {ID:92070266-1334-4ade-9753-479bbb6ecf36 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 11:03:38 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 11:07:05 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 11:07:05 [CONFIG] Upload directory: uploads
+2025/04/16 11:07:05 [CONFIG] Static directory: static
+2025/04/16 11:07:05 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:07:05 [CONFIG] Payloads directory: static/payloads
+2025/04/16 11:07:05 [NETWORK] Port: 8080
+2025/04/16 11:07:05 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 11:07:05 [CONFIG] Upload directory: uploads
+2025/04/16 11:07:05 [CONFIG] Static directory: static
+2025/04/16 11:07:05 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:07:05 [NETWORK] Port: 8080
+2025/04/16 11:14:19 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 11:14:19 [CONFIG] Upload directory: uploads
+2025/04/16 11:14:19 [CONFIG] Static directory: static
+2025/04/16 11:14:19 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:14:19 [CONFIG] Payloads directory: static/payloads
+2025/04/16 11:14:19 [NETWORK] Port: 8080
+2025/04/16 11:14:19 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 11:14:19 [CONFIG] Upload directory: uploads
+2025/04/16 11:14:19 [CONFIG] Static directory: static
+2025/04/16 11:14:19 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:14:19 [NETWORK] Port: 8080
+2025/04/16 11:14:36 [INFO] Listener configuration validated successfully: {ID:54965f71-7156-42e2-be70-d549aaf28db1 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
+2025/04/16 11:14:36 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/16 11:14:45 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:54965f71-7156-42e2-be70-d549aaf28db1 Architecture:x64 Format:windows_dll Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/16 11:15:27 [INFO] Build output: MicroC2 Agent Builder
+=============================
+Configuration:
+  Target:       x86_64-pc-windows-gnu
+  Output Dir:   static/payloads/debug/7d99b70b-1f7a-49cd-8c9a-1074d6beb018
+  Build Type:   debug
+  C2 Server:    172.28.249.104:8080
+  Sleep:        60 seconds
+  Jitter:       2 seconds
+Checking dependencies...
+Building agent...
+Created configuration in static/payloads/debug/7d99b70b-1f7a-49cd-8c9a-1074d6beb018/config.json
+Building for x86_64-pc-windows-gnu...
+   Compiling proc-macro2 v1.0.94
+   Compiling unicode-ident v1.0.18
+   Compiling cfg-if v1.0.0
+   Compiling autocfg v1.4.0
+   Compiling stable_deref_trait v1.2.0
+   Compiling windows_x86_64_gnu v0.52.6
+   Compiling smallvec v1.15.0
+   Compiling icu_locid_transform_data v1.5.1
+   Compiling writeable v0.5.5
+   Compiling windows-targets v0.52.6
+   Compiling litemap v0.7.5
+   Compiling icu_properties_data v1.5.1
+   Compiling shlex v1.3.0
+   Compiling windows-sys v0.52.0
+   Compiling cc v1.2.18
+   Compiling lock_api v0.4.12
+   Compiling quote v1.0.40
+   Compiling getrandom v0.2.15
+   Compiling syn v2.0.100
+   Compiling parking_lot_core v0.9.10
+   Compiling icu_normalizer_data v1.5.1
+   Compiling pin-project-lite v0.2.16
+   Compiling ring v0.17.14
+   Compiling itoa v1.0.15
+   Compiling scopeguard v1.2.0
+   Compiling winapi-x86_64-pc-windows-gnu v0.4.0
+   Compiling bytes v1.10.1
+   Compiling once_cell v1.21.3
+   Compiling utf8_iter v1.0.4
+   Compiling write16 v1.0.0
+   Compiling synstructure v0.13.1
+   Compiling zerocopy v0.8.24
+   Compiling serde v1.0.219
+   Compiling futures-core v0.3.31
+   Compiling winapi v0.3.9
+   Compiling utf16_iter v1.0.5
+   Compiling socket2 v0.5.9
+   Compiling mio v1.0.3
+   Compiling parking_lot v0.12.3
+   Compiling slab v0.4.9
+   Compiling fnv v1.0.7
+   Compiling rustls-pki-types v1.11.0
+   Compiling untrusted v0.9.0
+   Compiling http v0.2.12
+   Compiling zerofrom-derive v0.1.6
+   Compiling yoke-derive v0.7.5
+   Compiling zerovec-derive v0.10.3
+   Compiling displaydoc v0.2.5
+   Compiling icu_provider_macros v1.5.0
+   Compiling zerofrom v0.1.6
+   Compiling yoke v0.7.5
+   Compiling serde_derive v1.0.219
+   Compiling zerovec v0.10.4
+   Compiling tokio-macros v2.5.0
+   Compiling tinystr v0.7.6
+   Compiling icu_locid v1.5.0
+   Compiling icu_collections v1.5.0
+   Compiling icu_provider v1.5.0
+   Compiling tokio v1.44.2
+   Compiling tracing-core v0.1.33
+   Compiling icu_locid_transform v1.5.0
+   Compiling num-traits v0.2.19
+   Compiling serde_json v1.0.140
+   Compiling icu_properties v1.5.1
+   Compiling futures-task v0.3.31
+   Compiling hashbrown v0.15.2
+   Compiling log v0.4.27
+   Compiling futures-sink v0.3.31
+   Compiling adler2 v2.0.0
+   Compiling pin-utils v0.1.0
+   Compiling httparse v1.10.1
+   Compiling icu_normalizer v1.5.0
+   Compiling percent-encoding v2.3.1
+   Compiling idna_adapter v1.2.0
+   Compiling equivalent v1.0.2
+   Compiling getrandom v0.3.2
+   Compiling rustls v0.23.25
+   Compiling indexmap v2.9.0
+   Compiling idna v1.0.3
+   Compiling tokio-util v0.7.14
+   Compiling form_urlencoded v1.2.1
+   Compiling futures-util v0.3.31
+   Compiling miniz_oxide v0.8.7
+   Compiling tracing v0.1.41
+   Compiling ppv-lite86 v0.2.21
+   Compiling rustls-webpki v0.103.1
+   Compiling rand_core v0.6.4
+   Compiling crc32fast v1.4.2
+   Compiling ryu v1.0.20
+   Compiling subtle v2.6.1
+   Compiling memchr v2.7.4
+   Compiling try-lock v0.2.5
+   Compiling zeroize v1.8.1
+   Compiling want v0.3.1
+   Compiling flate2 v1.1.1
+   Compiling rand_chacha v0.3.1
+   Compiling h2 v0.3.26
+   Compiling url v2.5.4
+   Compiling dirs-sys v0.3.7
+   Compiling http-body v0.4.6
+   Compiling webpki-roots v0.26.8
+   Compiling futures-channel v0.3.31
+   Compiling base64 v0.22.1
+   Compiling tower-service v0.3.3
+   Compiling httpdate v1.0.3
+   Compiling match_cfg v0.1.0
+   Compiling windows-link v0.1.1
+   Compiling chrono v0.4.40
+   Compiling ureq v2.12.1
+   Compiling hyper v0.14.32
+   Compiling hostname v0.3.1
+   Compiling dirs v4.0.0
+   Compiling uuid v1.16.0
+   Compiling rand v0.8.5
+   Compiling os_info v3.10.0
+   Compiling agent v0.1.0 (/home/darkroom/coding/MicroC2/agent)
+warning: unused import: `Body`
+ --> src/file_handling/download.rs:2:21
+  |
+2 | use hyper::{Client, Body};
+  |                     ^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/download.rs:3:5
+  |
+3 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `bytes::Bytes`
+ --> src/file_handling/upload.rs:6:5
+  |
+6 | use bytes::Bytes;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `Value`
+ --> src/commands/command_shell.rs:6:24
+  |
+6 | use serde_json::{json, Value};
+  |                        ^^^^^
+
+warning: function `download_file` is never used
+ --> src/file_handling/download.rs:5:14
+  |
+5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+  |              ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: function `upload_file` is never used
+ --> src/file_handling/upload.rs:8:14
+  |
+8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+  |              ^^^^^^^^^^^
+
+warning: function `execute_and_capture` is never used
+  --> src/commands/command_shell.rs:26:10
+   |
+26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+   |          ^^^^^^^^^^^^^^^^^^^
+
+warning: function `display_tree` is never used
+  --> src/commands/command_shell.rs:38:4
+   |
+38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+   |    ^^^^^^^^^^^^
+
+warning: function `stdin_ready` is never used
+  --> src/commands/command_shell.rs:81:4
+   |
+81 | fn stdin_ready() -> io::Result<bool> {
+   |    ^^^^^^^^^^^
+
+warning: function `get_command` is never used
+   --> src/commands/command_shell.rs:123:10
+    |
+123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+    |          ^^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> src/config.rs:43:9
+   |
+42 | pub struct ServerConfig {
+   |            ------------ fields in this struct
+43 |     pub server_url: String,
+   |         ^^^^^^^^^^
+44 |     pub sleep_time: u64,
+   |         ^^^^^^^^^^
+45 |     pub jitter: u64,
+   |         ^^^^^^
+46 |     pub uuid: String,
+   |         ^^^^
+47 |     pub registered: bool,
+   |         ^^^^^^^^^^
+48 |     pub agent_type: String,
+   |         ^^^^^^^^^^
+49 |     pub system_info: String,
+   |         ^^^^^^^^^^^
+50 |     pub hostname: String,
+   |         ^^^^^^^^
+51 |     pub upload_dir: String,
+   |         ^^^^^^^^^^
+
+warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+  --> src/config.rs:71:12
+   |
+70 | impl ServerConfig {
+   | ----------------- associated items in this implementation
+71 |     pub fn new() -> Self {
+   |            ^^^
+...
+75 |     pub fn register_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+79 |     pub fn get_task_url(&self) -> String {
+   |            ^^^^^^^^^^^^
+...
+83 |     pub fn submit_result_url(&self) -> String {
+   |            ^^^^^^^^^^^^^^^^^
+...
+87 |     pub fn upload_path(&self) -> String {
+   |            ^^^^^^^^^^^
+
+warning: `agent` (bin "agent") generated 12 warnings (run `cargo fix --bin "agent"` to apply 4 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 39.66s
+Build complete!
+Agent saved to: static/payloads/debug/7d99b70b-1f7a-49cd-8c9a-1074d6beb018/agent.exe
+Config saved to: static/payloads/debug/7d99b70b-1f7a-49cd-8c9a-1074d6beb018/config.json
+2025/04/16 11:16:56 [STARTUP] Starting server with http-polling protocol...
+2025/04/16 11:16:56 [CONFIG] Upload directory: uploads
+2025/04/16 11:16:56 [CONFIG] Static directory: static
+2025/04/16 11:16:56 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:16:56 [CONFIG] Payloads directory: static/payloads
+2025/04/16 11:16:56 [NETWORK] Port: 8080
+2025/04/16 11:16:56 [STARTUP] Server initializing with http-polling protocol...
+2025/04/16 11:16:56 [CONFIG] Upload directory: uploads
+2025/04/16 11:16:56 [CONFIG] Static directory: static
+2025/04/16 11:16:56 [CONFIG] File Drop directory: static/file_drop
+2025/04/16 11:16:56 [NETWORK] Port: 8080

@@ -221,6 +221,15 @@
             const formData = new FormData(this);
             const config = Object.fromEntries(formData);
             
+            // Convert numeric values from strings to numbers
+            if (config.sleep) {
+                config.sleep = parseInt(config.sleep, 10);
+            }
+            
+            // Convert checkbox values to booleans
+            config.indirectSyscall = config.indirectSyscall === 'on';
+            config.dllSideloading = config.dllSideloading === 'on';
+            
             // Show generation status
             const generationStatus = document.getElementById('generation-status');
             const downloadSection = document.getElementById('download-section');
