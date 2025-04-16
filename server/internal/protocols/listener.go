@@ -10,13 +10,18 @@ import (
 	"time"
 )
 
-// ListenerStatus represents the current state of a listener
+// ListenerStatus represents the current operational state of a listener
 type ListenerStatus string
 
 const (
+	// StatusActive indicates the listener is running and accepting connections
+	StatusActive ListenerStatus = "ACTIVE"
+
+	// StatusStopped indicates the listener is not running
 	StatusStopped ListenerStatus = "STOPPED"
-	StatusActive  ListenerStatus = "ACTIVE"
-	StatusError   ListenerStatus = "ERROR"
+
+	// StatusError indicates the listener encountered an error
+	StatusError ListenerStatus = "ERROR"
 )
 
 // ListenerConfig holds the configuration for a C2 listener
@@ -44,17 +49,19 @@ type ProxyConfig struct {
 	Password string `json:"password,omitempty"`
 }
 
-// TLSConfig holds TLS/SSL configuration
+// TLSConfig holds TLS configuration for secure listeners
 type TLSConfig struct {
-	CertFile string `json:"cert_file"`
-	KeyFile  string `json:"key_file"`
+	CertFile          string `json:"cert_file"`
+	KeyFile           string `json:"key_file"`
+	RequireClientCert bool   `json:"requireClientCert"`
 }
 
-// Listener represents a running C2 listener instance
+// Listener represents a communication protocol listener that agents connect to
+// It manages the lifecycle of the listening service and tracks its operational state.
 type Listener struct {
 	Config      ListenerConfig `json:"config"`
 	Status      ListenerStatus `json:"status"`
-	LastError   string         `json:"last_error,omitempty"`
+	Error       string         `json:"error,omitempty"`
 	StartTime   time.Time      `json:"start_time"`
 	StopTime    time.Time      `json:"stop_time,omitempty"`
 	Stats       ListenerStats  `json:"stats"`
@@ -76,7 +83,16 @@ type ListenerStats struct {
 	FailedConnections int64     `json:"failed_connections"`
 }
 
-// NewListener creates a new listener instance from a configuration
+// NewListener creates a new listener instance with the given configuration
+//
+// Pre-conditions:
+//   - config is a valid ListenerConfig instance
+//   - Protocol specified in config must be supported
+//
+// Post-conditions:
+//   - Returns an initialized Listener instance with appropriate protocol handler
+//   - Listener is in stopped state
+//   - Returns error if the protocol is not supported or configuration is invalid
 func NewListener(config ListenerConfig) (*Listener, error) {
 	fileHandler, err := NewFileHandler(filepath.Join("uploads", config.Name))
 	if err != nil {
@@ -94,16 +110,38 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 }
 
 // GetFileHandler returns the listener's file handler
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns the file handler associated with the listener
 func (l *Listener) GetFileHandler() *FileHandler {
 	return l.fileHandler
 }
 
 // GetCommandQueue returns the listener's command queue
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns the command queue associated with the listener
 func (l *Listener) GetCommandQueue() *CommandQueue {
 	return l.cmdQueue
 }
 
-// Start initializes and starts the listener
+// Start initiates the listener
+//
+// Pre-conditions:
+//   - Listener is in stopped state
+//   - Required resources (ports, etc.) are available
+//
+// Post-conditions:
+//   - Listener is started and accepting connections
+//   - Status is updated to Active
+//   - StartTime is updated
+//   - Returns error if the listener can't be started
 func (l *Listener) Start() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -111,6 +149,9 @@ func (l *Listener) Start() error {
 	if l.Status == StatusActive {
 		return fmt.Errorf("listener %s is already running", l.Config.Name)
 	}
+
+	// Clear any previous error
+	l.Error = ""
 
 	// Create the appropriate listener based on protocol
 	var err error
@@ -131,7 +172,7 @@ func (l *Listener) Start() error {
 
 	if err != nil {
 		l.Status = StatusError
-		l.LastError = err.Error()
+		l.Error = err.Error()
 		return fmt.Errorf("failed to start listener: %v", err)
 	}
 
@@ -146,7 +187,17 @@ func (l *Listener) Start() error {
 	return nil
 }
 
-// Stop gracefully shuts down the listener
+// Stop halts the listener operation
+//
+// Pre-conditions:
+//   - Listener is in active state
+//
+// Post-conditions:
+//   - Listener is stopped and no longer accepting connections
+//   - Status is updated to Stopped
+//   - StopTime is updated
+//   - Resources are released
+//   - Returns error if the listener can't be stopped cleanly
 func (l *Listener) Stop() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -155,8 +206,11 @@ func (l *Listener) Stop() error {
 		return fmt.Errorf("listener %s is not running", l.Config.Name)
 	}
 
+	// Signal the stop channel to shut down the handler
 	close(l.stopChan)
+
 	if err := l.listener.Close(); err != nil {
+		l.Error = err.Error()
 		return fmt.Errorf("error stopping listener: %v", err)
 	}
 
@@ -167,6 +221,14 @@ func (l *Listener) Stop() error {
 }
 
 // acceptConnections handles incoming connections
+//
+// Pre-conditions:
+//   - Listener is in active state
+//
+// Post-conditions:
+//   - Accepts and processes incoming connections
+//   - Updates listener statistics
+//   - Handles errors gracefully
 func (l *Listener) acceptConnections() {
 	for {
 		select {
@@ -200,6 +262,14 @@ func (l *Listener) acceptConnections() {
 }
 
 // handleConnection processes an individual client connection
+//
+// Pre-conditions:
+//   - Connection is valid and established
+//
+// Post-conditions:
+//   - Processes the connection using the appropriate protocol handler
+//   - Updates listener statistics
+//   - Handles errors gracefully
 func (l *Listener) handleConnection(conn net.Conn) {
 	defer func() {
 		conn.Close()
@@ -213,7 +283,7 @@ func (l *Listener) handleConnection(conn net.Conn) {
 	if err != nil {
 		l.mu.Lock()
 		l.Stats.FailedConnections++
-		l.LastError = err.Error()
+		l.Error = err.Error()
 		l.mu.Unlock()
 		log.Printf("[ERROR] Failed to get connection handler for listener %s: %v", l.Config.Name, err)
 		return
@@ -223,5 +293,52 @@ func (l *Listener) handleConnection(conn net.Conn) {
 	if err := handler.HandleConnection(conn); err != nil {
 		log.Printf("[ERROR] Error handling connection on listener %s: %v", l.Config.Name, err)
 		return
+	}
+}
+
+// GetStatus returns the current status of the listener
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns the current listener status in a thread-safe manner
+func (l *Listener) GetStatus() ListenerStatus {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.Status
+}
+
+// GetError returns any error encountered by the listener
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns the current error message in a thread-safe manner
+//   - Returns empty string if no error
+func (l *Listener) GetError() string {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.Error
+}
+
+// SetError sets an error state for the listener
+//
+// Pre-conditions:
+//   - Error message is meaningful and describes the issue
+//
+// Post-conditions:
+//   - Listener status is updated to Error
+//   - Error message is stored
+func (l *Listener) SetError(err error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	l.Status = StatusError
+	if err != nil {
+		l.Error = err.Error()
+	} else {
+		l.Error = "Unknown error"
 	}
 }

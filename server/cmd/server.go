@@ -16,6 +16,16 @@ import (
 	"microc2/server/pkg/communication"
 )
 
+// main is the entry point of the MicroC2 server application
+//
+// Pre-conditions:
+//   - Configuration file exists at the specified path or default location
+//   - Required directories are accessible with proper permissions
+//
+// Post-conditions:
+//   - Server is initialized with configured handlers and services
+//   - Server starts listening on the configured port
+//   - Log files are properly set up and streamed
 func main() {
 	// Set up logging
 	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)

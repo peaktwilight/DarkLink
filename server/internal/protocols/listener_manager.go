@@ -9,13 +9,20 @@ import (
 	"github.com/google/uuid"
 )
 
-// ListenerManager handles the lifecycle and management of all C2 listeners
+// ListenerManager handles the creation, management, and tracking of protocol listeners.
+// It maintains a thread-safe registry of all active and stopped listeners.
 type ListenerManager struct {
 	listeners map[string]*Listener
 	mu        sync.RWMutex
 }
 
 // NewListenerManager creates a new listener manager instance
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns an initialized ListenerManager with an empty listeners map
 func NewListenerManager() *ListenerManager {
 	return &ListenerManager{
 		listeners: make(map[string]*Listener),
@@ -23,6 +30,13 @@ func NewListenerManager() *ListenerManager {
 }
 
 // CreateListener creates and starts a new listener with the given configuration
+//
+// Pre-conditions:
+//   - config is a valid ListenerConfig instance
+//
+// Post-conditions:
+//   - A new listener is created, started, and added to the manager
+//   - Returns error if the configuration is invalid or the port is already in use
 func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -55,7 +69,35 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 	return listener, nil
 }
 
+// AddListener adds a new listener to the manager
+//
+// Pre-conditions:
+//   - listener is a properly initialized Listener instance
+//   - listener has a unique ID not already in use
+//
+// Post-conditions:
+//   - Listener is added to the manager's registry
+//   - Returns error if a listener with the same ID already exists
+func (m *ListenerManager) AddListener(listener *Listener) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if _, exists := m.listeners[listener.Config.ID]; exists {
+		return fmt.Errorf("listener with ID %s already exists", listener.Config.ID)
+	}
+
+	m.listeners[listener.Config.ID] = listener
+	return nil
+}
+
 // GetListener retrieves a listener by its ID
+//
+// Pre-conditions:
+//   - id is a valid listener identifier string
+//
+// Post-conditions:
+//   - Returns the requested listener if found
+//   - Returns error if the listener doesn't exist
 func (m *ListenerManager) GetListener(id string) (*Listener, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -67,7 +109,14 @@ func (m *ListenerManager) GetListener(id string) (*Listener, error) {
 	return listener, nil
 }
 
-// ListListeners returns a list of all active listeners
+// ListListeners returns a list of all registered listeners
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns a slice containing all listeners in the manager
+//   - Safe for concurrent access
 func (m *ListenerManager) ListListeners() []*Listener {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -79,7 +128,46 @@ func (m *ListenerManager) ListListeners() []*Listener {
 	return list
 }
 
+// RemoveListener removes a listener from the manager
+//
+// Pre-conditions:
+//   - id is a valid listener identifier string
+//   - Listener with the given ID exists
+//
+// Post-conditions:
+//   - Listener is removed from the registry
+//   - Listener is stopped if it was running
+//   - Returns error if the listener doesn't exist
+func (m *ListenerManager) RemoveListener(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	listener, exists := m.listeners[id]
+	if !exists {
+		return fmt.Errorf("listener %s not found", id)
+	}
+
+	// Stop the listener if it's running
+	if listener.Status == StatusActive {
+		if err := listener.Stop(); err != nil {
+			log.Printf("[WARNING] Failed to stop listener %s: %v", id, err)
+		}
+	}
+
+	delete(m.listeners, id)
+	return nil
+}
+
 // StopListener stops a running listener
+//
+// Pre-conditions:
+//   - id is a valid listener identifier string
+//   - Listener with the given ID exists
+//
+// Post-conditions:
+//   - Listener is stopped if it was running
+//   - Listener remains in the registry but with stopped status
+//   - Returns error if the listener doesn't exist or can't be stopped
 func (m *ListenerManager) StopListener(id string) error {
 	m.mu.Lock()
 	listener, exists := m.listeners[id]
@@ -89,7 +177,7 @@ func (m *ListenerManager) StopListener(id string) error {
 		return fmt.Errorf("listener not found: %s", id)
 	}
 
-	if listener.Status == "stopped" {
+	if listener.Status == StatusStopped {
 		return nil // Already stopped
 	}
 
@@ -101,6 +189,14 @@ func (m *ListenerManager) StopListener(id string) error {
 }
 
 // StartListener starts a previously stopped listener
+//
+// Pre-conditions:
+//   - id is a valid listener identifier string
+//   - Listener with the given ID exists and is in stopped state
+//
+// Post-conditions:
+//   - Listener is started and its status updated to active
+//   - Returns error if the listener doesn't exist or can't be started
 func (m *ListenerManager) StartListener(id string) error {
 	m.mu.Lock()
 	listener, exists := m.listeners[id]
@@ -126,6 +222,15 @@ func (m *ListenerManager) StartListener(id string) error {
 }
 
 // DeleteListener stops (if running) and removes a listener from the manager
+//
+// Pre-conditions:
+//   - id is a valid listener identifier string
+//   - Listener with the given ID exists
+//
+// Post-conditions:
+//   - Listener is removed from the registry
+//   - Listener is stopped if it was running
+//   - Returns error if the listener doesn't exist
 func (m *ListenerManager) DeleteListener(id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -148,6 +253,13 @@ func (m *ListenerManager) DeleteListener(id string) error {
 }
 
 // StopAll stops all active listeners but keeps them in the manager
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - All active listeners are stopped
+//   - Returns a list of errors for listeners that couldn't be stopped
 func (m *ListenerManager) StopAll() []error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -164,6 +276,14 @@ func (m *ListenerManager) StopAll() []error {
 }
 
 // DeleteAll stops and removes all listeners
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - All listeners are removed from the registry
+//   - Active listeners are stopped before removal
+//   - Returns a list of errors for listeners that couldn't be stopped
 func (m *ListenerManager) DeleteAll() []error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -182,6 +302,12 @@ func (m *ListenerManager) DeleteAll() []error {
 }
 
 // validateListenerConfig checks if the listener configuration is valid
+//
+// Pre-conditions:
+//   - config is a ListenerConfig instance
+//
+// Post-conditions:
+//   - Returns error if the configuration is invalid
 func (m *ListenerManager) validateListenerConfig(config ListenerConfig) error {
 	if config.Name == "" {
 		log.Printf("[ERROR] Listener validation failed: name is required")
@@ -216,6 +342,12 @@ func (m *ListenerManager) validateListenerConfig(config ListenerConfig) error {
 }
 
 // hasPortConflict checks if the given port is already in use by another listener
+//
+// Pre-conditions:
+//   - config is a ListenerConfig instance
+//
+// Post-conditions:
+//   - Returns true if the port is in use by an active listener, false otherwise
 func (m *ListenerManager) hasPortConflict(config ListenerConfig) bool {
 	for _, l := range m.listeners {
 		if l.Config.Port == config.Port && l.Status == StatusActive {
@@ -226,6 +358,12 @@ func (m *ListenerManager) hasPortConflict(config ListenerConfig) bool {
 }
 
 // CleanupInactive removes listeners that have been stopped for longer than the specified duration
+//
+// Pre-conditions:
+//   - threshold is a valid time.Duration instance
+//
+// Post-conditions:
+//   - Removes listeners that have been stopped for longer than the threshold
 func (m *ListenerManager) CleanupInactive(threshold time.Duration) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

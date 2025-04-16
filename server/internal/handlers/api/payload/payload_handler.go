@@ -40,6 +40,8 @@ type PayloadResult struct {
 }
 
 // PayloadHandler manages payload generation operations
+// It coordinates all aspects of agent payload creation, including
+// building, storing, and serving payload files to users.
 type PayloadHandler struct {
 	payloadsDir    string
 	agentSourceDir string
@@ -63,6 +65,16 @@ type Listener struct {
 }
 
 // NewPayloadHandler creates a new payload handler
+//
+// Pre-conditions:
+//   - payloadsDir is a valid directory path with write permissions
+//   - agentSourceDir points to a valid agent source code directory
+//   - listeners is a properly initialized ListenerGetter implementation
+//
+// Post-conditions:
+//   - Returns an initialized PayloadHandler
+//   - Directory structure for payloads is created if it doesn't exist
+//   - Tracking map for generated payloads is initialized
 func NewPayloadHandler(payloadsDir, agentSourceDir string, listeners ListenerGetter) *PayloadHandler {
 	// Ensure directories exist
 	for _, dir := range []string{payloadsDir, filepath.Join(payloadsDir, "debug"), filepath.Join(payloadsDir, "release")} {
@@ -80,6 +92,15 @@ func NewPayloadHandler(payloadsDir, agentSourceDir string, listeners ListenerGet
 }
 
 // HandleGeneratePayload processes a request to generate a payload
+//
+// Pre-conditions:
+//   - HTTP request contains a valid JSON payload configuration
+//   - Request method is POST
+//
+// Post-conditions:
+//   - Payload is generated according to the provided configuration
+//   - Response contains the generated payload details or an error
+//   - Generated payload is stored and tracked for later retrieval
 func (h *PayloadHandler) HandleGeneratePayload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -109,6 +130,15 @@ func (h *PayloadHandler) HandleGeneratePayload(w http.ResponseWriter, r *http.Re
 }
 
 // HandleDownloadPayload serves a generated payload for download
+//
+// Pre-conditions:
+//   - Request contains a valid payload ID in the URL path
+//   - Payload with the specified ID exists in the handler's registry
+//
+// Post-conditions:
+//   - Payload file is streamed to the client for download
+//   - Appropriate headers for file download are set
+//   - Error response is sent if the payload is not found
 func (h *PayloadHandler) HandleDownloadPayload(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -153,6 +183,16 @@ func (h *PayloadHandler) HandleDownloadPayload(w http.ResponseWriter, r *http.Re
 }
 
 // GeneratePayload creates a payload based on the provided configuration
+//
+// Pre-conditions:
+//   - config contains valid payload generation parameters
+//   - Listener specified in config exists and is accessible
+//   - Agent source code is available and can be built
+//
+// Post-conditions:
+//   - Agent payload is built and stored in the payloads directory
+//   - Returns PayloadResult with details about the generated payload
+//   - Returns error if payload generation fails at any step
 func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, error) {
 	log.Printf("[INFO] Generating payload with config: %+v", config)
 
@@ -274,6 +314,13 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 }
 
 // SetupRoutes registers all payload-related routes
+//
+// Pre-conditions:
+//   - HTTP server is initialized and ready to accept route registrations
+//
+// Post-conditions:
+//   - Routes for payload generation and download are registered
+//   - Requests to these routes will be handled by the appropriate methods
 func (h *PayloadHandler) SetupRoutes() {
 	http.HandleFunc("/api/payload/generate", h.HandleGeneratePayload)
 	http.HandleFunc("/api/payload/download/", h.HandleDownloadPayload)
