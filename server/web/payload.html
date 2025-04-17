@@ -3,6 +3,89 @@
 <head>
     <title>MicroC2 - Payload Generator</title>
     <link rel="stylesheet" href="/home/css/styles.css">
+    <style>
+        /* Build Log Styles */
+        .log-container {
+            margin-top: 20px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #1a1a1a;
+        }
+        
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background-color: #333;
+            border-bottom: 1px solid #444;
+        }
+        
+        .log-header span {
+            font-weight: bold;
+            color: #ddd;
+        }
+        
+        .clear-logs-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .clear-logs-btn:hover {
+            color: #fff;
+        }
+        
+        #build-log-display {
+            height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #ddd;
+            background-color: #111;
+        }
+        
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+            border-bottom: 1px solid #2a2a2a;
+            word-break: break-word;
+        }
+        
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .log-timestamp {
+            color: #888;
+            margin-right: 8px;
+            font-size: 11px;
+        }
+        
+        .log-level-INFO {
+            color: #6bf;
+        }
+        
+        .log-level-WARNING {
+            color: #fd8;
+        }
+        
+        .log-level-ERROR {
+            color: #f66;
+        }
+        
+        .log-message {
+            margin-left: 8px;
+            color: #ccc;
+        }
+        
+        .log-message-payload {
+            color: #6d6;
+        }
+    </style>
 </head>
 <body>
     <div class="havoc-container">
@@ -116,6 +199,15 @@
                             <div class="progress"></div>
                         </div>
                         <div class="status-message">Generating payload...</div>
+                        
+                        <!-- New log display box -->
+                        <div class="log-container">
+                            <div class="log-header">
+                                <span>Build Logs</span>
+                                <button class="clear-logs-btn" onclick="clearLogDisplay()">Clear</button>
+                            </div>
+                            <div id="build-log-display"></div>
+                        </div>
                     </div>
                 </div>
                 <div id="download-section" class="hidden">
@@ -128,11 +220,166 @@
                         <button class="download-button">Download Payload</button>
                     </div>
                 </div>
+                
+                <!-- Add new build log box section -->
+                <div id="build-logs-section">
+                    <h3>Build Logs</h3>
+                    <div class="build-logs-container">
+                        <div id="build-logs" class="build-logs"></div>
+                        <div class="build-logs-controls">
+                            <button onclick="clearBuildLogs()">Clear Logs</button>
+                            <button onclick="toggleAutoScrollLogs()" id="autoScrollLogsBtn">Auto-scroll: On</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // WebSocket connection for log streaming
+        let logSocket = null;
+        let isGeneratingPayload = false;
+        let currentPayloadId = null;
+        const logDisplay = document.getElementById('build-log-display');
+        const buildLogs = document.getElementById('build-logs');
+        let autoScrollEnabled = true;
+
+        // Connect to log WebSocket
+        function connectToLogStream() {
+            // Close existing connection if any
+            if (logSocket) {
+                logSocket.close();
+            }
+
+            // Create WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
+            
+            logSocket = new WebSocket(wsUrl);
+            
+            logSocket.onopen = function() {
+                console.log('Connected to log stream');
+                addLogEntry('system', 'Connected to log stream', 'INFO');
+            };
+            
+            logSocket.onmessage = function(event) {
+                const logEntry = JSON.parse(event.data);
+                
+                // Display logs in both log containers
+                processLogEntry(logEntry);
+            };
+            
+            logSocket.onclose = function() {
+                console.log('Disconnected from log stream');
+                // Try to reconnect after a delay
+                setTimeout(connectToLogStream, 3000);
+            };
+            
+            logSocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addLogEntry('system', 'Error connecting to log stream', 'ERROR');
+            };
+        }
+
+        // Process incoming log entry
+        function processLogEntry(logEntry) {
+            // Check if this is a payload generation log
+            if (isGeneratingPayload && logEntry.message.includes('[INFO]') && 
+                (logEntry.message.includes('payload') || 
+                 logEntry.message.includes('build') || 
+                 logEntry.message.includes('agent'))) {
+                
+                // This is a payload-related log
+                addLogToDisplay(logEntry);
+            }
+            
+            // Always add to the general build logs
+            addToBuildLogs(logEntry);
+        }
+
+        // Add log entry to the payload generation display
+        function addLogToDisplay(logEntry) {
+            const logElement = document.createElement('div');
+            logElement.className = 'log-entry';
+            
+            // Format the timestamp
+            const timestamp = new Date(logEntry.timestamp);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            // Clean up the message
+            let message = logEntry.message.trim();
+            
+            // Extract log level if it's in [LEVEL] format
+            let level = logEntry.level;
+            if (message.includes('[INFO]')) {
+                level = 'INFO';
+                message = message.replace('[INFO]', '').trim();
+            } else if (message.includes('[ERROR]')) {
+                level = 'ERROR';
+                message = message.replace('[ERROR]', '').trim();
+            } else if (message.includes('[WARNING]')) {
+                level = 'WARNING';
+                message = message.replace('[WARNING]', '').trim();
+            }
+            
+            // Create log entry HTML
+            logElement.innerHTML = `
+                <span class="log-timestamp">${timeStr}</span>
+                <span class="log-level-${level}">[${level}]</span>
+                <span class="log-message log-message-payload">${message}</span>
+            `;
+            
+            logDisplay.appendChild(logElement);
+            
+            // Auto-scroll
+            if (autoScrollEnabled) {
+                logDisplay.scrollTop = logDisplay.scrollHeight;
+            }
+        }
+
+        // Add general log entry to build logs section
+        function addToBuildLogs(logEntry) {
+            const logElement = document.createElement('div');
+            logElement.className = 'log-entry';
+            
+            // Format the timestamp
+            const timestamp = new Date(logEntry.timestamp);
+            const timeStr = timestamp.toLocaleTimeString();
+            
+            // Extract log level
+            let level = logEntry.level;
+            let message = logEntry.message;
+            
+            logElement.innerHTML = `
+                <span class="log-timestamp">${timeStr}</span>
+                <span class="log-level-${level}">[${level}]</span>
+                <span class="log-message">${message}</span>
+            `;
+            
+            buildLogs.appendChild(logElement);
+            
+            // Auto-scroll
+            if (autoScrollEnabled) {
+                buildLogs.scrollTop = buildLogs.scrollHeight;
+            }
+        }
+
+        // Add a system log entry
+        function addLogEntry(source, message, level) {
+            const entry = {
+                timestamp: new Date().toISOString(),
+                level: level || 'INFO',
+                message: message
+            };
+            
+            addToBuildLogs(entry);
+            
+            if (source === 'payload' && isGeneratingPayload) {
+                addLogToDisplay(entry);
+            }
+        }
+
         // Toggle DLL sideloading options visibility
         document.getElementById('dllSideloading').addEventListener('change', function() {
             document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
@@ -148,7 +395,6 @@
                 listenerSelect.innerHTML = '<option value="">Select a listener...</option>';
                 
                 listeners.forEach(listener => {
-                    // Handle different possible structures of listener objects
                     const config = listener.config || {};
                     const id = config.id || listener.id || '';
                     const name = config.name || listener.name || 'Unnamed';
@@ -198,7 +444,6 @@
                 option.textContent = 'Linux ELF';
                 formatSelect.appendChild(option);
                 
-                // Add ARM-specific options if needed
                 const armOption = document.createElement('option');
                 armOption.value = 'linux_arm_binary';
                 armOption.textContent = 'Linux ARM Binary';
@@ -210,7 +455,6 @@
                 formatSelect.appendChild(option);
             }
             
-            // Trigger a change event to update any dependent elements
             formatSelect.dispatchEvent(new Event('change'));
         });
 
@@ -221,22 +465,27 @@
             const formData = new FormData(this);
             const config = Object.fromEntries(formData);
             
-            // Convert numeric values from strings to numbers
             if (config.sleep) {
                 config.sleep = parseInt(config.sleep, 10);
             }
             
-            // Convert checkbox values to booleans
             config.indirectSyscall = config.indirectSyscall === 'on';
             config.dllSideloading = config.dllSideloading === 'on';
             
-            // Show generation status
             const generationStatus = document.getElementById('generation-status');
             const downloadSection = document.getElementById('download-section');
             generationStatus.classList.remove('hidden');
             downloadSection.classList.add('hidden');
             
+            clearLogDisplay();
+            
+            isGeneratingPayload = true;
+            
+            addLogEntry('payload', 'Starting payload generation...', 'INFO');
+            
             try {
+                addLogEntry('payload', `Payload configuration: ${JSON.stringify(config, null, 2)}`, 'INFO');
+                
                 const response = await fetch('/api/payload/generate', {
                     method: 'POST',
                     headers: {
@@ -251,24 +500,28 @@
 
                 const result = await response.json();
                 
-                // Hide generation status and show download section
+                currentPayloadId = result.id;
+                
+                addLogEntry('payload', `Successfully generated payload: ${result.filename} (${formatBytes(result.size)})`, 'INFO');
+                
                 generationStatus.classList.add('hidden');
                 downloadSection.classList.remove('hidden');
                 
-                // Update download section
                 const fileInfo = downloadSection.querySelector('.file-info');
                 fileInfo.querySelector('.filename').textContent = result.filename;
                 fileInfo.querySelector('.filesize').textContent = formatBytes(result.size);
                 
-                // Set up download button
                 const downloadButton = downloadSection.querySelector('.download-button');
                 downloadButton.onclick = () => {
                     window.location.href = `/api/payload/download/${result.id}`;
                 };
             } catch (error) {
                 console.error('Error:', error);
+                addLogEntry('payload', `Failed to generate payload: ${error.message}`, 'ERROR');
                 alert('Failed to generate payload: ' + error.message);
                 generationStatus.classList.add('hidden');
+            } finally {
+                isGeneratingPayload = false;
             }
         });
 
@@ -280,7 +533,28 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Load listeners when page loads
+        function clearLogDisplay() {
+            logDisplay.innerHTML = '';
+        }
+
+        function clearBuildLogs() {
+            buildLogs.innerHTML = '';
+        }
+
+        function toggleAutoScrollLogs() {
+            const autoScrollBtn = document.getElementById('autoScrollLogsBtn');
+            autoScrollEnabled = !autoScrollEnabled;
+            
+            if (autoScrollEnabled) {
+                autoScrollBtn.textContent = 'Auto-scroll: On';
+                logDisplay.scrollTop = logDisplay.scrollHeight;
+                buildLogs.scrollTop = buildLogs.scrollHeight;
+            } else {
+                autoScrollBtn.textContent = 'Auto-scroll: Off';
+            }
+        }
+
+        connectToLogStream();
         loadListeners();
     </script>
 </body>

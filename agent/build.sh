@@ -32,6 +32,22 @@ while [[ $# -gt 0 ]]; do
       FORMAT="$2"
       shift 2
       ;;
+    --listener-host)
+      LISTENER_HOST="$2"
+      shift 2
+      ;;
+    --listener-port)
+      LISTENER_PORT="$2"
+      shift 2
+      ;;
+    --sleep)
+      SLEEP_INTERVAL="$2"
+      shift 2
+      ;;
+    --jitter)
+      JITTER="$2"
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
       shift
@@ -44,13 +60,29 @@ if [ -z "$TARGET" ]; then
     TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}
 fi
 
+# IMPORTANT: Properly set server address and port
+if [ -z "$LISTENER_HOST" ]; then
+    # Get primary interface IP, but don't use 0.0.0.0 as it's not routable
+    DEFAULT_IP=$(ip route get 1 | awk '{print $7;exit}')
+    # If the IP is 0.0.0.0 or empty, fall back to 127.0.0.1
+    if [ -z "$DEFAULT_IP" ] || [ "$DEFAULT_IP" == "0.0.0.0" ]; then
+        DEFAULT_IP="127.0.0.1"
+    fi
+    SERVER_IP=${LISTENER_HOST:-$DEFAULT_IP}
+else
+    SERVER_IP=$LISTENER_HOST
+fi
+
+# Ensure the port is explicitly set
+SERVER_PORT=${LISTENER_PORT:-8080}
+
+# IMPORTANT: Don't override OUTPUT_DIR if it's explicitly provided
+# This ensures we use the exact path specified by the server
 if [ -z "$OUTPUT_DIR" ]; then
-    SERVER_IP=${LISTENER_HOST:-$(ip route get 1 | awk '{print $7;exit}')}
-    SERVER_PORT=${LISTENER_PORT:-8080}
     OUTPUT_DIR="../server/static/agents"
 else
-    SERVER_IP=${LISTENER_HOST:-$(ip route get 1 | awk '{print $7;exit}')}
-    SERVER_PORT=${LISTENER_PORT:-8080}
+    # Preserve the exact output path passed in
+    echo "Using specified output directory: $OUTPUT_DIR"
 fi
 
 # Make OUTPUT_DIR absolute path to avoid issues
@@ -88,7 +120,7 @@ echo "Building agent..."
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
-# Create config file
+# Create config file with explicit server URL and port
 cat > "$OUTPUT_DIR/config.json" << EOF
 {
     "server_url": "${SERVER_IP}:${SERVER_PORT}",
@@ -168,11 +200,16 @@ fi
 
 echo "Build complete in $BUILD_DIR"
 
-# Copy the binary to the output directory
+# Copy the binary to the output directory - FIXED to place in exact location
+# This ensures the server can find it where it's expecting it
 if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
-    echo "Copying agent binary to output directory"
+    echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
     cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
+    
+    # We'll maintain the timestamped copy for reference
     cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
+    
+    echo "Agent binary copied successfully to specified output location"
 else
     echo "WARNING: agent binary not found at expected location: $BUILD_DIR/agent$BINARY_EXT"
     # List directory contents to aid debugging
@@ -191,45 +228,48 @@ if [ "$FORMAT" == "windows_dll" ]; then
             # If using Rust's built-in DLL capability, the binary might already be a proper DLL
             # We just need to rename it to have .dll extension
             if [[ "$CARGO_FEATURES" == *dll* ]]; then
+                echo "Copying agent.dll to $OUTPUT_DIR"
                 cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
-                echo "Copied DLL from $BUILD_DIR/agent$BINARY_EXT to $OUTPUT_DIR/agent.dll"
+                
+                # Ensure the DLL is copied directly to the output directory to avoid path mismatch issues
+                echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
+                ls -la "$OUTPUT_DIR"
             else
-                # Fallback to explicit DLL creation with gcc if needed
-                echo "Creating DLL from executable using gcc"
-                x86_64-w64-mingw32-gcc -shared -o "$OUTPUT_DIR/agent.dll" \
-                    -Wl,--out-implib="$OUTPUT_DIR/libagent.a" \
-                    -Wl,--export-all-symbols \
-                    -Wl,--enable-auto-import \
-                    "$BUILD_DIR/agent$BINARY_EXT"
-            fi
-            
-            # Verify DLL exports
-            if command -v x86_64-w64-mingw32-objdump &> /dev/null; then
-                echo "Verifying DLL exports in $OUTPUT_DIR/agent.dll"
-                x86_64-w64-mingw32-objdump -p "$OUTPUT_DIR/agent.dll" | grep -A15 "Export Table"
-            fi
-            
-            # Make sure the DLL file exists
-            if [ -f "$OUTPUT_DIR/agent.dll" ]; then
-                echo "DLL file created successfully at: $OUTPUT_DIR/agent.dll"
-                # Display file size and permissions
-                ls -la "$OUTPUT_DIR/agent.dll"
-            else
-                echo "ERROR: Failed to create DLL file at $OUTPUT_DIR/agent.dll"
+                # Convert EXE to DLL using objcopy
+                if command -v objcopy &> /dev/null; then
+                    echo "Converting EXE to DLL using objcopy..."
+                    objcopy --input-target=pe-x86-64 --output-target=pe-x86-64 --add-section .rdata="$BUILD_DIR/agent$BINARY_EXT" "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
+                    echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
+                else
+                    echo "objcopy not found, copying executable as DLL..."
+                    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
+                fi
             fi
         else
-            echo "ERROR: Agent binary not found at $BUILD_DIR/agent$BINARY_EXT"
+            echo "ERROR: Windows agent binary not found for DLL creation"
             exit 1
         fi
     else
-        echo "ERROR: Cannot create Windows DLL for non-Windows target: $TARGET"
+        echo "ERROR: Cannot create Windows DLL for non-Windows target"
         exit 1
     fi
 fi
 
-echo "Build complete!"
-echo "Agent saved to: $OUTPUT_DIR/agent$BINARY_EXT"
+# Ensure all files are in the correct location
+echo "Final output directory contents:"
+ls -la "$OUTPUT_DIR"
+
+# If we built a DLL, verify it exists in the output directory
 if [ "$FORMAT" == "windows_dll" ]; then
-    echo "DLL saved to: $OUTPUT_DIR/agent.dll"
+    if [ -f "$OUTPUT_DIR/agent.dll" ]; then
+        echo "SUCCESS: agent.dll was found at $OUTPUT_DIR/agent.dll"
+        # Display file size to confirm it's a valid file
+        stat -c "File size: %s bytes" "$OUTPUT_DIR/agent.dll"
+    else
+        echo "ERROR: agent.dll was not found in the output directory"
+        echo "This will cause the server to return 500 internal server error"
+        exit 1
+    fi
 fi
-echo "Config saved to: $OUTPUT_DIR/config.json"
+
+echo "Build process completed"

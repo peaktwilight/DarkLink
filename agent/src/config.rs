@@ -14,7 +14,7 @@ pub struct AgentConfig {
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            server_url: String::from("0.0.0.0:8080"),  // Remove http:// from default
+            server_url: String::from("127.0.0.1:8080"),  // Changed default from 0.0.0.0 to 127.0.0.1
             sleep_interval: 5,
             jitter: 2,
             kill_date: None,
@@ -31,7 +31,7 @@ impl AgentConfig {
     }
 
     pub fn get_server_url(&self) -> String {
-        if self.server_url.starts_with("http://") {
+        if self.server_url.starts_with("http://") || self.server_url.starts_with("https://") {
             self.server_url.clone()
         } else {
             format!("http://{}", self.server_url)
