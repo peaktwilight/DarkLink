@@ -8,3 +8,4 @@ server/server.log
 server/go.mod
 server/go.sum
 server/static/payloads/*
+server/uploads/*
