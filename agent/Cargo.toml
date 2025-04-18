@@ -16,6 +16,7 @@ hostname = "0.3"
 os_info = "3.7"
 rand = "0.8"
 bytes = "1.0"
+log = "0.4"
 
 [features]
 default = []

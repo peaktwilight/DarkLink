@@ -285,7 +285,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Using build script: %s", buildScript)
 
 	// Set up the command
-	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format}
+	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format, "--payload-id", payloadID}
 
 	// Add additional build arguments based on configuration
 	if config.IndirectSyscall {
@@ -342,11 +342,17 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		return PayloadResult{}, fmt.Errorf("build failed: %v - %s", err, output)
 	}
 
-	// Log each line of the output separately for better visibility in logs
+	// Log the first few lines of the output and summarize the rest
 	outputLines := strings.Split(string(output), "\n")
-	for _, line := range outputLines {
+	maxLogLines := 10
+	for i, line := range outputLines {
 		if line != "" {
-			log.Printf("[INFO] Build output: %s", line)
+			if i < maxLogLines {
+				log.Printf("[INFO] Build output: %s", line)
+			} else {
+				log.Printf("[INFO] Skipping remaining %d lines of output...", len(outputLines)-maxLogLines)
+				break
+			}
 		}
 	}
 
@@ -374,17 +380,53 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	fileInfo, err := os.Stat(payloadPath)
 	if err != nil {
 		log.Printf("[ERROR] Payload not found at expected location %s: %v", payloadPath, err)
-		// List directory contents to aid debugging
-		files, err := os.ReadDir(outputDir)
-		if err != nil {
-			log.Printf("[ERROR] Failed to read output directory: %v", err)
+		// Check alternative location (the one the build script uses)
+		alternativePayloadPath := filepath.Join(h.agentSourceDir, "static", "payloads", buildType, payloadID, payloadFileName)
+		log.Printf("[INFO] Checking alternative location: %s", alternativePayloadPath)
+
+		alternativeFileInfo, alternativeErr := os.Stat(alternativePayloadPath)
+		if alternativeErr == nil {
+			// Found it in the alternative location, update the path
+			log.Printf("[INFO] Found payload at alternative location: %s", alternativePayloadPath)
+			payloadPath = alternativePayloadPath
+			fileInfo = alternativeFileInfo
 		} else {
-			log.Printf("[INFO] Output directory %s contents:", outputDir)
-			for _, file := range files {
-				log.Printf("[INFO] - %s", file.Name())
+			// Still not found, look in any subdirectory of the output directory
+			log.Printf("[INFO] Searching for payload in output directory and subdirectories...")
+			var foundPath string
+			var foundInfo os.FileInfo
+
+			// Walk through the output directory to find the payload file
+			err := filepath.Walk(outputDir, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() && (info.Name() == payloadFileName || strings.HasSuffix(info.Name(), payloadFileName)) {
+					foundPath = path
+					foundInfo = info
+					return filepath.SkipAll // Stop the walk
+				}
+				return nil
+			})
+
+			if err == nil && foundPath != "" {
+				log.Printf("[INFO] Found payload during directory search: %s", foundPath)
+				payloadPath = foundPath
+				fileInfo = foundInfo
+			} else {
+				// List directory contents to aid debugging
+				files, err := os.ReadDir(outputDir)
+				if err != nil {
+					log.Printf("[ERROR] Failed to read output directory: %v", err)
+				} else {
+					log.Printf("[INFO] Output directory %s contents:", outputDir)
+					for _, file := range files {
+						log.Printf("[INFO] - %s", file.Name())
+					}
+				}
+				return PayloadResult{}, fmt.Errorf("payload not found at expected location: %w", err)
 			}
 		}
-		return PayloadResult{}, fmt.Errorf("payload not found at expected location: %w", err)
 	}
 
 	// Create the result

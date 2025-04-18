@@ -26,6 +26,7 @@ dependencies = [
  "dirs",
  "hostname",
  "hyper",
+ "log",
  "os_info",
  "rand",
  "serde",

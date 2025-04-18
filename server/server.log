@@ -1,618 +1,391 @@
-2025/04/17 12:17:03 [STARTUP] Starting server with http-polling protocol...
-2025/04/17 12:17:03 [CONFIG] Upload directory: uploads
-2025/04/17 12:17:03 [CONFIG] Static directory: static
-2025/04/17 12:17:03 [CONFIG] File Drop directory: static/file_drop
-2025/04/17 12:17:03 [CONFIG] Payloads directory: static/payloads
-2025/04/17 12:17:03 [NETWORK] Port: 8080
-2025/04/17 12:17:03 [STARTUP] Server initializing with http-polling protocol...
-2025/04/17 12:17:03 [CONFIG] Upload directory: uploads
-2025/04/17 12:17:03 [CONFIG] Static directory: static
-2025/04/17 12:17:03 [CONFIG] File Drop directory: static/file_drop
-2025/04/17 12:17:03 [NETWORK] Port: 8080
-2025/04/17 12:17:36 [INFO] Listener configuration validated successfully: {ID:c756362b-ef2e-440b-b9c5-ae19f55f2560 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[127.0.0.1] Proxy:<nil> TLSConfig:<nil>}
-2025/04/17 12:17:36 [INFO] Started listener test-listener on 0.0.0.0:8443
-2025/04/17 12:17:39 [INFO] Stopped listener test-listener
-2025/04/17 12:17:41 [INFO] Started listener test-listener on 0.0.0.0:8443
-2025/04/17 12:17:58 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:c756362b-ef2e-440b-b9c5-ae19f55f2560 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/17 12:17:58 [INFO] Using listener: test-listener (http) at 0.0.0.0:8443
-2025/04/17 12:17:58 [INFO] Generated payload ID: 250620fd-0d57-4c93-83e3-039a1e12f822
-2025/04/17 12:17:58 [INFO] Build type: debug
-2025/04/17 12:17:58 [INFO] Created output directory: static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822
-2025/04/17 12:17:58 [INFO] Created agent config file: static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822/config.json
-2025/04/17 12:17:58 [INFO] Using build target: x86_64-unknown-linux-gnu
-2025/04/17 12:17:58 [INFO] Using build script: ../agent/build.sh
-2025/04/17 12:17:58 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822 --build-type debug --format linux_elf
-2025/04/17 12:17:58 [INFO] Working directory: ../agent
-2025/04/17 12:17:58 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
-2025/04/17 12:17:58 [INFO] Starting build process...
-2025/04/17 12:18:00 [INFO] Build output: MicroC2 Agent Builder
-2025/04/17 12:18:00 [INFO] Build output: =============================
-2025/04/17 12:18:00 [INFO] Build output: Configuration:
-2025/04/17 12:18:00 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
-2025/04/17 12:18:00 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822
-2025/04/17 12:18:00 [INFO] Build output:   Build Type:   debug
-2025/04/17 12:18:00 [INFO] Build output:   C2 Server:    172.28.249.104:8080
-2025/04/17 12:18:00 [INFO] Build output:   Sleep:        60 seconds
-2025/04/17 12:18:00 [INFO] Build output:   Jitter:       2 seconds
-2025/04/17 12:18:00 [INFO] Build output:   Format:       linux_elf
-2025/04/17 12:18:00 [INFO] Build output: Checking dependencies...
-2025/04/17 12:18:00 [INFO] Build output: Installing cross...
-2025/04/17 12:18:00 [INFO] Build output:     Updating crates.io index
-2025/04/17 12:18:00 [INFO] Build output:      Ignored package `cross v0.2.5` is already installed, use --force to override
-2025/04/17 12:18:00 [INFO] Build output: Building agent...
-2025/04/17 12:18:00 [INFO] Build output: Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822/config.json
-2025/04/17 12:18:00 [INFO] Build output: Building for x86_64-unknown-linux-gnu...
-2025/04/17 12:18:00 [INFO] Build output: warning: unused import: `Body`
-2025/04/17 12:18:00 [INFO] Build output:  --> src/file_handling/download.rs:2:21
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 2 | use hyper::{Client, Body};
-2025/04/17 12:18:00 [INFO] Build output:   |                     ^^^^
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output:   = note: `#[warn(unused_imports)]` on by default
-2025/04/17 12:18:00 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:18:00 [INFO] Build output:  --> src/file_handling/download.rs:3:5
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 3 | use bytes::Bytes;
-2025/04/17 12:18:00 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:18:00 [INFO] Build output:  --> src/file_handling/upload.rs:6:5
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 6 | use bytes::Bytes;
-2025/04/17 12:18:00 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: unused import: `std::env`
-2025/04/17 12:18:00 [INFO] Build output:  --> src/commands/command_shell.rs:3:5
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 3 | use std::env;
-2025/04/17 12:18:00 [INFO] Build output:   |     ^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: unused import: `Value`
-2025/04/17 12:18:00 [INFO] Build output:  --> src/commands/command_shell.rs:6:24
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 6 | use serde_json::{json, Value};
-2025/04/17 12:18:00 [INFO] Build output:   |                        ^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: function `download_file` is never used
-2025/04/17 12:18:00 [INFO] Build output:  --> src/file_handling/download.rs:5:14
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-2025/04/17 12:18:00 [INFO] Build output:   |              ^^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output:   = note: `#[warn(dead_code)]` on by default
-2025/04/17 12:18:00 [INFO] Build output: warning: function `upload_file` is never used
-2025/04/17 12:18:00 [INFO] Build output:  --> src/file_handling/upload.rs:8:14
-2025/04/17 12:18:00 [INFO] Build output:   |
-2025/04/17 12:18:00 [INFO] Build output: 8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
-2025/04/17 12:18:00 [INFO] Build output:   |              ^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: function `execute_and_capture` is never used
-2025/04/17 12:18:00 [INFO] Build output:   --> src/commands/command_shell.rs:26:10
-2025/04/17 12:18:00 [INFO] Build output:    |
-2025/04/17 12:18:00 [INFO] Build output: 26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
-2025/04/17 12:18:00 [INFO] Build output:    |          ^^^^^^^^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: function `display_tree` is never used
-2025/04/17 12:18:00 [INFO] Build output:   --> src/commands/command_shell.rs:38:4
-2025/04/17 12:18:00 [INFO] Build output:    |
-2025/04/17 12:18:00 [INFO] Build output: 38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
-2025/04/17 12:18:00 [INFO] Build output:    |    ^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: function `stdin_ready` is never used
-2025/04/17 12:18:00 [INFO] Build output:   --> src/commands/command_shell.rs:81:4
-2025/04/17 12:18:00 [INFO] Build output:    |
-2025/04/17 12:18:00 [INFO] Build output: 81 | fn stdin_ready() -> io::Result<bool> {
-2025/04/17 12:18:00 [INFO] Build output:    |    ^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: function `get_command` is never used
-2025/04/17 12:18:00 [INFO] Build output:    --> src/commands/command_shell.rs:123:10
-2025/04/17 12:18:00 [INFO] Build output:     |
-2025/04/17 12:18:00 [INFO] Build output: 123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
-2025/04/17 12:18:00 [INFO] Build output:     |          ^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: multiple fields are never read
-2025/04/17 12:18:00 [INFO] Build output:   --> src/config.rs:43:9
-2025/04/17 12:18:00 [INFO] Build output:    |
-2025/04/17 12:18:00 [INFO] Build output: 42 | pub struct ServerConfig {
-2025/04/17 12:18:00 [INFO] Build output:    |            ------------ fields in this struct
-2025/04/17 12:18:00 [INFO] Build output: 43 |     pub server_url: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 44 |     pub sleep_time: u64,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 45 |     pub jitter: u64,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 46 |     pub uuid: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^
-2025/04/17 12:18:00 [INFO] Build output: 47 |     pub registered: bool,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 48 |     pub agent_type: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 49 |     pub system_info: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 50 |     pub hostname: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: 51 |     pub upload_dir: String,
-2025/04/17 12:18:00 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
-2025/04/17 12:18:00 [INFO] Build output:   --> src/config.rs:71:12
-2025/04/17 12:18:00 [INFO] Build output:    |
-2025/04/17 12:18:00 [INFO] Build output: 70 | impl ServerConfig {
-2025/04/17 12:18:00 [INFO] Build output:    | ----------------- associated items in this implementation
-2025/04/17 12:18:00 [INFO] Build output: 71 |     pub fn new() -> Self {
-2025/04/17 12:18:00 [INFO] Build output:    |            ^^^
-2025/04/17 12:18:00 [INFO] Build output: ...
-2025/04/17 12:18:00 [INFO] Build output: 75 |     pub fn register_url(&self) -> String {
-2025/04/17 12:18:00 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: ...
-2025/04/17 12:18:00 [INFO] Build output: 79 |     pub fn get_task_url(&self) -> String {
-2025/04/17 12:18:00 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: ...
-2025/04/17 12:18:00 [INFO] Build output: 83 |     pub fn submit_result_url(&self) -> String {
-2025/04/17 12:18:00 [INFO] Build output:    |            ^^^^^^^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: ...
-2025/04/17 12:18:00 [INFO] Build output: 87 |     pub fn upload_path(&self) -> String {
-2025/04/17 12:18:00 [INFO] Build output:    |            ^^^^^^^^^^^
-2025/04/17 12:18:00 [INFO] Build output: warning: `agent` (bin "agent") generated 13 warnings (run `cargo fix --bin "agent"` to apply 5 suggestions)
-2025/04/17 12:18:00 [INFO] Build output:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s
-2025/04/17 12:18:00 [INFO] Build output: Build complete in target/x86_64-unknown-linux-gnu/debug
-2025/04/17 12:18:00 [INFO] Build output: Copying agent binary to output directory
-2025/04/17 12:18:00 [INFO] Build output: Final output directory contents:
-2025/04/17 12:18:00 [INFO] Build output: total 104548
-2025/04/17 12:18:00 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 12:17 .
-2025/04/17 12:18:00 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 12:17 ..
-2025/04/17 12:18:00 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:17 20250417121759_agent
-2025/04/17 12:18:00 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:17 agent
-2025/04/17 12:18:00 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom       87 Apr 17 12:17 config.json
-2025/04/17 12:18:00 [INFO] Build output: Build process completed
-2025/04/17 12:18:00 [INFO] Payload filename: agent
-2025/04/17 12:18:00 [INFO] Checking for payload at: static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822/agent
-2025/04/17 12:18:00 [ERROR] Payload not found at expected location static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822/agent: stat static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822/agent: no such file or directory
-2025/04/17 12:18:00 [INFO] Output directory static/payloads/debug/250620fd-0d57-4c93-83e3-039a1e12f822 contents:
-2025/04/17 12:18:00 [INFO] - config.json
-2025/04/17 12:19:14 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:c756362b-ef2e-440b-b9c5-ae19f55f2560 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/17 12:19:14 [INFO] Using listener: test-listener (http) at 0.0.0.0:8443
-2025/04/17 12:19:14 [INFO] Generated payload ID: 6ed91e48-9e25-429d-b61e-f9b0ed13ff73
-2025/04/17 12:19:14 [INFO] Build type: debug
-2025/04/17 12:19:14 [INFO] Created output directory: static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73
-2025/04/17 12:19:14 [INFO] Created agent config file: static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73/config.json
-2025/04/17 12:19:14 [INFO] Using build target: x86_64-unknown-linux-gnu
-2025/04/17 12:19:14 [INFO] Using build script: ../agent/build.sh
-2025/04/17 12:19:14 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73 --build-type debug --format linux_elf
-2025/04/17 12:19:14 [INFO] Working directory: ../agent
-2025/04/17 12:19:14 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
-2025/04/17 12:19:14 [INFO] Starting build process...
-2025/04/17 12:19:15 [INFO] Build output: MicroC2 Agent Builder
-2025/04/17 12:19:15 [INFO] Build output: =============================
-2025/04/17 12:19:15 [INFO] Build output: Configuration:
-2025/04/17 12:19:15 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
-2025/04/17 12:19:15 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73
-2025/04/17 12:19:15 [INFO] Build output:   Build Type:   debug
-2025/04/17 12:19:15 [INFO] Build output:   C2 Server:    172.28.249.104:8080
-2025/04/17 12:19:15 [INFO] Build output:   Sleep:        60 seconds
-2025/04/17 12:19:15 [INFO] Build output:   Jitter:       2 seconds
-2025/04/17 12:19:15 [INFO] Build output:   Format:       linux_elf
-2025/04/17 12:19:15 [INFO] Build output: Checking dependencies...
-2025/04/17 12:19:15 [INFO] Build output: Installing cross...
-2025/04/17 12:19:15 [INFO] Build output:     Updating crates.io index
-2025/04/17 12:19:15 [INFO] Build output:      Ignored package `cross v0.2.5` is already installed, use --force to override
-2025/04/17 12:19:15 [INFO] Build output: Building agent...
-2025/04/17 12:19:15 [INFO] Build output: Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73/config.json
-2025/04/17 12:19:15 [INFO] Build output: Building for x86_64-unknown-linux-gnu...
-2025/04/17 12:19:15 [INFO] Build output: warning: unused import: `Body`
-2025/04/17 12:19:15 [INFO] Build output:  --> src/file_handling/download.rs:2:21
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 2 | use hyper::{Client, Body};
-2025/04/17 12:19:15 [INFO] Build output:   |                     ^^^^
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output:   = note: `#[warn(unused_imports)]` on by default
-2025/04/17 12:19:15 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:19:15 [INFO] Build output:  --> src/file_handling/download.rs:3:5
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 3 | use bytes::Bytes;
-2025/04/17 12:19:15 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:19:15 [INFO] Build output:  --> src/file_handling/upload.rs:6:5
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 6 | use bytes::Bytes;
-2025/04/17 12:19:15 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: unused import: `std::env`
-2025/04/17 12:19:15 [INFO] Build output:  --> src/commands/command_shell.rs:3:5
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 3 | use std::env;
-2025/04/17 12:19:15 [INFO] Build output:   |     ^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: unused import: `Value`
-2025/04/17 12:19:15 [INFO] Build output:  --> src/commands/command_shell.rs:6:24
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 6 | use serde_json::{json, Value};
-2025/04/17 12:19:15 [INFO] Build output:   |                        ^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: function `download_file` is never used
-2025/04/17 12:19:15 [INFO] Build output:  --> src/file_handling/download.rs:5:14
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-2025/04/17 12:19:15 [INFO] Build output:   |              ^^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output:   = note: `#[warn(dead_code)]` on by default
-2025/04/17 12:19:15 [INFO] Build output: warning: function `upload_file` is never used
-2025/04/17 12:19:15 [INFO] Build output:  --> src/file_handling/upload.rs:8:14
-2025/04/17 12:19:15 [INFO] Build output:   |
-2025/04/17 12:19:15 [INFO] Build output: 8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
-2025/04/17 12:19:15 [INFO] Build output:   |              ^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: function `execute_and_capture` is never used
-2025/04/17 12:19:15 [INFO] Build output:   --> src/commands/command_shell.rs:26:10
-2025/04/17 12:19:15 [INFO] Build output:    |
-2025/04/17 12:19:15 [INFO] Build output: 26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
-2025/04/17 12:19:15 [INFO] Build output:    |          ^^^^^^^^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: function `display_tree` is never used
-2025/04/17 12:19:15 [INFO] Build output:   --> src/commands/command_shell.rs:38:4
-2025/04/17 12:19:15 [INFO] Build output:    |
-2025/04/17 12:19:15 [INFO] Build output: 38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
-2025/04/17 12:19:15 [INFO] Build output:    |    ^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: function `stdin_ready` is never used
-2025/04/17 12:19:15 [INFO] Build output:   --> src/commands/command_shell.rs:81:4
-2025/04/17 12:19:15 [INFO] Build output:    |
-2025/04/17 12:19:15 [INFO] Build output: 81 | fn stdin_ready() -> io::Result<bool> {
-2025/04/17 12:19:15 [INFO] Build output:    |    ^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: function `get_command` is never used
-2025/04/17 12:19:15 [INFO] Build output:    --> src/commands/command_shell.rs:123:10
-2025/04/17 12:19:15 [INFO] Build output:     |
-2025/04/17 12:19:15 [INFO] Build output: 123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
-2025/04/17 12:19:15 [INFO] Build output:     |          ^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: multiple fields are never read
-2025/04/17 12:19:15 [INFO] Build output:   --> src/config.rs:43:9
-2025/04/17 12:19:15 [INFO] Build output:    |
-2025/04/17 12:19:15 [INFO] Build output: 42 | pub struct ServerConfig {
-2025/04/17 12:19:15 [INFO] Build output:    |            ------------ fields in this struct
-2025/04/17 12:19:15 [INFO] Build output: 43 |     pub server_url: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 44 |     pub sleep_time: u64,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 45 |     pub jitter: u64,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 46 |     pub uuid: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^
-2025/04/17 12:19:15 [INFO] Build output: 47 |     pub registered: bool,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 48 |     pub agent_type: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 49 |     pub system_info: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 50 |     pub hostname: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: 51 |     pub upload_dir: String,
-2025/04/17 12:19:15 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
-2025/04/17 12:19:15 [INFO] Build output:   --> src/config.rs:71:12
-2025/04/17 12:19:15 [INFO] Build output:    |
-2025/04/17 12:19:15 [INFO] Build output: 70 | impl ServerConfig {
-2025/04/17 12:19:15 [INFO] Build output:    | ----------------- associated items in this implementation
-2025/04/17 12:19:15 [INFO] Build output: 71 |     pub fn new() -> Self {
-2025/04/17 12:19:15 [INFO] Build output:    |            ^^^
-2025/04/17 12:19:15 [INFO] Build output: ...
-2025/04/17 12:19:15 [INFO] Build output: 75 |     pub fn register_url(&self) -> String {
-2025/04/17 12:19:15 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: ...
-2025/04/17 12:19:15 [INFO] Build output: 79 |     pub fn get_task_url(&self) -> String {
-2025/04/17 12:19:15 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: ...
-2025/04/17 12:19:15 [INFO] Build output: 83 |     pub fn submit_result_url(&self) -> String {
-2025/04/17 12:19:15 [INFO] Build output:    |            ^^^^^^^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: ...
-2025/04/17 12:19:15 [INFO] Build output: 87 |     pub fn upload_path(&self) -> String {
-2025/04/17 12:19:15 [INFO] Build output:    |            ^^^^^^^^^^^
-2025/04/17 12:19:15 [INFO] Build output: warning: `agent` (bin "agent") generated 13 warnings (run `cargo fix --bin "agent"` to apply 5 suggestions)
-2025/04/17 12:19:15 [INFO] Build output:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s
-2025/04/17 12:19:15 [INFO] Build output: Build complete in target/x86_64-unknown-linux-gnu/debug
-2025/04/17 12:19:15 [INFO] Build output: Copying agent binary to output directory
-2025/04/17 12:19:15 [INFO] Build output: Final output directory contents:
-2025/04/17 12:19:15 [INFO] Build output: total 104548
-2025/04/17 12:19:15 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 12:19 .
-2025/04/17 12:19:15 [INFO] Build output: drwxr-xr-x 4 darkroom darkroom     4096 Apr 17 12:19 ..
-2025/04/17 12:19:15 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:19 20250417121915_agent
-2025/04/17 12:19:15 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:19 agent
-2025/04/17 12:19:15 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom       87 Apr 17 12:19 config.json
-2025/04/17 12:19:15 [INFO] Build output: Build process completed
-2025/04/17 12:19:15 [INFO] Payload filename: agent
-2025/04/17 12:19:15 [INFO] Checking for payload at: static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73/agent
-2025/04/17 12:19:15 [ERROR] Payload not found at expected location static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73/agent: stat static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73/agent: no such file or directory
-2025/04/17 12:19:15 [INFO] Output directory static/payloads/debug/6ed91e48-9e25-429d-b61e-f9b0ed13ff73 contents:
-2025/04/17 12:19:15 [INFO] - config.json
-2025/04/17 12:21:45 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:c756362b-ef2e-440b-b9c5-ae19f55f2560 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/17 12:21:45 [INFO] Using listener: test-listener (http) at 0.0.0.0:8443
-2025/04/17 12:21:45 [INFO] Generated payload ID: daa5326d-a9ce-46c2-8ad2-b8ab351e2afa
-2025/04/17 12:21:45 [INFO] Build type: debug
-2025/04/17 12:21:45 [INFO] Created output directory: static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa
-2025/04/17 12:21:45 [INFO] Created agent config file: static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa/config.json
-2025/04/17 12:21:45 [INFO] Using build target: x86_64-unknown-linux-gnu
-2025/04/17 12:21:45 [INFO] Using build script: ../agent/build.sh
-2025/04/17 12:21:45 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa --build-type debug --format linux_elf
-2025/04/17 12:21:45 [INFO] Working directory: ../agent
-2025/04/17 12:21:45 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
-2025/04/17 12:21:45 [INFO] Starting build process...
-2025/04/17 12:21:46 [INFO] Build output: MicroC2 Agent Builder
-2025/04/17 12:21:46 [INFO] Build output: =============================
-2025/04/17 12:21:46 [INFO] Build output: Configuration:
-2025/04/17 12:21:46 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
-2025/04/17 12:21:46 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa
-2025/04/17 12:21:46 [INFO] Build output:   Build Type:   debug
-2025/04/17 12:21:46 [INFO] Build output:   C2 Server:    172.28.249.104:8080
-2025/04/17 12:21:46 [INFO] Build output:   Sleep:        60 seconds
-2025/04/17 12:21:46 [INFO] Build output:   Jitter:       2 seconds
-2025/04/17 12:21:46 [INFO] Build output:   Format:       linux_elf
-2025/04/17 12:21:46 [INFO] Build output: Checking dependencies...
-2025/04/17 12:21:46 [INFO] Build output: Installing cross...
-2025/04/17 12:21:46 [INFO] Build output:     Updating crates.io index
-2025/04/17 12:21:46 [INFO] Build output:      Ignored package `cross v0.2.5` is already installed, use --force to override
-2025/04/17 12:21:46 [INFO] Build output: Building agent...
-2025/04/17 12:21:46 [INFO] Build output: Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa/config.json
-2025/04/17 12:21:46 [INFO] Build output: Building for x86_64-unknown-linux-gnu...
-2025/04/17 12:21:46 [INFO] Build output: warning: unused import: `Body`
-2025/04/17 12:21:46 [INFO] Build output:  --> src/file_handling/download.rs:2:21
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 2 | use hyper::{Client, Body};
-2025/04/17 12:21:46 [INFO] Build output:   |                     ^^^^
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output:   = note: `#[warn(unused_imports)]` on by default
-2025/04/17 12:21:46 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:21:46 [INFO] Build output:  --> src/file_handling/download.rs:3:5
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 3 | use bytes::Bytes;
-2025/04/17 12:21:46 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:21:46 [INFO] Build output:  --> src/file_handling/upload.rs:6:5
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 6 | use bytes::Bytes;
-2025/04/17 12:21:46 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: unused import: `std::env`
-2025/04/17 12:21:46 [INFO] Build output:  --> src/commands/command_shell.rs:3:5
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 3 | use std::env;
-2025/04/17 12:21:46 [INFO] Build output:   |     ^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: unused import: `Value`
-2025/04/17 12:21:46 [INFO] Build output:  --> src/commands/command_shell.rs:6:24
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 6 | use serde_json::{json, Value};
-2025/04/17 12:21:46 [INFO] Build output:   |                        ^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: function `download_file` is never used
-2025/04/17 12:21:46 [INFO] Build output:  --> src/file_handling/download.rs:5:14
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-2025/04/17 12:21:46 [INFO] Build output:   |              ^^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output:   = note: `#[warn(dead_code)]` on by default
-2025/04/17 12:21:46 [INFO] Build output: warning: function `upload_file` is never used
-2025/04/17 12:21:46 [INFO] Build output:  --> src/file_handling/upload.rs:8:14
-2025/04/17 12:21:46 [INFO] Build output:   |
-2025/04/17 12:21:46 [INFO] Build output: 8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
-2025/04/17 12:21:46 [INFO] Build output:   |              ^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: function `execute_and_capture` is never used
-2025/04/17 12:21:46 [INFO] Build output:   --> src/commands/command_shell.rs:26:10
-2025/04/17 12:21:46 [INFO] Build output:    |
-2025/04/17 12:21:46 [INFO] Build output: 26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
-2025/04/17 12:21:46 [INFO] Build output:    |          ^^^^^^^^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: function `display_tree` is never used
-2025/04/17 12:21:46 [INFO] Build output:   --> src/commands/command_shell.rs:38:4
-2025/04/17 12:21:46 [INFO] Build output:    |
-2025/04/17 12:21:46 [INFO] Build output: 38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
-2025/04/17 12:21:46 [INFO] Build output:    |    ^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: function `stdin_ready` is never used
-2025/04/17 12:21:46 [INFO] Build output:   --> src/commands/command_shell.rs:81:4
-2025/04/17 12:21:46 [INFO] Build output:    |
-2025/04/17 12:21:46 [INFO] Build output: 81 | fn stdin_ready() -> io::Result<bool> {
-2025/04/17 12:21:46 [INFO] Build output:    |    ^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: function `get_command` is never used
-2025/04/17 12:21:46 [INFO] Build output:    --> src/commands/command_shell.rs:123:10
-2025/04/17 12:21:46 [INFO] Build output:     |
-2025/04/17 12:21:46 [INFO] Build output: 123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
-2025/04/17 12:21:46 [INFO] Build output:     |          ^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: multiple fields are never read
-2025/04/17 12:21:46 [INFO] Build output:   --> src/config.rs:43:9
-2025/04/17 12:21:46 [INFO] Build output:    |
-2025/04/17 12:21:46 [INFO] Build output: 42 | pub struct ServerConfig {
-2025/04/17 12:21:46 [INFO] Build output:    |            ------------ fields in this struct
-2025/04/17 12:21:46 [INFO] Build output: 43 |     pub server_url: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 44 |     pub sleep_time: u64,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 45 |     pub jitter: u64,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 46 |     pub uuid: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^
-2025/04/17 12:21:46 [INFO] Build output: 47 |     pub registered: bool,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 48 |     pub agent_type: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 49 |     pub system_info: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 50 |     pub hostname: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: 51 |     pub upload_dir: String,
-2025/04/17 12:21:46 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
-2025/04/17 12:21:46 [INFO] Build output:   --> src/config.rs:71:12
-2025/04/17 12:21:46 [INFO] Build output:    |
-2025/04/17 12:21:46 [INFO] Build output: 70 | impl ServerConfig {
-2025/04/17 12:21:46 [INFO] Build output:    | ----------------- associated items in this implementation
-2025/04/17 12:21:46 [INFO] Build output: 71 |     pub fn new() -> Self {
-2025/04/17 12:21:46 [INFO] Build output:    |            ^^^
-2025/04/17 12:21:46 [INFO] Build output: ...
-2025/04/17 12:21:46 [INFO] Build output: 75 |     pub fn register_url(&self) -> String {
-2025/04/17 12:21:46 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: ...
-2025/04/17 12:21:46 [INFO] Build output: 79 |     pub fn get_task_url(&self) -> String {
-2025/04/17 12:21:46 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: ...
-2025/04/17 12:21:46 [INFO] Build output: 83 |     pub fn submit_result_url(&self) -> String {
-2025/04/17 12:21:46 [INFO] Build output:    |            ^^^^^^^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: ...
-2025/04/17 12:21:46 [INFO] Build output: 87 |     pub fn upload_path(&self) -> String {
-2025/04/17 12:21:46 [INFO] Build output:    |            ^^^^^^^^^^^
-2025/04/17 12:21:46 [INFO] Build output: warning: `agent` (bin "agent") generated 13 warnings (run `cargo fix --bin "agent"` to apply 5 suggestions)
-2025/04/17 12:21:46 [INFO] Build output:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
-2025/04/17 12:21:46 [INFO] Build output: Build complete in target/x86_64-unknown-linux-gnu/debug
-2025/04/17 12:21:46 [INFO] Build output: Copying agent binary to output directory
-2025/04/17 12:21:46 [INFO] Build output: Final output directory contents:
-2025/04/17 12:21:46 [INFO] Build output: total 104548
-2025/04/17 12:21:46 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 12:21 .
-2025/04/17 12:21:46 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 12:21 ..
-2025/04/17 12:21:46 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:21 20250417122146_agent
-2025/04/17 12:21:46 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:21 agent
-2025/04/17 12:21:46 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom       87 Apr 17 12:21 config.json
-2025/04/17 12:21:46 [INFO] Build output: Build process completed
-2025/04/17 12:21:46 [INFO] Payload filename: agent
-2025/04/17 12:21:46 [INFO] Checking for payload at: static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa/agent
-2025/04/17 12:21:46 [ERROR] Payload not found at expected location static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa/agent: stat static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa/agent: no such file or directory
-2025/04/17 12:21:46 [INFO] Output directory static/payloads/debug/daa5326d-a9ce-46c2-8ad2-b8ab351e2afa contents:
-2025/04/17 12:21:46 [INFO] - config.json
-2025/04/17 12:52:32 [STARTUP] Starting server with http-polling protocol...
-2025/04/17 12:52:32 [CONFIG] Upload directory: uploads
-2025/04/17 12:52:32 [CONFIG] Static directory: static
-2025/04/17 12:52:32 [CONFIG] File Drop directory: static/file_drop
-2025/04/17 12:52:32 [CONFIG] Payloads directory: static/payloads
-2025/04/17 12:52:32 [NETWORK] Port: 8080
-2025/04/17 12:52:32 [STARTUP] Server initializing with http-polling protocol...
-2025/04/17 12:52:32 [CONFIG] Upload directory: uploads
-2025/04/17 12:52:32 [CONFIG] Static directory: static
-2025/04/17 12:52:32 [CONFIG] File Drop directory: static/file_drop
-2025/04/17 12:52:32 [NETWORK] Port: 8080
-2025/04/17 12:53:24 [INFO] Listener configuration validated successfully: {ID:0cba931d-b7d2-4f29-83be-a5d46949c6f5 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[192.168.0.1] Proxy:<nil> TLSConfig:<nil>}
-2025/04/17 12:53:24 [INFO] Started listener test-listener on 0.0.0.0:8443
-2025/04/17 12:54:04 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:0cba931d-b7d2-4f29-83be-a5d46949c6f5 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/17 12:54:04 [INFO] Using listener: test-listener (http) at 0.0.0.0:8443
-2025/04/17 12:54:04 [INFO] Generated payload ID: d47e6b06-1858-465e-941f-a212a30b54ad
-2025/04/17 12:54:04 [INFO] Build type: debug
-2025/04/17 12:54:04 [INFO] Created output directory: static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad
-2025/04/17 12:54:04 [INFO] Created agent config file: static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/config.json
-2025/04/17 12:54:04 [INFO] Using build target: x86_64-unknown-linux-gnu
-2025/04/17 12:54:04 [INFO] Using build script: ../agent/build.sh
-2025/04/17 12:54:04 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad --build-type debug --format linux_elf
-2025/04/17 12:54:04 [INFO] Working directory: ../agent
-2025/04/17 12:54:04 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad, BUILD_TYPE=debug, LISTENER_HOST=0.0.0.0, LISTENER_PORT=8443, SLEEP_INTERVAL=60
-2025/04/17 12:54:04 [INFO] Starting build process...
-2025/04/17 12:54:06 [INFO] Build output: MicroC2 Agent Builder
-2025/04/17 12:54:06 [INFO] Build output: =============================
-2025/04/17 12:54:06 [INFO] Build output: Using specified output directory: static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad
-2025/04/17 12:54:06 [INFO] Build output: Configuration:
-2025/04/17 12:54:06 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
-2025/04/17 12:54:06 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad
-2025/04/17 12:54:06 [INFO] Build output:   Build Type:   debug
-2025/04/17 12:54:06 [INFO] Build output:   C2 Server:    172.28.249.104:8080
-2025/04/17 12:54:06 [INFO] Build output:   Sleep:        60 seconds
-2025/04/17 12:54:06 [INFO] Build output:   Jitter:       2 seconds
-2025/04/17 12:54:06 [INFO] Build output:   Format:       linux_elf
-2025/04/17 12:54:06 [INFO] Build output: Checking dependencies...
-2025/04/17 12:54:06 [INFO] Build output: Installing cross...
-2025/04/17 12:54:06 [INFO] Build output:     Updating crates.io index
-2025/04/17 12:54:06 [INFO] Build output:      Ignored package `cross v0.2.5` is already installed, use --force to override
-2025/04/17 12:54:06 [INFO] Build output: Building agent...
-2025/04/17 12:54:06 [INFO] Build output: Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/config.json
-2025/04/17 12:54:06 [INFO] Build output: Building for x86_64-unknown-linux-gnu...
-2025/04/17 12:54:06 [INFO] Build output: warning: unused import: `Body`
-2025/04/17 12:54:06 [INFO] Build output:  --> src/file_handling/download.rs:2:21
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 2 | use hyper::{Client, Body};
-2025/04/17 12:54:06 [INFO] Build output:   |                     ^^^^
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output:   = note: `#[warn(unused_imports)]` on by default
-2025/04/17 12:54:06 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:54:06 [INFO] Build output:  --> src/file_handling/download.rs:3:5
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 3 | use bytes::Bytes;
-2025/04/17 12:54:06 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: unused import: `bytes::Bytes`
-2025/04/17 12:54:06 [INFO] Build output:  --> src/file_handling/upload.rs:6:5
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 6 | use bytes::Bytes;
-2025/04/17 12:54:06 [INFO] Build output:   |     ^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: unused import: `std::env`
-2025/04/17 12:54:06 [INFO] Build output:  --> src/commands/command_shell.rs:3:5
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 3 | use std::env;
-2025/04/17 12:54:06 [INFO] Build output:   |     ^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: unused import: `Value`
-2025/04/17 12:54:06 [INFO] Build output:  --> src/commands/command_shell.rs:6:24
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 6 | use serde_json::{json, Value};
-2025/04/17 12:54:06 [INFO] Build output:   |                        ^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: function `download_file` is never used
-2025/04/17 12:54:06 [INFO] Build output:  --> src/file_handling/download.rs:5:14
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-2025/04/17 12:54:06 [INFO] Build output:   |              ^^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output:   = note: `#[warn(dead_code)]` on by default
-2025/04/17 12:54:06 [INFO] Build output: warning: function `upload_file` is never used
-2025/04/17 12:54:06 [INFO] Build output:  --> src/file_handling/upload.rs:8:14
-2025/04/17 12:54:06 [INFO] Build output:   |
-2025/04/17 12:54:06 [INFO] Build output: 8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
-2025/04/17 12:54:06 [INFO] Build output:   |              ^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: function `execute_and_capture` is never used
-2025/04/17 12:54:06 [INFO] Build output:   --> src/commands/command_shell.rs:26:10
-2025/04/17 12:54:06 [INFO] Build output:    |
-2025/04/17 12:54:06 [INFO] Build output: 26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
-2025/04/17 12:54:06 [INFO] Build output:    |          ^^^^^^^^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: function `display_tree` is never used
-2025/04/17 12:54:06 [INFO] Build output:   --> src/commands/command_shell.rs:38:4
-2025/04/17 12:54:06 [INFO] Build output:    |
-2025/04/17 12:54:06 [INFO] Build output: 38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
-2025/04/17 12:54:06 [INFO] Build output:    |    ^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: function `stdin_ready` is never used
-2025/04/17 12:54:06 [INFO] Build output:   --> src/commands/command_shell.rs:81:4
-2025/04/17 12:54:06 [INFO] Build output:    |
-2025/04/17 12:54:06 [INFO] Build output: 81 | fn stdin_ready() -> io::Result<bool> {
-2025/04/17 12:54:06 [INFO] Build output:    |    ^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: function `get_command` is never used
-2025/04/17 12:54:06 [INFO] Build output:    --> src/commands/command_shell.rs:123:10
-2025/04/17 12:54:06 [INFO] Build output:     |
-2025/04/17 12:54:06 [INFO] Build output: 123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
-2025/04/17 12:54:06 [INFO] Build output:     |          ^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: multiple fields are never read
-2025/04/17 12:54:06 [INFO] Build output:   --> src/config.rs:43:9
-2025/04/17 12:54:06 [INFO] Build output:    |
-2025/04/17 12:54:06 [INFO] Build output: 42 | pub struct ServerConfig {
-2025/04/17 12:54:06 [INFO] Build output:    |            ------------ fields in this struct
-2025/04/17 12:54:06 [INFO] Build output: 43 |     pub server_url: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 44 |     pub sleep_time: u64,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 45 |     pub jitter: u64,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 46 |     pub uuid: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^
-2025/04/17 12:54:06 [INFO] Build output: 47 |     pub registered: bool,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 48 |     pub agent_type: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 49 |     pub system_info: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 50 |     pub hostname: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: 51 |     pub upload_dir: String,
-2025/04/17 12:54:06 [INFO] Build output:    |         ^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
-2025/04/17 12:54:06 [INFO] Build output:   --> src/config.rs:71:12
-2025/04/17 12:54:06 [INFO] Build output:    |
-2025/04/17 12:54:06 [INFO] Build output: 70 | impl ServerConfig {
-2025/04/17 12:54:06 [INFO] Build output:    | ----------------- associated items in this implementation
-2025/04/17 12:54:06 [INFO] Build output: 71 |     pub fn new() -> Self {
-2025/04/17 12:54:06 [INFO] Build output:    |            ^^^
-2025/04/17 12:54:06 [INFO] Build output: ...
-2025/04/17 12:54:06 [INFO] Build output: 75 |     pub fn register_url(&self) -> String {
-2025/04/17 12:54:06 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: ...
-2025/04/17 12:54:06 [INFO] Build output: 79 |     pub fn get_task_url(&self) -> String {
-2025/04/17 12:54:06 [INFO] Build output:    |            ^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: ...
-2025/04/17 12:54:06 [INFO] Build output: 83 |     pub fn submit_result_url(&self) -> String {
-2025/04/17 12:54:06 [INFO] Build output:    |            ^^^^^^^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: ...
-2025/04/17 12:54:06 [INFO] Build output: 87 |     pub fn upload_path(&self) -> String {
-2025/04/17 12:54:06 [INFO] Build output:    |            ^^^^^^^^^^^
-2025/04/17 12:54:06 [INFO] Build output: warning: `agent` (bin "agent") generated 13 warnings (run `cargo fix --bin "agent"` to apply 5 suggestions)
-2025/04/17 12:54:06 [INFO] Build output:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.39s
-2025/04/17 12:54:06 [INFO] Build output: Build complete in target/x86_64-unknown-linux-gnu/debug
-2025/04/17 12:54:06 [INFO] Build output: Copying agent binary to output directory: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/agent
-2025/04/17 12:54:06 [INFO] Build output: Agent binary copied successfully to specified output location
-2025/04/17 12:54:06 [INFO] Build output: Final output directory contents:
-2025/04/17 12:54:06 [INFO] Build output: total 104548
-2025/04/17 12:54:06 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 12:54 .
-2025/04/17 12:54:06 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 12:54 ..
-2025/04/17 12:54:06 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:54 20250417125406_agent
-2025/04/17 12:54:06 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53521360 Apr 17 12:54 agent
-2025/04/17 12:54:06 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom       87 Apr 17 12:54 config.json
-2025/04/17 12:54:06 [INFO] Build output: Build process completed
-2025/04/17 12:54:06 [INFO] Payload filename: agent
-2025/04/17 12:54:06 [INFO] Checking for payload at: static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/agent
-2025/04/17 12:54:06 [ERROR] Payload not found at expected location static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/agent: stat static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad/agent: no such file or directory
-2025/04/17 12:54:06 [INFO] Output directory static/payloads/debug/d47e6b06-1858-465e-941f-a212a30b54ad contents:
-2025/04/17 12:54:06 [INFO] - config.json
+2025/04/17 14:18:56 [STARTUP] Starting server with http-polling protocol...
+2025/04/17 14:18:56 [CONFIG] Upload directory: uploads
+2025/04/17 14:18:56 [CONFIG] Static directory: static
+2025/04/17 14:18:56 [CONFIG] File Drop directory: static/file_drop
+2025/04/17 14:18:56 [CONFIG] Payloads directory: static/payloads
+2025/04/17 14:18:56 [NETWORK] Port: 8080
+2025/04/17 14:18:56 [STARTUP] Server initializing with http-polling protocol...
+2025/04/17 14:18:56 [CONFIG] Upload directory: uploads
+2025/04/17 14:18:56 [CONFIG] Static directory: static
+2025/04/17 14:18:56 [CONFIG] File Drop directory: static/file_drop
+2025/04/17 14:18:56 [NETWORK] Port: 8080
+2025/04/17 14:19:43 [INFO] Listener configuration validated successfully: {ID:9b7e032e-1fab-490c-a77d-4521f6cf8238 Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/17 14:19:43 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/17 14:19:48 [INFO] Stopped listener test-listener
+2025/04/17 14:20:21 [INFO] Listener configuration validated successfully: {ID:380e04dc-e1cf-4a05-b50c-be0499e44548 Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/17 14:20:21 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/17 14:20:57 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:380e04dc-e1cf-4a05-b50c-be0499e44548 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/17 14:20:57 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/17 14:20:57 [INFO] Generated payload ID: 9d26da58-8cdd-4b6d-8b1b-e604566fd11d
+2025/04/17 14:20:57 [INFO] Build type: debug
+2025/04/17 14:20:57 [INFO] Created output directory: static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d
+2025/04/17 14:20:57 [INFO] Created agent config file: static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/config.json
+2025/04/17 14:20:57 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/17 14:20:57 [INFO] Using build script: ../agent/build.sh
+2025/04/17 14:20:57 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d --build-type debug --format linux_elf
+2025/04/17 14:20:57 [INFO] Working directory: ../agent
+2025/04/17 14:20:57 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/17 14:20:57 [INFO] Starting build process...
+2025/04/17 14:21:01 [INFO] Build output: MicroC2 Agent Builder
+2025/04/17 14:21:01 [INFO] Build output: =============================
+2025/04/17 14:21:01 [INFO] Build output: Detected Payload ID: 9d26da58-8cdd-4b6d-8b1b-e604566fd11d
+2025/04/17 14:21:01 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/17 14:21:01 [INFO] Build output: Configuration:
+2025/04/17 14:21:01 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/17 14:21:01 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d
+2025/04/17 14:21:01 [INFO] Build output:   Original Dir: static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d
+2025/04/17 14:21:01 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/17 14:21:01 [INFO] Build output:   Build Type:   debug
+2025/04/17 14:21:01 [INFO] Build output:   C2 Server:    172.28.249.104:8080
+2025/04/17 14:21:01 [INFO] Build output:   Sleep:        60 seconds
+2025/04/17 14:21:01 [INFO] Build output:   Jitter:       2 seconds
+2025/04/17 14:21:01 [INFO] Build output:   Format:       linux_elf
+2025/04/17 14:21:01 [INFO] Build output: Checking dependencies...
+2025/04/17 14:21:01 [INFO] Build output: Installing cross...
+2025/04/17 14:21:01 [INFO] Build output:     Updating crates.io index
+2025/04/17 14:21:01 [INFO] Build output:      Ignored package `cross v0.2.5` is already installed, use --force to override
+2025/04/17 14:21:01 [INFO] Build output: Building agent...
+2025/04/17 14:21:01 [INFO] Build output: Created configuration in /home/darkroom/coding/MicroC2/agent/static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/config.json
+2025/04/17 14:21:01 [INFO] Build output: Building for x86_64-unknown-linux-gnu...
+2025/04/17 14:21:01 [INFO] Build output:    Compiling agent v0.1.0 (/home/darkroom/coding/MicroC2/agent)
+2025/04/17 14:21:01 [INFO] Build output: warning: unused import: `Body`
+2025/04/17 14:21:01 [INFO] Build output:  --> src/file_handling/download.rs:2:21
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 2 | use hyper::{Client, Body};
+2025/04/17 14:21:01 [INFO] Build output:   |                     ^^^^
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output:   = note: `#[warn(unused_imports)]` on by default
+2025/04/17 14:21:01 [INFO] Build output: warning: unused import: `bytes::Bytes`
+2025/04/17 14:21:01 [INFO] Build output:  --> src/file_handling/download.rs:3:5
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 3 | use bytes::Bytes;
+2025/04/17 14:21:01 [INFO] Build output:   |     ^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: unused import: `bytes::Bytes`
+2025/04/17 14:21:01 [INFO] Build output:  --> src/file_handling/upload.rs:6:5
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 6 | use bytes::Bytes;
+2025/04/17 14:21:01 [INFO] Build output:   |     ^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: unused import: `std::env`
+2025/04/17 14:21:01 [INFO] Build output:  --> src/commands/command_shell.rs:3:5
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 3 | use std::env;
+2025/04/17 14:21:01 [INFO] Build output:   |     ^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: unused import: `Value`
+2025/04/17 14:21:01 [INFO] Build output:  --> src/commands/command_shell.rs:6:24
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 6 | use serde_json::{json, Value};
+2025/04/17 14:21:01 [INFO] Build output:   |                        ^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: function `download_file` is never used
+2025/04/17 14:21:01 [INFO] Build output:  --> src/file_handling/download.rs:5:14
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 5 | pub async fn download_file(url: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+2025/04/17 14:21:01 [INFO] Build output:   |              ^^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output:   = note: `#[warn(dead_code)]` on by default
+2025/04/17 14:21:01 [INFO] Build output: warning: function `upload_file` is never used
+2025/04/17 14:21:01 [INFO] Build output:  --> src/file_handling/upload.rs:8:14
+2025/04/17 14:21:01 [INFO] Build output:   |
+2025/04/17 14:21:01 [INFO] Build output: 8 | pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
+2025/04/17 14:21:01 [INFO] Build output:   |              ^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: function `execute_and_capture` is never used
+2025/04/17 14:21:01 [INFO] Build output:   --> src/commands/command_shell.rs:26:10
+2025/04/17 14:21:01 [INFO] Build output:    |
+2025/04/17 14:21:01 [INFO] Build output: 26 | async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
+2025/04/17 14:21:01 [INFO] Build output:    |          ^^^^^^^^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: function `display_tree` is never used
+2025/04/17 14:21:01 [INFO] Build output:   --> src/commands/command_shell.rs:38:4
+2025/04/17 14:21:01 [INFO] Build output:    |
+2025/04/17 14:21:01 [INFO] Build output: 38 | fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
+2025/04/17 14:21:01 [INFO] Build output:    |    ^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: function `stdin_ready` is never used
+2025/04/17 14:21:01 [INFO] Build output:   --> src/commands/command_shell.rs:81:4
+2025/04/17 14:21:01 [INFO] Build output:    |
+2025/04/17 14:21:01 [INFO] Build output: 81 | fn stdin_ready() -> io::Result<bool> {
+2025/04/17 14:21:01 [INFO] Build output:    |    ^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: function `get_command` is never used
+2025/04/17 14:21:01 [INFO] Build output:    --> src/commands/command_shell.rs:123:10
+2025/04/17 14:21:01 [INFO] Build output:     |
+2025/04/17 14:21:01 [INFO] Build output: 123 | async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
+2025/04/17 14:21:01 [INFO] Build output:     |          ^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: multiple fields are never read
+2025/04/17 14:21:01 [INFO] Build output:    --> src/config.rs:113:9
+2025/04/17 14:21:01 [INFO] Build output:     |
+2025/04/17 14:21:01 [INFO] Build output: 112 | pub struct ServerConfig {
+2025/04/17 14:21:01 [INFO] Build output:     |            ------------ fields in this struct
+2025/04/17 14:21:01 [INFO] Build output: 113 |     pub server_url: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 114 |     pub sleep_time: u64,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 115 |     pub jitter: u64,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 116 |     pub uuid: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^
+2025/04/17 14:21:01 [INFO] Build output: 117 |     pub registered: bool,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 118 |     pub agent_type: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 119 |     pub system_info: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 120 |     pub hostname: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: 121 |     pub upload_dir: String,
+2025/04/17 14:21:01 [INFO] Build output:     |         ^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: associated items `new`, `register_url`, `get_task_url`, `submit_result_url`, and `upload_path` are never used
+2025/04/17 14:21:01 [INFO] Build output:    --> src/config.rs:141:12
+2025/04/17 14:21:01 [INFO] Build output:     |
+2025/04/17 14:21:01 [INFO] Build output: 140 | impl ServerConfig {
+2025/04/17 14:21:01 [INFO] Build output:     | ----------------- associated items in this implementation
+2025/04/17 14:21:01 [INFO] Build output: 141 |     pub fn new() -> Self {
+2025/04/17 14:21:01 [INFO] Build output:     |            ^^^
+2025/04/17 14:21:01 [INFO] Build output: ...
+2025/04/17 14:21:01 [INFO] Build output: 145 |     pub fn register_url(&self) -> String {
+2025/04/17 14:21:01 [INFO] Build output:     |            ^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: ...
+2025/04/17 14:21:01 [INFO] Build output: 149 |     pub fn get_task_url(&self) -> String {
+2025/04/17 14:21:01 [INFO] Build output:     |            ^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: ...
+2025/04/17 14:21:01 [INFO] Build output: 153 |     pub fn submit_result_url(&self) -> String {
+2025/04/17 14:21:01 [INFO] Build output:     |            ^^^^^^^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: ...
+2025/04/17 14:21:01 [INFO] Build output: 157 |     pub fn upload_path(&self) -> String {
+2025/04/17 14:21:01 [INFO] Build output:     |            ^^^^^^^^^^^
+2025/04/17 14:21:01 [INFO] Build output: warning: `agent` (bin "agent") generated 13 warnings (run `cargo fix --bin "agent"` to apply 5 suggestions)
+2025/04/17 14:21:01 [INFO] Build output:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.80s
+2025/04/17 14:21:01 [INFO] Build output: Build complete in target/x86_64-unknown-linux-gnu/debug
+2025/04/17 14:21:01 [INFO] Build output: Copying agent binary to output directory: /home/darkroom/coding/MicroC2/agent/static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/agent
+2025/04/17 14:21:01 [INFO] Build output: Agent binary copied successfully to specified output location
+2025/04/17 14:21:01 [INFO] Build output: Embedding config.json with agent binary
+2025/04/17 14:21:01 [INFO] Build output: Copying agent to server's expected location: static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/agent
+2025/04/17 14:21:01 [INFO] Build output: cp: '/home/darkroom/coding/MicroC2/agent/static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/config.json' and 'static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/config.json' are the same file
+2025/04/17 14:21:01 [INFO] Build output: Final output directory contents:
+2025/04/17 14:21:01 [INFO] Build output: total 104732
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 14:21 .
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 14:20 ..
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 14:21 .config
+2025/04/17 14:21:01 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53611200 Apr 17 14:21 20250417142101_agent
+2025/04/17 14:21:01 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53611200 Apr 17 14:21 agent
+2025/04/17 14:21:01 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom      145 Apr 17 14:20 config.json
+2025/04/17 14:21:01 [INFO] Build output: Server directory contents:
+2025/04/17 14:21:01 [INFO] Build output: total 104732
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 14:21 .
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 3 darkroom darkroom     4096 Apr 17 14:20 ..
+2025/04/17 14:21:01 [INFO] Build output: drwxr-xr-x 2 darkroom darkroom     4096 Apr 17 14:21 .config
+2025/04/17 14:21:01 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53611200 Apr 17 14:21 20250417142101_agent
+2025/04/17 14:21:01 [INFO] Build output: -rwxr-xr-x 1 darkroom darkroom 53611200 Apr 17 14:21 agent
+2025/04/17 14:21:01 [INFO] Build output: -rw-r--r-- 1 darkroom darkroom      145 Apr 17 14:20 config.json
+2025/04/17 14:21:01 [INFO] Build output: Build process completed
+2025/04/17 14:21:01 [INFO] Payload filename: agent
+2025/04/17 14:21:01 [INFO] Checking for payload at: static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/agent
+2025/04/17 14:21:01 [ERROR] Payload not found at expected location static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/agent: stat static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d/agent: no such file or directory
+2025/04/17 14:21:01 [INFO] Output directory static/payloads/debug/9d26da58-8cdd-4b6d-8b1b-e604566fd11d contents:
+2025/04/17 14:21:01 [INFO] - config.json
+2025/04/17 23:35:03 [STARTUP] Starting server with http-polling protocol...
+2025/04/17 23:35:03 [CONFIG] Upload directory: uploads
+2025/04/17 23:35:03 [CONFIG] Static directory: static
+2025/04/17 23:35:03 [CONFIG] File Drop directory: static/file_drop
+2025/04/17 23:35:03 [CONFIG] Payloads directory: static/payloads
+2025/04/17 23:35:03 [NETWORK] Port: 8080
+2025/04/17 23:35:03 [STARTUP] Server initializing with http-polling protocol...
+2025/04/17 23:35:03 [CONFIG] Upload directory: uploads
+2025/04/17 23:35:03 [CONFIG] Static directory: static
+2025/04/17 23:35:03 [CONFIG] File Drop directory: static/file_drop
+2025/04/17 23:35:03 [NETWORK] Port: 8080
+2025/04/17 23:37:25 [INFO] Listener configuration validated successfully: {ID:40527d83-f237-4658-b3ce-f94b0a82a82c Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2test:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/17 23:37:25 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/17 23:37:47 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:40527d83-f237-4658-b3ce-f94b0a82a82c Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/17 23:37:47 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/17 23:37:47 [INFO] Generated payload ID: 36c4fcb8-8564-47dc-9341-3d7d1fe9efad
+2025/04/17 23:37:47 [INFO] Build type: debug
+2025/04/17 23:37:47 [INFO] Created output directory: static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad
+2025/04/17 23:37:47 [INFO] Created agent config file: static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/config.json
+2025/04/17 23:37:47 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/17 23:37:47 [INFO] Using build script: ../agent/build.sh
+2025/04/17 23:37:47 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad --build-type debug --format linux_elf
+2025/04/17 23:37:47 [INFO] Working directory: ../agent
+2025/04/17 23:37:47 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/17 23:37:47 [INFO] Starting build process...
+2025/04/17 23:37:56 [INFO] Build output: MicroC2 Agent Builder
+2025/04/17 23:37:56 [INFO] Build output: =============================
+2025/04/17 23:37:56 [INFO] Build output: Detected Payload ID: 36c4fcb8-8564-47dc-9341-3d7d1fe9efad
+2025/04/17 23:37:56 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/17 23:37:56 [INFO] Build output: Configuration:
+2025/04/17 23:37:56 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/17 23:37:56 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad
+2025/04/17 23:37:56 [INFO] Build output:   Original Dir: static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad
+2025/04/17 23:37:56 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/17 23:37:56 [INFO] Build output:   Build Type:   debug
+2025/04/17 23:37:56 [INFO] Skipping remaining 158 lines of output...
+2025/04/17 23:37:56 [INFO] Payload filename: agent
+2025/04/17 23:37:56 [INFO] Checking for payload at: static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/agent
+2025/04/17 23:37:56 [ERROR] Payload not found at expected location static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/agent: stat static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/agent: no such file or directory
+2025/04/17 23:37:56 [INFO] Checking alternative location: ../agent/static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/agent
+2025/04/17 23:37:56 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/36c4fcb8-8564-47dc-9341-3d7d1fe9efad/agent
+2025/04/17 23:37:56 [INFO] Successfully generated payload: agent (debug, 53612576 bytes)
+2025/04/18 00:15:11 [STARTUP] Starting server with http-polling protocol...
+2025/04/18 00:15:11 [CONFIG] Upload directory: uploads
+2025/04/18 00:15:11 [CONFIG] Static directory: static
+2025/04/18 00:15:11 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 00:15:11 [CONFIG] Payloads directory: static/payloads
+2025/04/18 00:15:11 [NETWORK] Port: 8080
+2025/04/18 00:15:11 [STARTUP] Server initializing with http-polling protocol...
+2025/04/18 00:15:11 [CONFIG] Upload directory: uploads
+2025/04/18 00:15:11 [CONFIG] Static directory: static
+2025/04/18 00:15:11 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 00:15:11 [NETWORK] Port: 8080
+2025/04/18 00:17:20 [INFO] Listener configuration validated successfully: {ID:0bd7974d-9bed-446c-b40f-3b78c2276d7a Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2test:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/18 00:17:20 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/18 00:17:47 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:0bd7974d-9bed-446c-b40f-3b78c2276d7a Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/18 00:17:47 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/18 00:17:47 [INFO] Generated payload ID: 307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:47 [INFO] Build type: debug
+2025/04/18 00:17:47 [INFO] Created output directory: static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:47 [INFO] Created agent config file: static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/config.json
+2025/04/18 00:17:47 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/18 00:17:47 [INFO] Using build script: ../agent/build.sh
+2025/04/18 00:17:47 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b --build-type debug --format linux_elf --payload-id 307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:47 [INFO] Working directory: ../agent
+2025/04/18 00:17:47 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/18 00:17:47 [INFO] Starting build process...
+2025/04/18 00:17:54 [INFO] Build output: MicroC2 Agent Builder
+2025/04/18 00:17:54 [INFO] Build output: =============================
+2025/04/18 00:17:54 [INFO] Build output: Using provided payload ID: 307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:54 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 00:17:54 [INFO] Build output: Configuration:
+2025/04/18 00:17:54 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/18 00:17:54 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:54 [INFO] Build output:   Original Dir: static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b
+2025/04/18 00:17:54 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 00:17:54 [INFO] Build output:   Build Type:   debug
+2025/04/18 00:17:54 [INFO] Skipping remaining 158 lines of output...
+2025/04/18 00:17:54 [INFO] Payload filename: agent
+2025/04/18 00:17:54 [INFO] Checking for payload at: static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/agent
+2025/04/18 00:17:54 [ERROR] Payload not found at expected location static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/agent: stat static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/agent: no such file or directory
+2025/04/18 00:17:54 [INFO] Checking alternative location: ../agent/static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/agent
+2025/04/18 00:17:54 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/307f2a13-e94e-4297-ba00-ba8fa55d0d2b/agent
+2025/04/18 00:17:54 [INFO] Successfully generated payload: agent (debug, 53698960 bytes)
+2025/04/18 00:19:15 [STARTUP] Starting server with http-polling protocol...
+2025/04/18 00:19:15 [CONFIG] Upload directory: uploads
+2025/04/18 00:19:15 [CONFIG] Static directory: static
+2025/04/18 00:19:15 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 00:19:15 [CONFIG] Payloads directory: static/payloads
+2025/04/18 00:19:15 [NETWORK] Port: 8080
+2025/04/18 00:19:15 [STARTUP] Server initializing with http-polling protocol...
+2025/04/18 00:19:15 [CONFIG] Upload directory: uploads
+2025/04/18 00:19:15 [CONFIG] Static directory: static
+2025/04/18 00:19:15 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 00:19:15 [NETWORK] Port: 8080
+2025/04/18 00:20:24 [INFO] Listener configuration validated successfully: {ID:aa684960-5987-4ef0-9fe3-818bd7d1c27b Name:test-listener Protocol:https BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test] Proxy:<nil> TLSConfig:<nil>}
+2025/04/18 00:20:24 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/18 00:20:47 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:aa684960-5987-4ef0-9fe3-818bd7d1c27b Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/18 00:20:47 [INFO] Using listener: test-listener (https) at 172.28.249.104:8443
+2025/04/18 00:20:47 [INFO] Generated payload ID: 5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:47 [INFO] Build type: debug
+2025/04/18 00:20:47 [INFO] Created output directory: static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:47 [INFO] Created agent config file: static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/config.json
+2025/04/18 00:20:47 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/18 00:20:47 [INFO] Using build script: ../agent/build.sh
+2025/04/18 00:20:47 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750 --build-type debug --format linux_elf --payload-id 5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:47 [INFO] Working directory: ../agent
+2025/04/18 00:20:47 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/18 00:20:47 [INFO] Starting build process...
+2025/04/18 00:20:48 [INFO] Build output: MicroC2 Agent Builder
+2025/04/18 00:20:48 [INFO] Build output: =============================
+2025/04/18 00:20:48 [INFO] Build output: Using provided payload ID: 5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:48 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 00:20:48 [INFO] Build output: Configuration:
+2025/04/18 00:20:48 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/18 00:20:48 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:48 [INFO] Build output:   Original Dir: static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750
+2025/04/18 00:20:48 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 00:20:48 [INFO] Build output:   Build Type:   debug
+2025/04/18 00:20:48 [INFO] Skipping remaining 157 lines of output...
+2025/04/18 00:20:48 [INFO] Payload filename: agent
+2025/04/18 00:20:48 [INFO] Checking for payload at: static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/agent
+2025/04/18 00:20:48 [ERROR] Payload not found at expected location static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/agent: stat static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/agent: no such file or directory
+2025/04/18 00:20:48 [INFO] Checking alternative location: ../agent/static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/agent
+2025/04/18 00:20:48 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/5e0b7ff9-40a2-4e0e-b423-35ac5a598750/agent
+2025/04/18 00:20:48 [INFO] Successfully generated payload: agent (debug, 53698960 bytes)
+2025/04/18 10:12:54 [STARTUP] Starting server with http-polling protocol...
+2025/04/18 10:12:54 [CONFIG] Upload directory: uploads
+2025/04/18 10:12:54 [CONFIG] Static directory: static
+2025/04/18 10:12:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 10:12:54 [CONFIG] Payloads directory: static/payloads
+2025/04/18 10:12:54 [NETWORK] Port: 8080
+2025/04/18 10:12:54 [STARTUP] Server initializing with http-polling protocol...
+2025/04/18 10:12:54 [CONFIG] Upload directory: uploads
+2025/04/18 10:12:54 [CONFIG] Static directory: static
+2025/04/18 10:12:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 10:12:54 [NETWORK] Port: 8080
+2025/04/18 10:14:30 [INFO] Listener configuration validated successfully: {ID:fe10dd04-d388-4754-8aa6-affdb3e11890 Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2:1.0.0] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/18 10:14:30 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/18 10:14:42 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:fe10dd04-d388-4754-8aa6-affdb3e11890 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/18 10:14:42 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/18 10:14:42 [INFO] Generated payload ID: 608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:42 [INFO] Build type: debug
+2025/04/18 10:14:42 [INFO] Created output directory: static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:42 [INFO] Created agent config file: static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/config.json
+2025/04/18 10:14:42 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/18 10:14:42 [INFO] Using build script: ../agent/build.sh
+2025/04/18 10:14:42 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381 --build-type debug --format linux_elf --payload-id 608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:42 [INFO] Working directory: ../agent
+2025/04/18 10:14:42 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/18 10:14:42 [INFO] Starting build process...
+2025/04/18 10:14:43 [INFO] Build output: MicroC2 Agent Builder
+2025/04/18 10:14:43 [INFO] Build output: =============================
+2025/04/18 10:14:43 [INFO] Build output: Using provided payload ID: 608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:43 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 10:14:43 [INFO] Build output: Configuration:
+2025/04/18 10:14:43 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/18 10:14:43 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:43 [INFO] Build output:   Original Dir: static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381
+2025/04/18 10:14:43 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 10:14:43 [INFO] Build output:   Build Type:   debug
+2025/04/18 10:14:43 [INFO] Skipping remaining 40 lines of output...
+2025/04/18 10:14:43 [INFO] Payload filename: agent
+2025/04/18 10:14:43 [INFO] Checking for payload at: static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/agent
+2025/04/18 10:14:43 [ERROR] Payload not found at expected location static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/agent: stat static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/agent: no such file or directory
+2025/04/18 10:14:43 [INFO] Checking alternative location: ../agent/static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/agent
+2025/04/18 10:14:43 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/608fd64d-6c62-4e42-8889-00876e649381/agent
+2025/04/18 10:14:43 [INFO] Successfully generated payload: agent (debug, 53698960 bytes)
+2025/04/18 10:30:11 [STARTUP] Starting server with http-polling protocol...
+2025/04/18 10:30:11 [CONFIG] Upload directory: uploads
+2025/04/18 10:30:11 [CONFIG] Static directory: static
+2025/04/18 10:30:11 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 10:30:11 [CONFIG] Payloads directory: static/payloads
+2025/04/18 10:30:11 [NETWORK] Port: 8080
+2025/04/18 10:30:11 [STARTUP] Server initializing with http-polling protocol...
+2025/04/18 10:30:11 [CONFIG] Upload directory: uploads
+2025/04/18 10:30:11 [CONFIG] Static directory: static
+2025/04/18 10:30:11 [CONFIG] File Drop directory: static/file_drop
+2025/04/18 10:30:11 [NETWORK] Port: 8080
+2025/04/18 10:31:03 [INFO] Listener configuration validated successfully: {ID:0f45ed94-5427-4ccb-80ae-86e8560d166d Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[microc2Test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/18 10:31:03 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/18 10:34:58 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:0f45ed94-5427-4ccb-80ae-86e8560d166d Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/18 10:34:58 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/18 10:34:58 [INFO] Generated payload ID: b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:34:58 [INFO] Build type: debug
+2025/04/18 10:34:58 [INFO] Created output directory: static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:34:58 [INFO] Created agent config file: static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/config.json
+2025/04/18 10:34:58 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/18 10:34:58 [INFO] Using build script: ../agent/build.sh
+2025/04/18 10:34:58 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6 --build-type debug --format linux_elf --payload-id b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:34:58 [INFO] Working directory: ../agent
+2025/04/18 10:34:58 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/18 10:34:58 [INFO] Starting build process...
+2025/04/18 10:35:04 [INFO] Build output: MicroC2 Agent Builder
+2025/04/18 10:35:04 [INFO] Build output: =============================
+2025/04/18 10:35:04 [INFO] Build output: Using provided payload ID: b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:35:04 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 10:35:04 [INFO] Build output: Configuration:
+2025/04/18 10:35:04 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/18 10:35:04 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:35:04 [INFO] Build output:   Original Dir: static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6
+2025/04/18 10:35:04 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/18 10:35:04 [INFO] Build output:   Build Type:   debug
+2025/04/18 10:35:04 [INFO] Skipping remaining 152 lines of output...
+2025/04/18 10:35:04 [INFO] Payload filename: agent
+2025/04/18 10:35:04 [INFO] Checking for payload at: static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/agent
+2025/04/18 10:35:04 [ERROR] Payload not found at expected location static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/agent: stat static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/agent: no such file or directory
+2025/04/18 10:35:04 [INFO] Checking alternative location: ../agent/static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/agent
+2025/04/18 10:35:04 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/b082a651-0a46-47f2-81c2-4022a0e4b5b6/agent
+2025/04/18 10:35:04 [INFO] Successfully generated payload: agent (debug, 53521352 bytes)
