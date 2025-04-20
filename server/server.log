@@ -1,60 +1,255 @@
-2025/04/20 15:12:39 [CONFIG] Created listeners directory: static/listeners
-2025/04/20 15:12:39 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
-2025/04/20 15:12:39 [STARTUP] Starting server with http-polling protocol...
-2025/04/20 15:12:39 [CONFIG] Upload directory: uploads
-2025/04/20 15:12:39 [CONFIG] Static directory: static
-2025/04/20 15:12:39 [CONFIG] File Drop directory: static/file_drop
-2025/04/20 15:12:39 [CONFIG] Payloads directory: static/payloads
-2025/04/20 15:12:39 [NETWORK] Port: 8080
-2025/04/20 15:12:39 [STARTUP] Server initializing with http-polling protocol...
-2025/04/20 15:12:39 [CONFIG] Upload directory: uploads
-2025/04/20 15:12:39 [CONFIG] Static directory: static
-2025/04/20 15:12:39 [CONFIG] File Drop directory: static/file_drop
-2025/04/20 15:12:39 [NETWORK] Port: 8080
-2025/04/20 15:12:58 [INFO] Started listener test-listener on 172.28.249.104:8443
-2025/04/20 15:13:16 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/20 15:13:16 [ERROR] Failed to get listener 8b786414-b8b5-4179-a1d4-87915f386127: failed to read listener config: open static/listeners/8b786414-b8b5-4179-a1d4-87915f386127/config.json: no such file or directory
-2025/04/20 15:19:10 [CONFIG] Created listeners directory: static/listeners
-2025/04/20 15:19:10 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
-2025/04/20 15:19:10 [STARTUP] Starting server with http-polling protocol...
-2025/04/20 15:19:10 [CONFIG] Upload directory: uploads
-2025/04/20 15:19:10 [CONFIG] Static directory: static
-2025/04/20 15:19:10 [CONFIG] File Drop directory: static/file_drop
-2025/04/20 15:19:10 [CONFIG] Payloads directory: static/payloads
-2025/04/20 15:19:10 [NETWORK] Port: 8080
-2025/04/20 15:19:10 [STARTUP] Server initializing with http-polling protocol...
-2025/04/20 15:19:10 [CONFIG] Upload directory: uploads
-2025/04/20 15:19:10 [CONFIG] Static directory: static
-2025/04/20 15:19:10 [CONFIG] File Drop directory: static/file_drop
-2025/04/20 15:19:10 [NETWORK] Port: 8080
-2025/04/20 15:19:18 [INFO] Started listener test-listener on 172.28.249.104:8443
-2025/04/20 15:19:55 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
-2025/04/20 15:19:55 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
-2025/04/20 15:19:55 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
-2025/04/20 15:19:55 [INFO] Generated payload ID: 5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:55 [INFO] Build type: debug
-2025/04/20 15:19:55 [INFO] Created output directory: static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:55 [INFO] Created agent config file: static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/config.json
-2025/04/20 15:19:55 [INFO] Using build target: x86_64-unknown-linux-gnu
-2025/04/20 15:19:55 [INFO] Using build script: ../agent/build.sh
-2025/04/20 15:19:55 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d --build-type debug --format linux_elf --payload-id 5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:55 [INFO] Working directory: ../agent
-2025/04/20 15:19:55 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
-2025/04/20 15:19:55 [INFO] Starting build process...
-2025/04/20 15:19:56 [INFO] Build output: MicroC2 Agent Builder
-2025/04/20 15:19:56 [INFO] Build output: =============================
-2025/04/20 15:19:56 [INFO] Build output: Using provided payload ID: 5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:56 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
-2025/04/20 15:19:56 [INFO] Build output: Configuration:
-2025/04/20 15:19:56 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
-2025/04/20 15:19:56 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:56 [INFO] Build output:   Original Dir: static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d
-2025/04/20 15:19:56 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
-2025/04/20 15:19:56 [INFO] Build output:   Build Type:   debug
-2025/04/20 15:19:56 [INFO] Skipping remaining 151 lines of output...
-2025/04/20 15:19:56 [INFO] Payload filename: agent
-2025/04/20 15:19:56 [INFO] Checking for payload at: static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/agent
-2025/04/20 15:19:56 [ERROR] Payload not found at expected location static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/agent: stat static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/agent: no such file or directory
-2025/04/20 15:19:56 [INFO] Checking alternative location: ../agent/static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/agent
-2025/04/20 15:19:56 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/5d065667-47bd-4c7d-926f-3e9546f0630d/agent
-2025/04/20 15:19:56 [INFO] Successfully generated payload: agent (debug, 53521352 bytes)
+2025/04/20 17:14:08 [CONFIG] Created listeners directory: static/listeners
+2025/04/20 17:14:08 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
+2025/04/20 17:14:08 [STARTUP] Starting server with http-polling protocol...
+2025/04/20 17:14:08 [CONFIG] Upload directory: uploads
+2025/04/20 17:14:08 [CONFIG] Static directory: static
+2025/04/20 17:14:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 17:14:08 [CONFIG] Payloads directory: static/payloads
+2025/04/20 17:14:08 [NETWORK] Port: 8080
+2025/04/20 17:14:08 [STARTUP] Server initializing with http-polling protocol...
+2025/04/20 17:14:08 [CONFIG] Upload directory: uploads
+2025/04/20 17:14:08 [CONFIG] Static directory: static
+2025/04/20 17:14:08 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 17:14:08 [NETWORK] Port: 8080
+2025/04/20 17:14:57 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:14:57 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:14:57 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:14:57 [INFO] Generated payload ID: 82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:14:57 [INFO] Build type: debug
+2025/04/20 17:14:57 [INFO] Created output directory: static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:14:57 [INFO] Created agent config file: static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/config.json
+2025/04/20 17:14:57 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:14:57 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:14:57 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911 --build-type debug --format linux_elf --payload-id 82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:14:57 [INFO] Working directory: ../agent
+2025/04/20 17:14:57 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:14:57 [INFO] Starting build process...
+2025/04/20 17:15:00 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:15:00 [INFO] Build output: =============================
+2025/04/20 17:15:00 [INFO] Build output: Using provided payload ID: 82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:15:00 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:15:00 [INFO] Build output: Configuration:
+2025/04/20 17:15:00 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:15:00 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:15:00 [INFO] Build output:   Original Dir: static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911
+2025/04/20 17:15:00 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:15:00 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:15:00 [INFO] Skipping remaining 164 lines of output...
+2025/04/20 17:15:00 [INFO] Payload filename: agent
+2025/04/20 17:15:00 [INFO] Checking for payload at: static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/agent
+2025/04/20 17:15:00 [ERROR] Payload not found at expected location static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/agent: stat static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/agent: no such file or directory
+2025/04/20 17:15:00 [INFO] Checking alternative location: ../agent/static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/agent
+2025/04/20 17:15:00 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/82974172-1a7c-4659-9636-d09fdbaf1911/agent
+2025/04/20 17:15:00 [INFO] Successfully generated payload: agent (debug, 53554528 bytes)
+2025/04/20 17:20:34 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/20 17:20:43 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:20:43 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:20:43 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:20:43 [INFO] Generated payload ID: 97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:43 [INFO] Build type: debug
+2025/04/20 17:20:43 [INFO] Created output directory: static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:43 [INFO] Created agent config file: static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/config.json
+2025/04/20 17:20:43 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:20:43 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:20:43 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd --build-type debug --format linux_elf --payload-id 97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:43 [INFO] Working directory: ../agent
+2025/04/20 17:20:43 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:20:43 [INFO] Starting build process...
+2025/04/20 17:20:44 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:20:44 [INFO] Build output: =============================
+2025/04/20 17:20:44 [INFO] Build output: Using provided payload ID: 97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:44 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:20:44 [INFO] Build output: Configuration:
+2025/04/20 17:20:44 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:20:44 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:44 [INFO] Build output:   Original Dir: static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd
+2025/04/20 17:20:44 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:20:44 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:20:44 [INFO] Skipping remaining 61 lines of output...
+2025/04/20 17:20:44 [INFO] Payload filename: agent
+2025/04/20 17:20:44 [INFO] Checking for payload at: static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/agent
+2025/04/20 17:20:44 [ERROR] Payload not found at expected location static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/agent: stat static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/agent: no such file or directory
+2025/04/20 17:20:44 [INFO] Checking alternative location: ../agent/static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/agent
+2025/04/20 17:20:44 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/97ff2661-a9e8-48af-a923-772038d65dfd/agent
+2025/04/20 17:20:44 [INFO] Successfully generated payload: agent (debug, 53554528 bytes)
+2025/04/20 17:22:16 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:22:16 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:22:16 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:22:16 [INFO] Generated payload ID: 2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:16 [INFO] Build type: debug
+2025/04/20 17:22:16 [INFO] Created output directory: static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:16 [INFO] Created agent config file: static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/config.json
+2025/04/20 17:22:16 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:22:16 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:22:16 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57 --build-type debug --format linux_elf --payload-id 2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:16 [INFO] Working directory: ../agent
+2025/04/20 17:22:16 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:22:16 [INFO] Starting build process...
+2025/04/20 17:22:17 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:22:17 [INFO] Build output: =============================
+2025/04/20 17:22:17 [INFO] Build output: Using provided payload ID: 2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:17 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:22:17 [INFO] Build output: Configuration:
+2025/04/20 17:22:17 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:22:17 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:17 [INFO] Build output:   Original Dir: static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57
+2025/04/20 17:22:17 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:22:17 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:22:17 [INFO] Skipping remaining 61 lines of output...
+2025/04/20 17:22:17 [INFO] Payload filename: agent
+2025/04/20 17:22:17 [INFO] Checking for payload at: static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/agent
+2025/04/20 17:22:17 [ERROR] Payload not found at expected location static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/agent: stat static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/agent: no such file or directory
+2025/04/20 17:22:17 [INFO] Checking alternative location: ../agent/static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/agent
+2025/04/20 17:22:17 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/2cc286c1-587c-4679-9b9e-6727dcdc8a57/agent
+2025/04/20 17:22:17 [INFO] Successfully generated payload: agent (debug, 53554528 bytes)
+2025/04/20 17:34:52 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:34:52 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:34:52 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:34:52 [INFO] Generated payload ID: 31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:52 [INFO] Build type: debug
+2025/04/20 17:34:52 [INFO] Created output directory: static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:52 [INFO] Created agent config file: static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/config.json
+2025/04/20 17:34:52 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:34:52 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:34:52 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149 --build-type debug --format linux_elf --payload-id 31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:52 [INFO] Working directory: ../agent
+2025/04/20 17:34:52 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:34:52 [INFO] Starting build process...
+2025/04/20 17:34:53 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:34:53 [INFO] Build output: =============================
+2025/04/20 17:34:53 [INFO] Build output: Using provided payload ID: 31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:53 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:34:53 [INFO] Build output: Configuration:
+2025/04/20 17:34:53 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:34:53 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:53 [INFO] Build output:   Original Dir: static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149
+2025/04/20 17:34:53 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:34:53 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:34:53 [INFO] Skipping remaining 63 lines of output...
+2025/04/20 17:34:53 [INFO] Payload filename: agent
+2025/04/20 17:34:53 [INFO] Checking for payload at: static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/agent
+2025/04/20 17:34:53 [ERROR] Payload not found at expected location static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/agent: stat static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/agent: no such file or directory
+2025/04/20 17:34:53 [INFO] Checking alternative location: ../agent/static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/agent
+2025/04/20 17:34:53 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/31465421-ff8d-4580-991d-5c6314227149/agent
+2025/04/20 17:34:53 [INFO] Successfully generated payload: agent (debug, 53554528 bytes)
+2025/04/20 17:43:29 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:43:29 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:43:29 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:43:29 [INFO] Generated payload ID: 57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Build type: debug
+2025/04/20 17:43:29 [INFO] Created output directory: static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Created agent config file: static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/config.json
+2025/04/20 17:43:29 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:43:29 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:43:29 [INFO] Command: /bin/bash ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145 --build-type debug --format linux_elf --payload-id 57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Working directory: ../agent
+2025/04/20 17:43:29 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:43:29 [INFO] Starting build process...
+2025/04/20 17:43:29 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:43:29 [INFO] Build output: =============================
+2025/04/20 17:43:29 [INFO] Build output: Using provided payload ID: 57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:43:29 [INFO] Build output: Configuration:
+2025/04/20 17:43:29 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:43:29 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Build output:   Original Dir: static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145
+2025/04/20 17:43:29 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:43:29 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:43:29 [INFO] Skipping remaining 63 lines of output...
+2025/04/20 17:43:29 [INFO] Payload filename: agent
+2025/04/20 17:43:29 [INFO] Checking for payload at: static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/agent
+2025/04/20 17:43:29 [ERROR] Payload not found at expected location static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/agent: stat static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/agent: no such file or directory
+2025/04/20 17:43:29 [INFO] Checking alternative location: ../agent/static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/agent
+2025/04/20 17:43:29 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/57faff5a-6245-43ab-9207-74f2312d1145/agent
+2025/04/20 17:43:29 [INFO] Successfully generated payload: agent (debug, 53554528 bytes)
+2025/04/20 17:55:54 [CONFIG] Created listeners directory: static/listeners
+2025/04/20 17:55:54 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
+2025/04/20 17:55:54 [STARTUP] Starting server with http-polling protocol...
+2025/04/20 17:55:54 [CONFIG] Upload directory: uploads
+2025/04/20 17:55:54 [CONFIG] Static directory: static
+2025/04/20 17:55:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 17:55:54 [CONFIG] Payloads directory: static/payloads
+2025/04/20 17:55:54 [NETWORK] Port: 8080
+2025/04/20 17:55:54 [STARTUP] Server initializing with http-polling protocol...
+2025/04/20 17:55:54 [CONFIG] Upload directory: uploads
+2025/04/20 17:55:54 [CONFIG] Static directory: static
+2025/04/20 17:55:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 17:55:54 [NETWORK] Port: 8080
+2025/04/20 17:56:08 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/20 17:56:18 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 17:56:18 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:18 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 17:56:18 [INFO] Using listener ID as payload ID: 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:18 [INFO] Build type: debug
+2025/04/20 17:56:18 [INFO] Created output directory: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:18 [INFO] Created agent config file: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/config.json
+2025/04/20 17:56:18 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 17:56:18 [INFO] Using build script: ../agent/build.sh
+2025/04/20 17:56:18 [INFO] Command: ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127 --build-type debug --format linux_elf --payload-id 8b786414-b8b5-4179-a1d4-87915f386127 --listener-host 172.28.249.104 --listener-port 8443 --sleep 60
+2025/04/20 17:56:18 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 17:56:18 [INFO] Starting build process...
+2025/04/20 17:56:22 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 17:56:22 [INFO] Build output: =============================
+2025/04/20 17:56:22 [INFO] Build output: Using provided payload ID: 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:22 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:56:22 [INFO] Build output: Configuration:
+2025/04/20 17:56:22 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 17:56:22 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:22 [INFO] Build output:   Original Dir: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 17:56:22 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 17:56:22 [INFO] Build output:   Build Type:   debug
+2025/04/20 17:56:22 [INFO] Skipping remaining 164 lines of output...
+2025/04/20 17:56:22 [INFO] Payload filename: agent
+2025/04/20 17:56:22 [INFO] Checking for payload at: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 17:56:22 [ERROR] Payload not found at expected location static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent: stat static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent: no such file or directory
+2025/04/20 17:56:22 [INFO] Checking alternative location: ../agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 17:56:22 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 17:56:22 [INFO] Successfully generated payload: agent (debug, 53627488 bytes)
+2025/04/20 18:02:20 [ERROR] Error handling connection on listener test-listener: connection validation failed: invalid path: /api/agent/agent/heartbeat
+2025/04/20 18:03:59 [ERROR] Error handling connection on listener test-listener: connection validation failed: invalid path: /api/agent/agent/heartbeat
+2025/04/20 18:09:20 [ERROR] Error handling connection on listener test-listener: connection validation failed: invalid protocol: ›6”\ä@$ÛxÃˆÆ•ûp®P­2yÅâD†žÞYÙoÉ À,À+Ì©À0À/Ì¨ ÿ  t    
+2025/04/20 18:10:21 [ERROR] Error handling connection on listener test-listener: connection validation failed: invalid HTTP request line
+2025/04/20 18:11:46 [CONFIG] Created listeners directory: static/listeners
+2025/04/20 18:11:46 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
+2025/04/20 18:11:46 [STARTUP] Starting server with http-polling protocol...
+2025/04/20 18:11:46 [CONFIG] Upload directory: uploads
+2025/04/20 18:11:46 [CONFIG] Static directory: static
+2025/04/20 18:11:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 18:11:46 [CONFIG] Payloads directory: static/payloads
+2025/04/20 18:11:46 [NETWORK] Port: 8080
+2025/04/20 18:11:46 [STARTUP] Server initializing with http-polling protocol...
+2025/04/20 18:11:46 [CONFIG] Upload directory: uploads
+2025/04/20 18:11:46 [CONFIG] Static directory: static
+2025/04/20 18:11:46 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 18:11:46 [NETWORK] Port: 8080
+2025/04/20 18:11:50 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/20 18:12:11 [INFO] Generating payload with config: {AgentType:debugAgent ListenerID:8b786414-b8b5-4179-a1d4-87915f386127 Architecture:x64 Format:linux_elf Sleep:60 IndirectSyscall:false SleepTechnique:standard DllSideloading:false SideloadDll: ExportName:}
+2025/04/20 18:12:11 [INFO] Found matching listener config in directory test-listener with ID 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:11 [INFO] Using listener: test-listener (http) at 172.28.249.104:8443
+2025/04/20 18:12:11 [INFO] Using listener ID as payload ID: 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:11 [INFO] Build type: debug
+2025/04/20 18:12:11 [INFO] Created output directory: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:11 [INFO] Created agent config file: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/config.json
+2025/04/20 18:12:11 [INFO] Using build target: x86_64-unknown-linux-gnu
+2025/04/20 18:12:11 [INFO] Using build script: ../agent/build.sh
+2025/04/20 18:12:11 [INFO] Command: ../agent/build.sh --target x86_64-unknown-linux-gnu --output static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127 --build-type debug --format linux_elf --payload-id 8b786414-b8b5-4179-a1d4-87915f386127 --listener-host 172.28.249.104 --listener-port 8443 --sleep 60
+2025/04/20 18:12:11 [INFO] Environment variables set: TARGET=x86_64-unknown-linux-gnu, OUTPUT_DIR=static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127, BUILD_TYPE=debug, LISTENER_HOST=172.28.249.104, LISTENER_PORT=8443, SLEEP_INTERVAL=60
+2025/04/20 18:12:11 [INFO] Starting build process...
+2025/04/20 18:12:14 [INFO] Build output: MicroC2 Agent Builder
+2025/04/20 18:12:14 [INFO] Build output: =============================
+2025/04/20 18:12:14 [INFO] Build output: Using provided payload ID: 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:14 [INFO] Build output: Server path: /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 18:12:14 [INFO] Build output: Configuration:
+2025/04/20 18:12:14 [INFO] Build output:   Target:       x86_64-unknown-linux-gnu
+2025/04/20 18:12:14 [INFO] Build output:   Output Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:14 [INFO] Build output:   Original Dir: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 18:12:14 [INFO] Build output:   Server Dir:   /home/darkroom/coding/MicroC2/agent/static/payloads
+2025/04/20 18:12:14 [INFO] Build output:   Build Type:   debug
+2025/04/20 18:12:14 [INFO] Skipping remaining 164 lines of output...
+2025/04/20 18:12:14 [INFO] Payload filename: agent
+2025/04/20 18:12:14 [INFO] Checking for payload at: static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 18:12:14 [ERROR] Payload not found at expected location static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent: stat static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent: no such file or directory
+2025/04/20 18:12:14 [INFO] Checking alternative location: ../agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 18:12:14 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/8b786414-b8b5-4179-a1d4-87915f386127/agent
+2025/04/20 18:12:14 [INFO] Successfully generated payload: agent (debug, 53627696 bytes)
+2025/04/20 18:12:27 [ERROR] Error handling connection on listener test-listener: connection validation failed: invalid HTTP request line

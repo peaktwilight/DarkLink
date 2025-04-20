@@ -12,8 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // PayloadConfig defines the structure for payload generation configuration
@@ -206,9 +204,9 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	}
 	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.BindHost, listener.Port)
 
-	// Generate unique ID for this payload
-	payloadID := uuid.New().String()
-	log.Printf("[INFO] Generated payload ID: %s", payloadID)
+	// Use listener ID for the payload
+	payloadID := listener.ID
+	log.Printf("[INFO] Using listener ID as payload ID: %s", payloadID)
 
 	// Determine build type (debug or release)
 	buildType := "release"
@@ -227,10 +225,25 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	// Create agent config file
 	configPath := filepath.Join(outputDir, "config.json")
+
+	// Determine the protocol prefix and full server URL
+	protocolPrefix := "http://"
+	if listener.Protocol == "https" {
+		protocolPrefix = "https://"
+	}
+
+	// Use BindHost by default, override with the first entry in Hosts if provided
+	serverUrl := fmt.Sprintf("%s%s:%d", protocolPrefix, listener.BindHost, listener.Port)
+	if len(listener.Hosts) > 0 {
+		serverUrl = fmt.Sprintf("%s%s:%d", protocolPrefix, listener.Hosts[0], listener.Port)
+	}
+
 	agentConfig := map[string]interface{}{
-		"server_url":     fmt.Sprintf("%s:%d", listener.BindHost, listener.Port),
+		"server_url":     serverUrl,
 		"sleep_interval": config.Sleep,
-		"jitter":         2, // Default jitter value
+		"jitter":         2,           // Default jitter value
+		"payload_id":     listener.ID, // Use listener ID as payload ID
+		"protocol":       listener.Protocol,
 	}
 
 	// Add additional configuration options based on payload settings
@@ -287,9 +300,18 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Using build script: %s", buildScript)
 
 	// Set up the command
-	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format, "--payload-id", payloadID}
+	cmdArgs := []string{
+		buildScript,
+		"--target", buildTarget,
+		"--output", outputDir,
+		"--build-type", buildType,
+		"--format", config.Format,
+		"--payload-id", payloadID,
+		"--listener-host", listener.BindHost,
+		"--listener-port", fmt.Sprintf("%d", listener.Port),
+		"--sleep", fmt.Sprintf("%d", config.Sleep),
+	}
 
-	// Add additional build arguments based on configuration
 	if config.IndirectSyscall {
 		cmdArgs = append(cmdArgs, "--indirect-syscalls")
 	}
@@ -308,14 +330,13 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		}
 	}
 
-	log.Printf("[INFO] Command: /bin/bash %s", strings.Join(cmdArgs, " "))
+	log.Printf("[INFO] Command: %s %s", buildScript, strings.Join(cmdArgs[1:], " "))
 	cmd := exec.Command("/bin/bash", cmdArgs...)
 
 	// Set working directory to agent source directory
 	cmd.Dir = h.agentSourceDir
-	log.Printf("[INFO] Working directory: %s", h.agentSourceDir)
 
-	// Add environment variables
+	// Add environment variables as backup
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
@@ -324,6 +345,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
 	)
+
 	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
 		buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
 

