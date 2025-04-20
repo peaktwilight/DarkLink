@@ -5,7 +5,5 @@ server/server
 server/target/*
 server/Cargo.lock
 server/server.log
-server/go.mod
-server/go.sum
-server/static/payloads/*
+server/static/*
 server/uploads/*
