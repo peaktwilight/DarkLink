@@ -3,5 +3,5 @@
     "sleep_interval": 60,
     "jitter": 2,
     "payload_id": "agent",
-    "protocol": "http"
+    "protocol": "",
 }
