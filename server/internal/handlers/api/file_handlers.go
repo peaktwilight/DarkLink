@@ -147,8 +147,6 @@ func (h *FileHandlers) HandleFileDelete(w http.ResponseWriter, r *http.Request) 
 }
 
 // PayloadHandlerSetup creates and initializes a new payload handler
-func PayloadHandlerSetup(payloadsDir, agentSourceDir string, listenerManager *protocols.ListenerManager) *payload.PayloadHandler {
-	adapter := payload.NewListenerManagerAdapter(listenerManager)
-	handler := payload.NewPayloadHandler(payloadsDir, agentSourceDir, adapter)
-	return handler
+func PayloadHandlerSetup(payloadsDir, agentSourceDir string, _ *protocols.ListenerManager) *payload.PayloadHandler {
+	return payload.NewPayloadHandler(payloadsDir, agentSourceDir)
 }

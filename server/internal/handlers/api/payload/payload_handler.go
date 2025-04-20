@@ -39,29 +39,33 @@ type PayloadResult struct {
 	Created  string `json:"created"`
 }
 
+// TLSConfig holds TLS configuration for secure listeners
+type TLSConfig struct {
+	CertFile          string `json:"cert_file"`
+	KeyFile           string `json:"key_file"`
+	RequireClientCert bool   `json:"requireClientCert"`
+}
+
 // PayloadHandler manages payload generation operations
-// It coordinates all aspects of agent payload creation, including
-// building, storing, and serving payload files to users.
 type PayloadHandler struct {
 	payloadsDir    string
 	agentSourceDir string
-	listeners      ListenerGetter
 	mutex          sync.Mutex
 	payloads       map[string]PayloadResult
 }
 
-// ListenerGetter defines an interface for retrieving listener information
-type ListenerGetter interface {
-	GetListener(id string) (Listener, error)
-}
-
-// Listener represents a simplified version of a listener for payload generation
-type Listener struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Protocol string `json:"protocol"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
+// ListenerConfig represents the configuration of a listener
+type ListenerConfig struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Protocol     string            `json:"protocol"`
+	BindHost     string            `json:"host"`
+	Port         int               `json:"port"`
+	Headers      map[string]string `json:"headers,omitempty"`
+	UserAgent    string            `json:"user_agent,omitempty"`
+	HostRotation string            `json:"host_rotation,omitempty"`
+	Hosts        []string          `json:"hosts,omitempty"`
+	TLSConfig    *TLSConfig        `json:"tls_config,omitempty"`
 }
 
 // NewPayloadHandler creates a new payload handler
@@ -69,13 +73,12 @@ type Listener struct {
 // Pre-conditions:
 //   - payloadsDir is a valid directory path with write permissions
 //   - agentSourceDir points to a valid agent source code directory
-//   - listeners is a properly initialized ListenerGetter implementation
 //
 // Post-conditions:
 //   - Returns an initialized PayloadHandler
 //   - Directory structure for payloads is created if it doesn't exist
 //   - Tracking map for generated payloads is initialized
-func NewPayloadHandler(payloadsDir, agentSourceDir string, listeners ListenerGetter) *PayloadHandler {
+func NewPayloadHandler(payloadsDir, agentSourceDir string) *PayloadHandler {
 	// Ensure directories exist
 	for _, dir := range []string{payloadsDir, filepath.Join(payloadsDir, "debug"), filepath.Join(payloadsDir, "release")} {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -86,7 +89,6 @@ func NewPayloadHandler(payloadsDir, agentSourceDir string, listeners ListenerGet
 	return &PayloadHandler{
 		payloadsDir:    payloadsDir,
 		agentSourceDir: agentSourceDir,
-		listeners:      listeners,
 		payloads:       make(map[string]PayloadResult),
 	}
 }
@@ -197,12 +199,12 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Generating payload with config: %+v", config)
 
 	// Get listener details
-	listener, err := h.listeners.GetListener(config.ListenerID)
+	listener, err := h.loadListenerConfig(config.ListenerID)
 	if err != nil {
 		log.Printf("[ERROR] Failed to get listener %s: %v", config.ListenerID, err)
 		return PayloadResult{}, fmt.Errorf("failed to get listener: %w", err)
 	}
-	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.Host, listener.Port)
+	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.BindHost, listener.Port)
 
 	// Generate unique ID for this payload
 	payloadID := uuid.New().String()
@@ -226,7 +228,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	// Create agent config file
 	configPath := filepath.Join(outputDir, "config.json")
 	agentConfig := map[string]interface{}{
-		"server_url":     fmt.Sprintf("%s:%d", listener.Host, listener.Port),
+		"server_url":     fmt.Sprintf("%s:%d", listener.BindHost, listener.Port),
 		"sleep_interval": config.Sleep,
 		"jitter":         2, // Default jitter value
 	}
@@ -318,12 +320,12 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
 		fmt.Sprintf("BUILD_TYPE=%s", buildType),
-		fmt.Sprintf("LISTENER_HOST=%s", listener.Host),
+		fmt.Sprintf("LISTENER_HOST=%s", listener.BindHost),
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
 	)
 	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
-		buildTarget, outputDir, buildType, listener.Host, listener.Port, config.Sleep)
+		buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
 
 	log.Printf("[INFO] Starting build process...")
 	// Execute build command
@@ -442,6 +444,44 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		result.Filename, buildType, result.Size)
 
 	return result, nil
+}
+
+// loadListenerConfig loads a listener's configuration from its JSON file
+func (h *PayloadHandler) loadListenerConfig(listenerID string) (ListenerConfig, error) {
+	// Search through all listener directories to find one with a config matching our ID
+	entries, err := os.ReadDir(filepath.Join("static", "listeners"))
+	if err != nil {
+		return ListenerConfig{}, fmt.Errorf("failed to read listeners directory: %w", err)
+	}
+
+	// Look through each listener directory (named by listener name)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		configPath := filepath.Join("static", "listeners", entry.Name(), "config.json")
+		configData, err := os.ReadFile(configPath)
+		if err != nil {
+			log.Printf("[DEBUG] Skipping directory %s: %v", entry.Name(), err)
+			continue
+		}
+
+		// Try to parse the config
+		var config ListenerConfig
+		if err := json.Unmarshal(configData, &config); err != nil {
+			log.Printf("[WARNING] Failed to parse config in %s: %v", entry.Name(), err)
+			continue
+		}
+
+		// Verify this config has the ID we're looking for
+		if config.ID == listenerID {
+			log.Printf("[INFO] Found matching listener config in directory %s with ID %s", entry.Name(), listenerID)
+			return config, nil
+		}
+	}
+
+	return ListenerConfig{}, fmt.Errorf("no listener found with ID %s", listenerID)
 }
 
 // SetupRoutes registers all payload-related routes
