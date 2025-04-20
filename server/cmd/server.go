@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"microc2/server/config"
 	"microc2/server/internal/filestore"
@@ -15,6 +16,16 @@ import (
 	"microc2/server/pkg/communication"
 )
 
+// main is the entry point of the MicroC2 server application
+//
+// Pre-conditions:
+//   - Configuration file exists at the specified path or default location
+//   - Required directories are accessible with proper permissions
+//
+// Post-conditions:
+//   - Server is initialized with configured handlers and services
+//   - Server starts listening on the configured port
+//   - Log files are properly set up and streamed
 func main() {
 	// Set up logging
 	logFile, err := os.OpenFile("server.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -36,6 +47,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	// Create required directories
+	listenersDir := filepath.Join(cfg.Server.StaticDir, "listeners")
+	if err := os.MkdirAll(listenersDir, 0755); err != nil {
+		log.Fatalf("Failed to create listeners directory: %v", err)
+	}
+	log.Printf("[CONFIG] Created listeners directory: %s", listenersDir)
 
 	// Initialize components
 	fileStore, err := filestore.New(cfg.Server.UploadDir)
@@ -63,6 +81,11 @@ func main() {
 	wsHandlers := ws.New(logStreamer)
 	listenerHandlers := api.NewListenerHandlers(serverManager.GetListenerManager())
 
+	// Initialize payload handler
+	payloadDir := filepath.Join(cfg.Server.StaticDir, "payloads")
+	agentSourceDir := "../agent" // Relative path to agent source code
+	payloadHandler := api.PayloadHandlerSetup(payloadDir, agentSourceDir, serverManager.GetListenerManager())
+
 	// Set up HTTP routes
 	staticHandlers.SetupStaticRoutes()
 
@@ -79,6 +102,9 @@ func main() {
 	// Set up listener management routes
 	listenerHandlers.SetupRoutes()
 
+	// Set up payload generator routes
+	payloadHandler.SetupRoutes()
+
 	// Set up root handler
 	http.HandleFunc("/", staticHandlers.HandleRoot)
 
@@ -87,6 +113,7 @@ func main() {
 	log.Printf("[CONFIG] Upload directory: %s", cfg.Server.UploadDir)
 	log.Printf("[CONFIG] Static directory: %s", cfg.Server.StaticDir)
 	log.Printf("[CONFIG] File Drop directory: %s/file_drop", cfg.Server.StaticDir)
+	log.Printf("[CONFIG] Payloads directory: %s", payloadDir)
 	log.Printf("[NETWORK] Port: %s", cfg.Server.Port)
 
 	if err := serverManager.Start(); err != nil {

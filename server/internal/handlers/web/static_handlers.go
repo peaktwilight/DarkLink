@@ -6,13 +6,22 @@ import (
 	"path/filepath"
 )
 
-// StaticHandler manages static file serving
+// StaticHandler manages static file serving for the web interface
+// It provides methods for serving HTML, CSS, JavaScript, and other static files
+// used by the MicroC2 web console.
 type StaticHandler struct {
 	staticDir string
 	webDir    string
 }
 
-// New creates a new static file handler
+// New creates a new static file handler instance
+//
+// Pre-conditions:
+//   - staticDir is a valid directory path containing static assets
+//
+// Post-conditions:
+//   - Returns a properly configured StaticHandler instance
+//   - webDir is set to the web subdirectory relative to staticDir
 func New(staticDir string) *StaticHandler {
 	return &StaticHandler{
 		staticDir: staticDir,
@@ -21,6 +30,15 @@ func New(staticDir string) *StaticHandler {
 }
 
 // HandleRoot serves the root path and static files
+//
+// Pre-conditions:
+//   - Valid HTTP request and response writer
+//   - webDir exists and contains necessary files (particularly index.html)
+//
+// Post-conditions:
+//   - Serves index.html for the root path
+//   - Serves requested static files from web directory
+//   - Returns 404 Not Found for non-existent files
 func (h *StaticHandler) HandleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		// Serve other static files from the web directory
@@ -35,6 +53,14 @@ func (h *StaticHandler) HandleRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetupStaticRoutes sets up routes for static file serving
+//
+// Pre-conditions:
+//   - staticDir and webDir exist and contain necessary files
+//
+// Post-conditions:
+//   - Routes are registered with the HTTP server
+//   - /static/ paths are served from staticDir
+//   - /home/ paths are served from webDir
 func (h *StaticHandler) SetupStaticRoutes() {
 	// Handle /static/ paths for backward compatibility
 	fs := http.FileServer(http.Dir(h.staticDir))

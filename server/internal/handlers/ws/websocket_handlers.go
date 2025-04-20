@@ -3,56 +3,56 @@ package ws
 import (
 	"net/http"
 
-	wsutil "microc2/server/internal/websocket"
-
-	"github.com/gorilla/websocket"
+	"microc2/server/internal/websocket"
 )
 
-// Handler manages WebSocket endpoints
+// Handler manages websocket connections for the server application
+// It provides handlers for log streaming and terminal sessions.
 type Handler struct {
-	logStreamer     *wsutil.LogStreamer
-	terminalHandler *wsutil.TerminalHandler
+	logStreamer     *websocket.LogStreamer
+	terminalHandler *websocket.TerminalHandler
 }
 
-// New creates a new WebSocket handlers instance
-func New(logStreamer *wsutil.LogStreamer) *Handler {
+// New creates a new websocket handler with the provided log streamer
+//
+// Pre-conditions:
+//   - logStreamer is a properly initialized LogStreamer instance
+//
+// Post-conditions:
+//   - Returns a configured websocket Handler instance
+//   - Terminal handler is initialized
+func New(logStreamer *websocket.LogStreamer) *Handler {
 	return &Handler{
 		logStreamer:     logStreamer,
-		terminalHandler: wsutil.NewTerminalHandler(),
+		terminalHandler: websocket.NewTerminalHandler(),
 	}
 }
 
-// HandleLogStream handles WebSocket connections for log streaming
+// HandleLogStream handles websocket connections for streaming server logs
+//
+// Pre-conditions:
+//   - Valid HTTP request and response writer
+//   - Client supports WebSocket protocol
+//
+// Post-conditions:
+//   - Websocket connection established for log streaming
+//   - Log entries are streamed to the client until connection closed
+//   - Resources are properly cleaned up on disconnect
 func (h *Handler) HandleLogStream(w http.ResponseWriter, r *http.Request) {
-	conn, err := h.logStreamer.GetUpgrader().Upgrade(w, r, nil)
-	if err != nil {
-		http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
-		return
-	}
-
-	h.logStreamer.AddClient(conn)
-
-	// Keep connection alive and handle disconnection
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			h.logStreamer.RemoveClient(conn)
-			conn.Close()
-			break
-		}
-
-		// Handle ping messages from client
-		if messageType == websocket.TextMessage && string(p) == "ping" {
-			if err := conn.WriteMessage(websocket.TextMessage, []byte("pong")); err != nil {
-				h.logStreamer.RemoveClient(conn)
-				conn.Close()
-				break
-			}
-		}
-	}
+	h.logStreamer.HandleConnection(w, r)
 }
 
-// HandleTerminal handles WebSocket connections for terminal sessions
+// HandleTerminal handles websocket connections for terminal sessions
+//
+// Pre-conditions:
+//   - Valid HTTP request and response writer
+//   - Client supports WebSocket protocol
+//
+// Post-conditions:
+//   - Websocket connection established for terminal interaction
+//   - Client commands are executed and results returned
+//   - Terminal session is maintained until connection closed
+//   - Resources are properly cleaned up on disconnect
 func (h *Handler) HandleTerminal(w http.ResponseWriter, r *http.Request) {
 	h.terminalHandler.HandleConnection(w, r)
 }

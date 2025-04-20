@@ -1,0 +1,7 @@
+{
+    "server_url": "172.28.249.104:8443",
+    "sleep_interval": 60,
+    "jitter": 2,
+    "payload_id": "8b786414-b8b5-4179-a1d4-87915f386127",
+    "protocol": "http"
+}

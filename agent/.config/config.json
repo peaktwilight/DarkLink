@@ -1,0 +1,7 @@
+{
+    "server_url": "172.28.249.104:8443",
+    "sleep_interval": 60,
+    "jitter": 2,
+    "payload_id": "agent",
+    "protocol": "",
+}
