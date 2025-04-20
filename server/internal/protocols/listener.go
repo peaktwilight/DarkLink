@@ -2,6 +2,7 @@ package protocols
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -99,6 +100,17 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 	listenerDir := filepath.Join("static", "listeners", config.Name)
 	if err := os.MkdirAll(listenerDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create listener directory: %v", err)
+	}
+
+	// Save configuration to file
+	configJson, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal listener config: %v", err)
+	}
+
+	configPath := filepath.Join(listenerDir, "config.json")
+	if err := os.WriteFile(configPath, configJson, 0644); err != nil {
+		return nil, fmt.Errorf("failed to save listener config: %v", err)
 	}
 
 	// Initialize file handler with the listener-specific directory
