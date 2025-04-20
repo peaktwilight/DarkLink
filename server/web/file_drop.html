@@ -103,6 +103,41 @@
             opacity: 0.6;
         }
         
+        /* Improved file input wrapper */
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin-top: 15px;
+        }
+        
+        .browse-button {
+            display: inline-block;
+            padding: 8px 20px;
+            background-color: #005ebd; /* dark blue */
+            color: #ffffff;           /* white text */
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 500;
+            user-select: none;
+        }
+        
+        
+        .browse-button:hover {
+            background-color: var(--button-primary-hover);
+        }
+        
+        #fileInput {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            z-index: -1; /* Hide it from view but keep it accessible */
+        }
+        
         /* Mobile responsiveness for file drop */
         @media (max-width: 768px) {
             #fileTable {

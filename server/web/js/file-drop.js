@@ -29,14 +29,22 @@ class FileDropManager {
             }
         });
 
-        // Connect the browse button to the hidden file input
+        // Improve the browse button click handler
         const browseButton = document.querySelector('.browse-button');
         if (browseButton) {
             browseButton.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent event bubbling
                 this.fileInput.click();
             });
         }
+
+        // Make the entire drop zone clickable to select files
+        this.dropZone.addEventListener('click', (e) => {
+            if (!e.target.closest('.browse-button')) {
+                this.fileInput.click();
+            }
+        });
 
         this.fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {

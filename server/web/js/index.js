@@ -10,6 +10,10 @@ class DashboardManager {
         
         this.initializeWebSocket();
         this.setupEventListeners();
+        
+        // Add periodic refresh for listeners
+        this.loadActiveListeners();
+        setInterval(() => this.loadActiveListeners(), 10000);
     }
 
     initializeWebSocket() {
@@ -196,6 +200,86 @@ class DashboardManager {
             }
 
             commandInput.value = '';
+        }
+    }
+    
+    // Fixed listener display based on actual data structure
+    async loadActiveListeners() {
+        try {
+            const response = await fetch('/api/listeners/list');
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+            
+            const listeners = await response.json();
+            const listenersContainer = document.getElementById('active-listeners');
+            
+            if (!Array.isArray(listeners) || listeners.length === 0) {
+                listenersContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>No active listeners</p>
+                        <p>Go to the Listeners page to create one</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            listeners.forEach(listener => {
+                // The data we need is nested in the config object
+                const config = listener.config || {};
+                
+                const name = config.name || 'Unnamed';
+                const protocol = config.protocol || 'Unknown';
+                const hostInfo = (config.host && config.port) ? 
+                    `Host: ${config.host}:${config.port}` : '';
+                const status = listener.status || 'Unknown';
+                const id = config.id || '';
+                
+                const statusClass = status === 'ACTIVE' ? 'status-active' : 'status-inactive';
+                
+                html += `
+                    <div class="listener-card">
+                        <div class="listener-header">
+                            <div class="listener-name">${name}</div>
+                            <div class="listener-protocol">${protocol}</div>
+                        </div>
+                        <div class="listener-details">
+                            ${hostInfo ? `<div>${hostInfo}</div>` : ''}
+                            <div>Status: <span class="${statusClass}">${status}</span></div>
+                            ${id ? `<div>ID: ${id.substring(0, 8)}...</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                // Track listener state changes for notifications
+                if (id && name) {
+                    const key = `${id}-${name}`;
+                    const previousStatus = this.previousListenerStates.get(key);
+                    
+                    if (previousStatus && previousStatus !== status) {
+                        this.appendLogEntry({
+                            timestamp: new Date().toISOString(),
+                            severity: 'INFO',
+                            message: `Listener "${name}" changed status from ${previousStatus} to ${status}`,
+                            source: 'system'
+                        });
+                    }
+                    
+                    this.previousListenerStates.set(key, status);
+                }
+            });
+            
+            listenersContainer.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Error loading listeners:', error);
+            document.getElementById('active-listeners').innerHTML = `
+                <div class="empty-state">
+                    <p>Error loading listeners</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
         }
     }
 }
