@@ -3,6 +3,8 @@ package protocols
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -41,9 +43,10 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Generate ID if not provided
+	// Generate UUID if not provided
 	if config.ID == "" {
 		config.ID = uuid.New().String()
+		log.Printf("[INFO] Generated new UUID for listener: %s", config.ID)
 	}
 
 	// Validate configuration
@@ -53,19 +56,23 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 
 	// Check for port conflicts
 	if m.hasPortConflict(config) {
-		return nil, fmt.Errorf("port %d is already in use by another listener", config.Port)
+		// Allow reusing port if the existing listener is stopped? Consider implications.
+		// For now, strict conflict check.
+		return nil, fmt.Errorf("port %d is already in use by another active listener", config.Port)
 	}
 
 	listener, err := NewListener(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create new listener instance: %v", err)
 	}
 
 	if err := listener.Start(); err != nil {
-		return nil, err
+		// Clean up listener resources if start fails? Depends on Start() implementation.
+		return nil, fmt.Errorf("failed to start listener %s: %v", config.Name, err)
 	}
 
 	m.listeners[config.ID] = listener
+	log.Printf("[INFO] Listener %s (%s) created and started successfully on %s:%d", listener.Config.Name, listener.Config.ID, listener.Config.BindHost, listener.Config.Port)
 	return listener, nil
 }
 
@@ -247,8 +254,15 @@ func (m *ListenerManager) DeleteListener(id string) error {
 		}
 	}
 
+	// Clean up listener directory
+	listenerDir := filepath.Join("static", "listeners", listener.Config.Name)
+	if err := os.RemoveAll(listenerDir); err != nil {
+		log.Printf("[WARNING] Failed to cleanup listener directory %s: %v", listenerDir, err)
+	}
+
 	// Remove from listeners map
 	delete(m.listeners, id)
+	log.Printf("[INFO] Deleted listener %s and cleaned up directory %s", id, listenerDir)
 	return nil
 }
 
@@ -341,7 +355,7 @@ func (m *ListenerManager) validateListenerConfig(config ListenerConfig) error {
 	return nil
 }
 
-// hasPortConflict checks if the given port is already in use by another listener
+// hasPortConflict checks if the given port is already in use by another *active* listener
 //
 // Pre-conditions:
 //   - config is a ListenerConfig instance
@@ -349,8 +363,10 @@ func (m *ListenerManager) validateListenerConfig(config ListenerConfig) error {
 // Post-conditions:
 //   - Returns true if the port is in use by an active listener, false otherwise
 func (m *ListenerManager) hasPortConflict(config ListenerConfig) bool {
-	for _, l := range m.listeners {
-		if l.Config.Port == config.Port && l.Status == StatusActive {
+	for id, l := range m.listeners {
+		// Check against other listeners (not itself if config.ID is provided and matches)
+		if l.Config.Port == config.Port && l.Status == StatusActive && id != config.ID {
+			log.Printf("[WARN] Port conflict detected: Port %d is already used by active listener %s (%s)", config.Port, l.Config.Name, id)
 			return true
 		}
 	}

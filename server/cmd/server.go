@@ -48,6 +48,13 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Create required directories
+	listenersDir := filepath.Join(cfg.Server.StaticDir, "listeners")
+	if err := os.MkdirAll(listenersDir, 0755); err != nil {
+		log.Fatalf("Failed to create listeners directory: %v", err)
+	}
+	log.Printf("[CONFIG] Created listeners directory: %s", listenersDir)
+
 	// Initialize components
 	fileStore, err := filestore.New(cfg.Server.UploadDir)
 	if err != nil {

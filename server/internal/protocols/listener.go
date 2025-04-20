@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -94,7 +95,14 @@ type ListenerStats struct {
 //   - Listener is in stopped state
 //   - Returns error if the protocol is not supported or configuration is invalid
 func NewListener(config ListenerConfig) (*Listener, error) {
-	fileHandler, err := NewFileHandler(filepath.Join("uploads", config.Name))
+	// Create listener-specific directory in static/listeners
+	listenerDir := filepath.Join("static", "listeners", config.Name)
+	if err := os.MkdirAll(listenerDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create listener directory: %v", err)
+	}
+
+	// Initialize file handler with the listener-specific directory
+	fileHandler, err := NewFileHandler(listenerDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file handler: %v", err)
 	}
