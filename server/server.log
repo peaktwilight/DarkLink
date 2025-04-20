@@ -52,3 +52,37 @@
 2025/04/20 12:50:20 [INFO] Listener configuration validated successfully: {ID:d14e06cd-a5f8-4cb7-8eef-d16702b6bfde Name:test-listener Protocol:http BindHost:0.0.0.0 Port:8443 URIs:[] Headers:map[X-MicroC2:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
 2025/04/20 12:50:20 [INFO] Started listener test-listener on 0.0.0.0:8443
 2025/04/20 12:50:20 [INFO] Listener test-listener (d14e06cd-a5f8-4cb7-8eef-d16702b6bfde) created and started successfully on 0.0.0.0:8443
+2025/04/20 13:05:15 [CONFIG] Created listeners directory: static/listeners
+2025/04/20 13:05:15 [INFO] Loaded saved configuration for listener: test-listener (ID: d14e06cd-a5f8-4cb7-8eef-d16702b6bfde)
+2025/04/20 13:05:15 [STARTUP] Starting server with http-polling protocol...
+2025/04/20 13:05:15 [CONFIG] Upload directory: uploads
+2025/04/20 13:05:15 [CONFIG] Static directory: static
+2025/04/20 13:05:15 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 13:05:15 [CONFIG] Payloads directory: static/payloads
+2025/04/20 13:05:15 [NETWORK] Port: 8080
+2025/04/20 13:05:15 [STARTUP] Server initializing with http-polling protocol...
+2025/04/20 13:05:15 [CONFIG] Upload directory: uploads
+2025/04/20 13:05:15 [CONFIG] Static directory: static
+2025/04/20 13:05:15 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 13:05:15 [NETWORK] Port: 8080
+2025/04/20 13:05:25 [INFO] Started listener test-listener on 0.0.0.0:8443
+2025/04/20 13:05:34 [INFO] Stopped listener test-listener
+2025/04/20 13:05:40 [INFO] Deleted listener d14e06cd-a5f8-4cb7-8eef-d16702b6bfde and cleaned up directory static/listeners/test-listener
+2025/04/20 13:06:15 [INFO] Generated new UUID for listener: 8b786414-b8b5-4179-a1d4-87915f386127
+2025/04/20 13:06:15 [INFO] Listener configuration validated successfully: {ID:8b786414-b8b5-4179-a1d4-87915f386127 Name:test-listener Protocol:http BindHost:172.28.249.104 Port:8443 URIs:[] Headers:map[X-MicroC2:] UserAgent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 HostRotation:round-robin Hosts:[MicroC2test.com] Proxy:<nil> TLSConfig:<nil>}
+2025/04/20 13:06:15 [INFO] Started listener test-listener on 172.28.249.104:8443
+2025/04/20 13:06:15 [INFO] Listener test-listener (8b786414-b8b5-4179-a1d4-87915f386127) created and started successfully on 172.28.249.104:8443
+2025/04/20 13:06:33 [CONFIG] Created listeners directory: static/listeners
+2025/04/20 13:06:33 [INFO] Loaded saved configuration for listener: test-listener (ID: 8b786414-b8b5-4179-a1d4-87915f386127)
+2025/04/20 13:06:33 [STARTUP] Starting server with http-polling protocol...
+2025/04/20 13:06:33 [CONFIG] Upload directory: uploads
+2025/04/20 13:06:33 [CONFIG] Static directory: static
+2025/04/20 13:06:33 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 13:06:33 [CONFIG] Payloads directory: static/payloads
+2025/04/20 13:06:33 [NETWORK] Port: 8080
+2025/04/20 13:06:33 [STARTUP] Server initializing with http-polling protocol...
+2025/04/20 13:06:33 [CONFIG] Upload directory: uploads
+2025/04/20 13:06:33 [CONFIG] Static directory: static
+2025/04/20 13:06:33 [CONFIG] File Drop directory: static/file_drop
+2025/04/20 13:06:33 [NETWORK] Port: 8080
+2025/04/20 13:06:37 [INFO] Started listener test-listener on 172.28.249.104:8443

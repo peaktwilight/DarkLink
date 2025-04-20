@@ -1,8 +1,8 @@
 {
-    "id": "d14e06cd-a5f8-4cb7-8eef-d16702b6bfde",
+    "id": "8b786414-b8b5-4179-a1d4-87915f386127",
     "name": "test-listener",
     "protocol": "http",
-    "host": "0.0.0.0",
+    "host": "172.28.249.104",
     "port": 8443,
     "headers": {
         "X-MicroC2": ""

@@ -1,6 +1,7 @@
 package protocols
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -19,16 +20,53 @@ type ListenerManager struct {
 }
 
 // NewListenerManager creates a new listener manager instance
-//
-// Pre-conditions:
-//   - None
-//
-// Post-conditions:
-//   - Returns an initialized ListenerManager with an empty listeners map
 func NewListenerManager() *ListenerManager {
-	return &ListenerManager{
+	manager := &ListenerManager{
 		listeners: make(map[string]*Listener),
 	}
+
+	// Load saved listener configurations
+	listenersDir := filepath.Join("static", "listeners")
+	entries, err := os.ReadDir(listenersDir)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("[WARNING] Failed to read listeners directory: %v", err)
+		}
+		return manager
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		// Check for config file
+		configPath := filepath.Join(listenersDir, entry.Name(), "config.json")
+		configData, err := os.ReadFile(configPath)
+		if err != nil {
+			log.Printf("[WARNING] Failed to read config for listener %s: %v", entry.Name(), err)
+			continue
+		}
+
+		var config ListenerConfig
+		if err := json.Unmarshal(configData, &config); err != nil {
+			log.Printf("[WARNING] Failed to parse config for listener %s: %v", entry.Name(), err)
+			continue
+		}
+
+		// Create a new listener instance with STOPPED status
+		listener, err := NewListener(config)
+		if err != nil {
+			log.Printf("[WARNING] Failed to create listener instance for %s: %v", config.Name, err)
+			continue
+		}
+
+		// Add to manager without starting
+		manager.listeners[config.ID] = listener
+		log.Printf("[INFO] Loaded saved configuration for listener: %s (ID: %s)", config.Name, config.ID)
+	}
+
+	return manager
 }
 
 // CreateListener creates and starts a new listener with the given configuration
