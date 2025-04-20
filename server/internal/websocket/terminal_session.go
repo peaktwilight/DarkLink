@@ -11,10 +11,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// TerminalSession represents a user's terminal session on the server
+// It maintains state about the current working directory and command context.
 type TerminalSession struct {
 	WorkingDir string
 }
 
+// TerminalResponse defines the structure of responses sent back to the client
+// It provides command output, current working directory, and error status.
 type TerminalResponse struct {
 	Output string `json:"output,omitempty"`
 	CWD    string `json:"cwd,omitempty"`
@@ -26,7 +30,13 @@ type TerminalHandler struct {
 	upgrader websocket.Upgrader
 }
 
-// NewTerminalHandler creates a new terminal handler
+// NewTerminalHandler creates a new terminal handler with configured websocket settings
+//
+// Pre-conditions:
+//   - None
+//
+// Post-conditions:
+//   - Returns a properly initialized TerminalHandler with CORS support
 func NewTerminalHandler() *TerminalHandler {
 	return &TerminalHandler{
 		upgrader: websocket.Upgrader{
@@ -38,6 +48,15 @@ func NewTerminalHandler() *TerminalHandler {
 }
 
 // HandleConnection handles a new terminal websocket connection
+//
+// Pre-conditions:
+//   - Valid HTTP request and response writer
+//   - Client supports WebSocket protocol
+//
+// Post-conditions:
+//   - WebSocket connection established with the client
+//   - Terminal session started and commands processed until disconnection
+//   - Resources properly cleaned up when the connection is closed
 func (h *TerminalHandler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -125,6 +144,13 @@ func (h *TerminalHandler) HandleConnection(w http.ResponseWriter, r *http.Reques
 }
 
 // formatPath formats the path for display in the terminal prompt
+// It replaces the home directory with ~ for better readability
+//
+// Pre-conditions:
+//   - path is a valid filesystem path
+//
+// Post-conditions:
+//   - Returns the formatted path with home directory replaced by ~
 func formatPath(path string) string {
 	home := os.Getenv("HOME")
 	if strings.HasPrefix(path, home) {

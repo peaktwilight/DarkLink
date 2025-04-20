@@ -136,6 +136,12 @@
             terminalOutput.scrollTop = terminalOutput.scrollHeight;
         }
 
+        function connectWebSocket() {
+            if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                initializeWebSocket();
+            }
+        }
+
         function appendCommand(command) {
             const cmdLine = document.createElement('div');
             cmdLine.className = 'command-line';

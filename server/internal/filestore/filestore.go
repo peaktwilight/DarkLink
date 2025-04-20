@@ -9,11 +9,15 @@ import (
 	"time"
 )
 
-// FileStore handles file operations and storage
+// FileStore handles file operations and storage for the application
+// It provides methods for uploading, listing, serving, and deleting files
+// within a specified base directory.
 type FileStore struct {
 	baseDir string
 }
 
+// FileInfo represents metadata about a file in the store
+// Used for listing files and providing information to clients
 type FileInfo struct {
 	Name     string `json:"name"`
 	Size     int64  `json:"size"`
@@ -21,6 +25,14 @@ type FileInfo struct {
 }
 
 // New creates a new FileStore instance
+//
+// Pre-conditions:
+//   - baseDir is a valid directory path
+//
+// Post-conditions:
+//   - Returns an initialized FileStore instance
+//   - Creates the base directory if it doesn't exist
+//   - Returns an error if directory creation fails
 func New(baseDir string) (*FileStore, error) {
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
 		return nil, err
@@ -28,7 +40,15 @@ func New(baseDir string) (*FileStore, error) {
 	return &FileStore{baseDir: baseDir}, nil
 }
 
-// HandleUpload handles file upload requests
+// HandleUpload handles file upload requests from HTTP
+//
+// Pre-conditions:
+//   - Request contains a valid multipart form with files
+//   - Request content size is within the limit (32MB)
+//
+// Post-conditions:
+//   - Files are saved to the store's base directory
+//   - Returns an error if parsing or file operations fail
 func (fs *FileStore) HandleUpload(r *http.Request) error {
 	err := r.ParseMultipartForm(32 << 20) // 32MB max memory
 	if err != nil {
@@ -60,6 +80,13 @@ func (fs *FileStore) HandleUpload(r *http.Request) error {
 }
 
 // ListFiles returns a list of files in the store
+//
+// Pre-conditions:
+//   - BaseDir exists or can be created
+//
+// Post-conditions:
+//   - Returns a slice of FileInfo structs for all files in the directory
+//   - Returns an error if the directory can't be read
 func (fs *FileStore) ListFiles() ([]FileInfo, error) {
 	if err := os.MkdirAll(fs.baseDir, 0755); err != nil {
 		return nil, err
@@ -86,7 +113,15 @@ func (fs *FileStore) ListFiles() ([]FileInfo, error) {
 	return fileList, nil
 }
 
-// ServeFile serves a file for download
+// ServeFile serves a file for download via HTTP
+//
+// Pre-conditions:
+//   - fileName is a valid file name without directory traversal characters
+//   - File exists in the base directory
+//
+// Post-conditions:
+//   - File is served to the HTTP response writer
+//   - Returns an error if file doesn't exist or path is invalid
 func (fs *FileStore) ServeFile(fileName string, w http.ResponseWriter, r *http.Request) error {
 	// Prevent directory traversal
 	if strings.Contains(fileName, "..") {
@@ -99,6 +134,14 @@ func (fs *FileStore) ServeFile(fileName string, w http.ResponseWriter, r *http.R
 }
 
 // DeleteFile deletes a file from the store
+//
+// Pre-conditions:
+//   - fileName is a valid file name without directory traversal characters
+//   - File exists in the base directory
+//
+// Post-conditions:
+//   - File is deleted from the filesystem
+//   - Returns an error if deletion fails or path is invalid
 func (fs *FileStore) DeleteFile(fileName string) error {
 	// Prevent directory traversal
 	if strings.Contains(fileName, "..") {

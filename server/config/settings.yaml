@@ -2,6 +2,10 @@ server:
   port: 8080
   uploadDir: "uploads"
   staticDir: "static"
+  tls:
+    enabled: true
+    certFile: "certs/server.crt"
+    keyFile: "certs/server.key"
   
 communication:
   # Available protocols: http-polling, dns-over-https

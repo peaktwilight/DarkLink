@@ -1,0 +1,15 @@
+{
+    "id": "8b786414-b8b5-4179-a1d4-87915f386127",
+    "name": "test-listener",
+    "protocol": "http",
+    "host": "172.28.249.104",
+    "port": 8443,
+    "headers": {
+        "X-MicroC2": ""
+    },
+    "user_agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36",
+    "host_rotation": "round-robin",
+    "hosts": [
+        "MicroC2test.com"
+    ]
+}
