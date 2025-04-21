@@ -226,47 +226,56 @@ class DashboardManager {
             
             let html = '';
             listeners.forEach(listener => {
-                // The data we need is nested in the config object
                 const config = listener.config || {};
+                const listenerId = config.id || listener.id;
+                const listenerName = config.name || listener.name || 'Unnamed';
+                const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const listenerHost = config.host || listener.host || 'Unknown';
+                const listenerPort = config.port || listener.port || 'Unknown';
+                const listenerStatus = listener.status || 'Unknown';
+                const listenerError = listener.error || '';
                 
-                const name = config.name || 'Unnamed';
-                const protocol = config.protocol || 'Unknown';
-                const hostInfo = (config.host && config.port) ? 
-                    `Host: ${config.host}:${config.port}` : '';
-                const status = listener.status || 'Unknown';
-                const id = config.id || '';
-                
-                const statusClass = status === 'ACTIVE' ? 'status-active' : 'status-inactive';
-                
+                if (!listenerId) {
+                    console.warn('Listener missing ID:', listener);
+                    return;
+                }
+
                 html += `
-                    <div class="listener-card">
+                    <div class="listener-card" data-id="${listenerId}">
                         <div class="listener-header">
-                            <div class="listener-name">${name}</div>
-                            <div class="listener-protocol">${protocol}</div>
+                            <span class="listener-name">${listenerName}</span>
+                            <span class="listener-type">${listenerProtocol}</span>
                         </div>
                         <div class="listener-details">
-                            ${hostInfo ? `<div>${hostInfo}</div>` : ''}
-                            <div>Status: <span class="${statusClass}">${status}</span></div>
-                            ${id ? `<div>ID: ${id.substring(0, 8)}...</div>` : ''}
+                            <div class="listener-id">ID: ${listenerId}</div>
+                            <div>Host: ${listenerHost}:${listenerPort}</div>
+                            <div>Status: <span class="status-${listenerStatus.toLowerCase()}">${listenerStatus}</span></div>
+                            ${listenerError ? `<div class="error-message">Error: ${listenerError}</div>` : ''}
+                        </div>
+                        <div class="listener-actions">
+                            ${listenerStatus.toLowerCase() === 'stopped' ? 
+                              `<button class="action-button success" onclick="dashboardManager.startListener('${listenerId}')">Start</button>` : 
+                              `<button class="action-button" onclick="dashboardManager.stopListener('${listenerId}')">Stop</button>`}
+                            <button class="action-button delete" onclick="dashboardManager.deleteListener('${listenerId}', '${listenerName}')">Delete</button>
                         </div>
                     </div>
                 `;
                 
                 // Track listener state changes for notifications
-                if (id && name) {
-                    const key = `${id}-${name}`;
+                if (listenerId && listenerName) {
+                    const key = `${listenerId}-${listenerName}`;
                     const previousStatus = this.previousListenerStates.get(key);
                     
-                    if (previousStatus && previousStatus !== status) {
+                    if (previousStatus && previousStatus !== listenerStatus) {
                         this.appendLogEntry({
                             timestamp: new Date().toISOString(),
                             severity: 'INFO',
-                            message: `Listener "${name}" changed status from ${previousStatus} to ${status}`,
+                            message: `Listener "${listenerName}" changed status from ${previousStatus} to ${listenerStatus}`,
                             source: 'system'
                         });
                     }
                     
-                    this.previousListenerStates.set(key, status);
+                    this.previousListenerStates.set(key, listenerStatus);
                 }
             });
             
@@ -280,6 +289,156 @@ class DashboardManager {
                     <p>${error.message}</p>
                 </div>
             `;
+        }
+    }
+
+    async startListener(id) {
+        try {
+            const response = await fetch(`/api/listeners/${id}/start`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                if (response.status === 405) {
+                    return await this.handleStartListenerFallback(id);
+                }
+                const responseText = await response.text();
+                let errorMsg;
+                try {
+                    const result = JSON.parse(responseText);
+                    errorMsg = result.error || `Failed to start listener (${response.status})`;
+                } catch {
+                    errorMsg = responseText || `Failed to start listener (${response.status})`;
+                }
+                throw new Error(errorMsg);
+            }
+            
+            await this.loadActiveListeners();
+        } catch (error) {
+            console.error('Error starting listener:', error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to start listener: ${error.message}`,
+                source: 'system'
+            });
+        }
+    }
+
+    async stopListener(id) {
+        try {
+            const response = await fetch(`/api/listeners/${id}/stop`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const responseText = await response.text();
+                let errorMsg;
+                try {
+                    const result = JSON.parse(responseText);
+                    errorMsg = result.error || `Failed to stop listener (${response.status})`;
+                } catch {
+                    errorMsg = responseText || `Failed to stop listener (${response.status})`;
+                }
+                throw new Error(errorMsg);
+            }
+            
+            await this.loadActiveListeners();
+        } catch (error) {
+            console.error('Error stopping listener:', error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to stop listener: ${error.message}`,
+                source: 'system'
+            });
+        }
+    }
+
+    async deleteListener(id, name) {
+        if (!confirm(`Are you sure you want to delete ${name}?`)) return;
+        
+        try {
+            const response = await fetch(`/api/listeners/${id}`, { 
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const responseText = await response.text();
+                let errorMsg;
+                try {
+                    const result = JSON.parse(responseText);
+                    errorMsg = result.error || `Failed to delete listener (${response.status})`;
+                } catch {
+                    errorMsg = responseText || `Failed to delete listener (${response.status})`;
+                }
+                throw new Error(errorMsg);
+            }
+            
+            await this.loadActiveListeners();
+        } catch (error) {
+            console.error('Error deleting listener:', error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to delete listener: ${error.message}`,
+                source: 'system'
+            });
+        }
+    }
+
+    async handleStartListenerFallback(id) {
+        try {
+            const response = await fetch(`/api/listeners/${id}`);
+            if (!response.ok) {
+                throw new Error(`Failed to get listener details (${response.status})`);
+            }
+            
+            const listener = await response.json();
+            const config = listener.config || listener;
+            const newConfig = {...config};
+            delete newConfig.id;
+            
+            // Delete the old listener
+            const deleteResponse = await fetch(`/api/listeners/${id}`, {
+                method: 'DELETE'
+            });
+            
+            if (!deleteResponse.ok) {
+                throw new Error(`Failed to delete old listener (${deleteResponse.status})`);
+            }
+            
+            // Create a new listener with the same config
+            const createResponse = await fetch('/api/listeners/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(newConfig)
+            });
+            
+            if (!createResponse.ok) {
+                throw new Error(`Failed to recreate listener (${createResponse.status})`);
+            }
+            
+            await this.loadActiveListeners();
+        } catch (error) {
+            console.error("Error in fallback listener start:", error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to start listener (fallback method): ${error.message}`,
+                source: 'system'
+            });
         }
     }
 }

@@ -111,6 +111,16 @@
     color: #ccc;
 }
 
+.listener-details .listener-id {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #888;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 4px;
+}
+
 .listener-actions {
     display: flex;
     justify-content: flex-end;

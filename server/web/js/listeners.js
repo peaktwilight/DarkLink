@@ -263,6 +263,7 @@ class ListenerManager {
                             <span class="listener-type">${listenerProtocol}</span>
                         </div>
                         <div class="listener-details">
+                            <div class="listener-id">ID: ${listenerId}</div>
                             <div>Host: ${listenerHost}:${listenerPort}</div>
                             <div>Status: <span class="status-${listenerStatus.toLowerCase()}">${listenerStatus}</span></div>
                             ${listenerError ? `<div class="error-message">Error: ${listenerError}</div>` : ''}
