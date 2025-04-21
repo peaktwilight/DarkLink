@@ -111,6 +111,16 @@
     color: #ccc;
 }
 
+.listener-details .listener-id {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: #888;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-top: 4px;
+}
+
 .listener-actions {
     display: flex;
     justify-content: flex-end;
@@ -122,30 +132,51 @@
     border: none;
     border-radius: 3px;
     cursor: pointer;
-    background-color: #444;
-    color: #fff;
+    background-color: var(--button-primary);
+    color: var(--bg-color);
     font-size: 0.85em;
     transition: background-color 0.2s;
 }
 
 .action-button:hover {
-    background-color: #555;
+    background-color: var(--button-primary-hover);
 }
 
-.action-button.delete {
-    background-color: #cb2431;
+.action-button.success {
+    background-color: var(--button-primary);
 }
 
-.action-button.delete:hover {
-    background-color: #e53e3e;
+.action-button.success:hover {
+    background-color: var(--button-primary-hover);
 }
 
+.action-button.delete, 
+.action-button.danger {
+    background-color: var(--button-danger);
+    color: white;
+}
+
+.action-button.delete:hover, 
+.action-button.danger:hover {
+    background-color: var(--button-danger-hover);
+}
+
+.action-button.secondary {
+    background-color: var(--button-secondary);
+    color: var(--text-color);
+}
+
+.action-button.secondary:hover {
+    background-color: var(--button-secondary-hover);
+}
+
+/* Removing purple specific styling to use our main color scheme */
 .action-button.purple {
-    background-color: #7851a9;
+    background-color: var(--button-primary);
 }
 
 .action-button.purple:hover {
-    background-color: #8a62ba;
+    background-color: var(--button-primary-hover);
 }
 
 /* Status indicators */
@@ -213,21 +244,21 @@
 }
 
 .download-button {
-    background-color: #007aff;
-    color: white;
+    background-color: var(--button-primary);
+    color: var(--bg-color);
 }
 
 .download-button:hover {
-    background-color: #0062cc;
+    background-color: var(--button-primary-hover);
 }
 
 .delete-button {
-    background-color: #ff3b30;
+    background-color: var(--button-danger);
     color: white;
 }
 
 .delete-button:hover {
-    background-color: #d9342b;
+    background-color: var(--button-danger-hover);
 }
 
 /* Empty and error states */
@@ -285,7 +316,7 @@
 
 .dark-select {
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E");
     background-repeat: no-repeat;
     background-position: right 12px top 50%;
     background-size: 12px auto;
@@ -429,9 +460,9 @@
 }
 
 .build-logs-controls button {
-    background-color: #222;
-    border: 1px solid #555;
-    color: #ccc;
+    background-color: var(--button-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
     border-radius: 3px;
     padding: 4px 8px;
     font-size: 12px;
@@ -440,5 +471,123 @@
 }
 
 .build-logs-controls button:hover {
-    background-color: #444;
+    background-color: var(--button-secondary-hover);
+}
+
+/* Action buttons with consistent styling */
+.action-button,
+.browse-button,
+.download-button,
+.file-actions button,
+button.primary {
+    background: var(--button-primary);
+    color: var(--bg-color);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.action-button:hover,
+.browse-button:hover,
+.download-button:hover,
+.file-actions button:hover,
+button.primary:hover {
+    background: var(--button-primary-hover);
+}
+
+.action-button.delete,
+.action-button.danger,
+.file-actions button.delete,
+.delete-button,
+button.danger {
+    background: var(--button-danger);
+    color: white;
+}
+
+.action-button.delete:hover,
+.action-button.danger:hover,
+.file-actions button.delete:hover,
+.delete-button:hover,
+button.danger:hover {
+    background: var(--button-danger-hover);
+}
+
+.action-button.secondary,
+button.secondary {
+    background: var(--button-secondary);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.action-button.secondary:hover,
+button.secondary:hover {
+    background: var(--button-secondary-hover);
+}
+
+/* Override any legacy button styling */
+.action-button.purple {
+    background: var(--button-primary);
+}
+
+.action-button.purple:hover {
+    background: var(--button-primary-hover);
+}
+
+/* Inputs with consistent styling */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+select,
+textarea,
+.dark-input,
+.dark-select {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus,
+.dark-input:focus,
+.dark-select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+select,
+.dark-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22%2F%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px top 50%;
+    background-size: 12px auto;
+    padding-right: 30px;
+}
+
+/* File input wrapper fix */
+.file-input-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-top: 15px;
+}
+
+#fileInput {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 0.1px;
+    height: 0.1px;
+    pointer-events: none;
 }
