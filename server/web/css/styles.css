@@ -7,6 +7,12 @@
     --success-color: #00ff9f;
     --header-color: #00ff9f;
     --border-color: #2a2e33;
+    --button-primary: #00ff9f;
+    --button-primary-hover: #00cc7d;
+    --button-secondary: #444;
+    --button-secondary-hover: #555;
+    --button-danger: #ff3333;
+    --button-danger-hover: #ff5555;
 }
 
 body { 
@@ -23,7 +29,7 @@ h1, h2 {
 }
 
 button {
-    background: var(--accent-color);
+    background: var(--button-primary);
     color: var(--bg-color);
     border: none;
     padding: 10px 20px;
@@ -31,10 +37,34 @@ button {
     font-weight: bold;
     border-radius: 5px;
     margin: 0;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background: var(--button-primary-hover);
+}
+
+button.secondary {
+    background: var(--button-secondary);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+button.secondary:hover {
+    background: var(--button-secondary-hover);
+}
+
+button.danger {
+    background: var(--button-danger);
+    color: white;
+}
+
+button.danger:hover {
+    background: var(--button-danger-hover);
 }
 
 /* Havoc-style layout */
-.havoc-container {
+.microc2-container {
     display: grid;
     grid-template-columns: 250px 1fr;
     height: 100vh;
@@ -351,7 +381,7 @@ button.secondary {
 
 .listener-name {
     font-weight: bold;
-    color: var(--accent-color);
+    color: var (--accent-color);
 }
 
 .listener-type {
@@ -635,4 +665,125 @@ button.secondary {
     padding: 20px;
     color: var(--text-color);
     opacity: 0.6;
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 1024px) {
+    .microc2-container {
+        grid-template-columns: 200px 1fr;
+    }
+    
+    .split-panel {
+        grid-template-columns: 200px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .microc2-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: auto;
+        min-height: 100vh;
+    }
+    
+    .sidebar {
+        display: flex;
+        flex-wrap: wrap;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+    }
+    
+    .nav-header {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    .nav-item {
+        margin: 2px;
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+    
+    .content {
+        grid-template-rows: 1fr auto;
+    }
+    
+    .top-panel, .bottom-panel {
+        padding: 10px;
+    }
+    
+    .split-panel,
+    .split-panel .split-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .config-form {
+        padding: 15px 10px;
+    }
+    
+    .form-section {
+        padding: 15px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button {
+        width: 100%;
+    }
+    
+    .button-group {
+        flex-wrap: wrap;
+    }
+    
+    .shell-input {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    #command-input {
+        margin-bottom: 5px;
+    }
+    
+    .event-log {
+        max-height: 300px;
+    }
+}
+
+/* High DPI Screens */
+@media (min-resolution: 192dpi) {
+    body {
+        font-size: 16px;
+    }
+    
+    .form-group label {
+        margin-bottom: 8px;
+    }
+    
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    select,
+    textarea,
+    .dark-input,
+    .dark-select {
+        padding: 10px 14px;
+    }
+    
+    button {
+        padding: 12px 24px;
+    }
+}
+
+/* Focus states for accessibility */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
 }
