@@ -9,19 +9,21 @@ fn main() {
     println!("cargo:rerun-if-env-changed=LISTENER_PORT");
     println!("cargo:rerun-if-env-changed=SLEEP_INTERVAL");
     println!("cargo:rerun-if-env-changed=PAYLOAD_ID");
+    println!("cargo:rerun-if-env-changed=PROTOCOL");
 
     // Get configuration from environment variables
     let server_host = env::var("LISTENER_HOST").unwrap_or_default();
     let server_port = env::var("LISTENER_PORT").unwrap_or_default();
     let sleep_interval = env::var("SLEEP_INTERVAL").unwrap_or_else(|_| "60".to_string());
     let payload_id = env::var("PAYLOAD_ID").unwrap_or_default();
-
-    // Determine protocol based on port number
-    let protocol = if server_port == "8443" || server_port == "443" {
+    
+    let default_protocol = if server_port == "443" {
         "https"
     } else {
         "http"
     };
+    
+    let protocol = env::var("PROTOCOL").unwrap_or_else(|_| default_protocol.to_string());
 
     // Only use environment config if we have all required values
     let config_content = if !server_host.is_empty() && !server_port.is_empty() && !payload_id.is_empty() {
@@ -54,7 +56,6 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("config.rs");
     
     // Create the config code with proper raw string nesting 
-    // Use different numbers of # for inner and outer raw strings
     let config_code = format!(
         r###"pub const EMBEDDED_CONFIG: &str = r#"{}"#;"###,
         config_content
