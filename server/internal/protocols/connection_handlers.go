@@ -321,7 +321,10 @@ func NewSOCKS5Handler(listener *Listener) *SOCKS5Handler {
 		config.Password = listener.Config.Proxy.Password
 	}
 
-	server, _ := NewSOCKS5Server(config)
+	server, err := NewSOCKS5Server(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize SOCKS5 server: %v", err)
+	}
 	return &SOCKS5Handler{
 		listener: listener,
 		server:   server,

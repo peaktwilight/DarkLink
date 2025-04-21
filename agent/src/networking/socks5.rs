@@ -176,7 +176,7 @@ impl Socks5Client {
         let tcp_stream = stream.into_inner();
         
         // Store a clone of the connection in the pool before returning
-        if let Ok(cloned_stream) = tcp_stream.try_clone().await {
+        if let Ok(cloned_stream) = tcp_stream.try_clone() {
             self.store_connection(target_key, cloned_stream).await;
         }
 
