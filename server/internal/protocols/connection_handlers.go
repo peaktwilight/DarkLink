@@ -306,7 +306,7 @@ type SOCKS5Handler struct {
 }
 
 // NewSOCKS5Handler creates a new SOCKS5 connection handler
-func NewSOCKS5Handler(listener *Listener) *SOCKS5Handler {
+func NewSOCKS5Handler(listener *Listener) (*SOCKS5Handler, error) {
 	config := SOCKS5Config{
 		ListenAddr:  listener.Config.BindHost,
 		ListenPort:  listener.Config.Port,
@@ -328,7 +328,7 @@ func NewSOCKS5Handler(listener *Listener) *SOCKS5Handler {
 	return &SOCKS5Handler{
 		listener: listener,
 		server:   server,
-	}
+	}, nil
 }
 
 func (h *SOCKS5Handler) ValidateConnection(conn net.Conn) error {
@@ -364,7 +364,7 @@ func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	case "dns-over-https":
 		return NewDNSHandler(listener), nil
 	case "socks5":
-		return NewSOCKS5Handler(listener), nil
+		return NewSOCKS5Handler(listener)
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", listener.Config.Protocol)
 	}
