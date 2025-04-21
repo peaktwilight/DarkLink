@@ -28,18 +28,19 @@ const (
 
 // ListenerConfig holds the configuration for a C2 listener
 type ListenerConfig struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Protocol     string            `json:"protocol"`
-	BindHost     string            `json:"host"`
-	Port         int               `json:"port"`
-	URIs         []string          `json:"uris,omitempty"`
-	Headers      map[string]string `json:"headers,omitempty"`
-	UserAgent    string            `json:"user_agent,omitempty"`
-	HostRotation string            `json:"host_rotation,omitempty"`
-	Hosts        []string          `json:"hosts,omitempty"`
-	Proxy        *ProxyConfig      `json:"proxy,omitempty"`
-	TLSConfig    *TLSConfig        `json:"tls_config,omitempty"`
+	ID           string                `json:"id"`
+	Name         string                `json:"name"`
+	Protocol     string                `json:"protocol"`
+	BindHost     string                `json:"host"`
+	Port         int                   `json:"port"`
+	URIs         []string              `json:"uris,omitempty"`
+	Headers      map[string]string     `json:"headers,omitempty"`
+	UserAgent    string                `json:"user_agent,omitempty"`
+	HostRotation string                `json:"host_rotation,omitempty"`
+	Hosts        []string              `json:"hosts,omitempty"`
+	Proxy        *ProxyConfig          `json:"proxy,omitempty"`
+	TLSConfig    *TLSConfig            `json:"tls_config,omitempty"`
+	SOCKS5Config *SOCKS5ListenerConfig `json:"socks5_config,omitempty"`
 }
 
 // ProxyConfig holds proxy-related configuration
@@ -56,6 +57,14 @@ type TLSConfig struct {
 	CertFile          string `json:"cert_file"`
 	KeyFile           string `json:"key_file"`
 	RequireClientCert bool   `json:"requireClientCert"`
+}
+
+// SOCKS5ListenerConfig holds SOCKS5-specific listener configuration
+type SOCKS5ListenerConfig struct {
+	RequireAuth     bool     `json:"require_auth"`
+	AllowedIPs      []string `json:"allowed_ips,omitempty"`
+	DisallowedPorts []int    `json:"disallowed_ports,omitempty"`
+	IdleTimeout     int      `json:"idle_timeout,omitempty"` // Timeout in seconds
 }
 
 // Listener represents a communication protocol listener that agents connect to

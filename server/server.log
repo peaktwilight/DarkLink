@@ -649,3 +649,46 @@
 2025/04/21 12:47:28 [INFO] Checking alternative location: ../agent/static/payloads/debug/dd3bd006-11ba-458e-9bcd-5a3b4887e3f1/agent
 2025/04/21 12:47:28 [INFO] Found payload at alternative location: ../agent/static/payloads/debug/dd3bd006-11ba-458e-9bcd-5a3b4887e3f1/agent
 2025/04/21 12:47:28 [INFO] Successfully generated payload: agent (debug, 55832024 bytes)
+2025/04/21 14:02:10 [CONFIG] Created listeners directory: static/listeners
+2025/04/21 14:02:10 [INFO] Loaded saved configuration for listener: test-listener (ID: dd3bd006-11ba-458e-9bcd-5a3b4887e3f1)
+2025/04/21 14:02:10 [STARTUP] Starting server with http-polling protocol...
+2025/04/21 14:02:10 [CONFIG] Upload directory: uploads
+2025/04/21 14:02:10 [CONFIG] Static directory: static
+2025/04/21 14:02:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:02:10 [CONFIG] Payloads directory: static/payloads
+2025/04/21 14:02:10 [NETWORK] Port: 8080
+2025/04/21 14:02:10 [STARTUP] Server initializing with http-polling protocol...
+2025/04/21 14:02:10 [CONFIG] Upload directory: uploads
+2025/04/21 14:02:10 [CONFIG] Static directory: static
+2025/04/21 14:02:10 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:02:10 [NETWORK] Port: 8080
+2025/04/21 14:02:14 [INFO] Started listener test-listener on 172.28.223.255:8443
+2025/04/21 14:02:37 [INFO] Stopped listener test-listener
+2025/04/21 14:17:36 [CONFIG] Created listeners directory: static/listeners
+2025/04/21 14:17:36 [INFO] Loaded saved configuration for listener: test-listener (ID: dd3bd006-11ba-458e-9bcd-5a3b4887e3f1)
+2025/04/21 14:17:36 [STARTUP] Starting server with http-polling protocol...
+2025/04/21 14:17:36 [CONFIG] Upload directory: uploads
+2025/04/21 14:17:36 [CONFIG] Static directory: static
+2025/04/21 14:17:36 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:17:36 [CONFIG] Payloads directory: static/payloads
+2025/04/21 14:17:36 [NETWORK] Port: 8080
+2025/04/21 14:17:36 [STARTUP] Server initializing with http-polling protocol...
+2025/04/21 14:17:36 [CONFIG] Upload directory: uploads
+2025/04/21 14:17:36 [CONFIG] Static directory: static
+2025/04/21 14:17:36 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:17:36 [NETWORK] Port: 8080
+2025/04/21 14:19:51 [INFO] Started listener test-listener on 172.28.223.255:8443
+2025/04/21 14:19:56 [INFO] Stopped listener test-listener
+2025/04/21 14:36:54 [CONFIG] Created listeners directory: static/listeners
+2025/04/21 14:36:54 [INFO] Loaded saved configuration for listener: test-listener (ID: dd3bd006-11ba-458e-9bcd-5a3b4887e3f1)
+2025/04/21 14:36:54 [STARTUP] Starting server with http-polling protocol...
+2025/04/21 14:36:54 [CONFIG] Upload directory: uploads
+2025/04/21 14:36:54 [CONFIG] Static directory: static
+2025/04/21 14:36:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:36:54 [CONFIG] Payloads directory: static/payloads
+2025/04/21 14:36:54 [NETWORK] Port: 8080
+2025/04/21 14:36:54 [STARTUP] Server initializing with http-polling protocol...
+2025/04/21 14:36:54 [CONFIG] Upload directory: uploads
+2025/04/21 14:36:54 [CONFIG] Static directory: static
+2025/04/21 14:36:54 [CONFIG] File Drop directory: static/file_drop
+2025/04/21 14:36:54 [NETWORK] Port: 8080

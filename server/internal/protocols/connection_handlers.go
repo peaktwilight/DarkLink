@@ -299,6 +299,60 @@ func (d *DNSHandler) HandleConnection(conn net.Conn) error {
 	return nil
 }
 
+// SOCKS5Handler implements connection handling for SOCKS5 listeners
+type SOCKS5Handler struct {
+	listener *Listener
+	server   *SOCKS5Server
+}
+
+// NewSOCKS5Handler creates a new SOCKS5 connection handler
+func NewSOCKS5Handler(listener *Listener) *SOCKS5Handler {
+	config := SOCKS5Config{
+		ListenAddr:  listener.Config.BindHost,
+		ListenPort:  listener.Config.Port,
+		RequireAuth: false, // Set from listener config if auth is needed
+		Timeout:     300,   // 5 minutes default timeout
+	}
+
+	// If proxy auth is configured in the listener, set up SOCKS5 auth
+	if listener.Config.Proxy != nil && listener.Config.Proxy.Username != "" {
+		config.RequireAuth = true
+		config.Username = listener.Config.Proxy.Username
+		config.Password = listener.Config.Proxy.Password
+	}
+
+	server, _ := NewSOCKS5Server(config)
+	return &SOCKS5Handler{
+		listener: listener,
+		server:   server,
+	}
+}
+
+func (h *SOCKS5Handler) ValidateConnection(conn net.Conn) error {
+	// SOCKS5 validation happens during the handshake phase
+	return nil
+}
+
+func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+
+	// Update connection stats
+	h.listener.mu.Lock()
+	h.listener.Stats.TotalConnections++
+	h.listener.Stats.ActiveConnections++
+	h.listener.mu.Unlock()
+
+	defer func() {
+		h.listener.mu.Lock()
+		h.listener.Stats.ActiveConnections--
+		h.listener.mu.Unlock()
+	}()
+
+	// Let the SOCKS5 server handle the connection
+	h.server.handleConnection(conn)
+	return nil
+}
+
 // GetConnectionHandler returns the appropriate connection handler for a protocol
 func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
@@ -306,6 +360,8 @@ func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 		return NewHTTPHandler(listener), nil
 	case "dns-over-https":
 		return NewDNSHandler(listener), nil
+	case "socks5":
+		return NewSOCKS5Handler(listener), nil
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", listener.Config.Protocol)
 	}

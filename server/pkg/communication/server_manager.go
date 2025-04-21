@@ -39,6 +39,8 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 		protocol = protocols.NewHTTPPollingProtocol(baseConfig)
 	case "dns-over-https":
 		protocol = protocols.NewDNSOverHTTPSProtocol(baseConfig)
+	case "socks5":
+		protocol = protocols.NewSOCKS5Protocol(baseConfig)
 	default:
 		return nil, fmt.Errorf("unsupported protocol type: %s", config.ProtocolType)
 	}
@@ -52,6 +54,11 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 		config:          config,
 		listenerManager: protocols.NewListenerManager(),
 	}, nil
+}
+
+// GetProtocol returns the current protocol instance
+func (sm *ServerManager) GetProtocol() protocols.Protocol {
+	return sm.protocol
 }
 
 func (sm *ServerManager) Start() error {

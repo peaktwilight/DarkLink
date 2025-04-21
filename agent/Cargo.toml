@@ -18,6 +18,8 @@ os_info = "3.7"
 rand = "0.8"
 bytes = "1.0"
 log = "0.4"
+thiserror = "1.0"
+tokio-socks = "0.5"
 
 [features]
 default = []
