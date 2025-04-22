@@ -135,8 +135,9 @@ if ! command -v cross &> /dev/null; then
     cargo install cross
 fi
 
-# Create config file with explicit server URL and port and payload ID
-cat > "config.json" << EOF
+# Generate agent config only in the payload output directory
+mkdir -p "$OUTPUT_DIR/.config"
+cat > "$OUTPUT_DIR/.config/config.json" << EOF
 {
     "server_url": "${SERVER_IP}:${SERVER_PORT}",
     "sleep_interval": ${SLEEP_INTERVAL:-60},
@@ -147,14 +148,6 @@ cat > "config.json" << EOF
 EOF
 
 echo "Created configuration for build-time embedding"
-
-# Also create the config in output directory for backwards compatibility
-mkdir -p "$OUTPUT_DIR"
-cp "config.json" "$OUTPUT_DIR/config.json"
-
-# Create .config directory structure
-mkdir -p "$OUTPUT_DIR/.config"
-cp "config.json" "$OUTPUT_DIR/.config/config.json"
 
 echo "Building agent..."
 

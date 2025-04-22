@@ -617,6 +617,11 @@ func (p *SOCKS5Protocol) CloseTunnel(w http.ResponseWriter, r *http.Request) {
 	p.server.handleCloseTunnel(w, r)
 }
 
+// GetHTTPHandler returns nil for SOCKS5 protocol as it doesn't serve HTTP
+func (p *SOCKS5Protocol) GetHTTPHandler() http.Handler {
+	return nil
+}
+
 // Add HTTP handlers for SOCKS5 management
 func (s *SOCKS5Server) handleListTunnels(w http.ResponseWriter, r *http.Request) {
 	tunnels := s.state.listTunnels()

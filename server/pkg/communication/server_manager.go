@@ -49,10 +49,13 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 		return nil, fmt.Errorf("failed to initialize protocol: %v", err)
 	}
 
+	// Initialize ListenerManager with the protocol instance
+	listenerManager := protocols.NewListenerManager(protocol)
+
 	return &ServerManager{
 		protocol:        protocol,
 		config:          config,
-		listenerManager: protocols.NewListenerManager(),
+		listenerManager: listenerManager,
 	}, nil
 }
 

@@ -113,11 +113,6 @@ class ListenerManager {
         const formData = new FormData(e.target);
         const formValues = Object.fromEntries(formData);
         
-        // Basic validation
-        if (!formValues.listenerName) {
-            this.showError('Listener name is required');
-            return;
-        }
         
         const listenerConfig = {
             name: formValues.listenerName,
@@ -125,6 +120,12 @@ class ListenerManager {
             host: formValues.bindHost,
             port: parseInt(formValues.port, 10)
         };
+
+        // Basic validation
+        if (!formValues.listenerName) {
+            this.showError('Listener name is required');
+            return;
+        }
 
         // Add arrays if they have non-empty values
         if (formValues.hosts) {

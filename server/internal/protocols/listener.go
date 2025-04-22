@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -70,18 +71,20 @@ type SOCKS5ListenerConfig struct {
 // Listener represents a communication protocol listener that agents connect to
 // It manages the lifecycle of the listening service and tracks its operational state.
 type Listener struct {
-	Config      ListenerConfig `json:"config"`
-	Status      ListenerStatus `json:"status"`
-	Error       string         `json:"error,omitempty"`
-	StartTime   time.Time      `json:"start_time"`
-	StopTime    time.Time      `json:"stop_time,omitempty"`
-	Stats       ListenerStats  `json:"stats"`
-	fileHandler *FileHandler
-	cmdQueue    *CommandQueue
-	stopChan    chan struct{}
-	listener    net.Listener
-	tlsConfig   *tls.Config
-	mu          sync.RWMutex
+	Config          ListenerConfig `json:"config"`
+	Status          ListenerStatus `json:"status"`
+	Error           string         `json:"error,omitempty"`
+	StartTime       time.Time      `json:"start_time"`
+	StopTime        time.Time      `json:"stop_time,omitempty"`
+	Stats           ListenerStats  `json:"stats"`
+	fileHandler     *FileHandler
+	cmdQueue        *CommandQueue
+	stopChan        chan struct{}
+	listener        net.Listener
+	tlsConfig       *tls.Config
+	mu              sync.RWMutex
+	protocolHandler http.Handler // HTTP handler for http-polling
+	protocol        Protocol     // underlying protocol instance
 }
 
 // ListenerStats tracks operational statistics for a listener
@@ -128,14 +131,33 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 		return nil, fmt.Errorf("failed to create file handler: %v", err)
 	}
 
-	return &Listener{
-		Config:      config,
-		Status:      StatusStopped,
-		stopChan:    make(chan struct{}),
-		Stats:       ListenerStats{},
-		fileHandler: fileHandler,
-		cmdQueue:    NewCommandQueue(),
-	}, nil
+	// Initialize protocol handler based on config
+	var protoHandler http.Handler
+	var proto Protocol
+	if config.Protocol == "http-polling" || config.Protocol == "http" {
+		protoConfig := BaseProtocolConfig{
+			UploadDir: filepath.Join("static", "listeners", config.Name, "uploads"),
+			Port:      fmt.Sprintf("%d", config.Port),
+		}
+		httpProto := NewHTTPPollingProtocol(protoConfig)
+		protoHandler = httpProto.GetHTTPHandler()
+		proto = httpProto
+		// Ensure upload directory exists
+		os.MkdirAll(protoConfig.UploadDir, 0755)
+	}
+
+	// Construct listener instance
+	l := &Listener{
+		Config:          config,
+		Status:          StatusStopped,
+		stopChan:        make(chan struct{}),
+		Stats:           ListenerStats{},
+		fileHandler:     fileHandler,
+		cmdQueue:        NewCommandQueue(),
+		protocolHandler: protoHandler,
+		protocol:        proto,
+	}
+	return l, nil
 }
 
 // GetFileHandler returns the listener's file handler
@@ -323,6 +345,30 @@ func (l *Listener) handleConnection(conn net.Conn) {
 		log.Printf("[ERROR] Error handling connection on listener %s: %v", l.Config.Name, err)
 		return
 	}
+}
+
+// handleHTTPConnection processes an individual HTTP client connection
+//
+// Pre-conditions:
+//   - Connection is valid and established
+//
+// Post-conditions:
+//   - Processes the connection using the appropriate protocol handler
+//   - Updates listener statistics
+//   - Handles errors gracefully
+func (l *Listener) handleHTTPConnection(conn net.Conn) error {
+	if l.protocolHandler == nil {
+		// ...existing code...
+	}
+
+	server := &http.Server{
+		Handler: l.protocolHandler,
+	}
+	server.SetKeepAlivesEnabled(false)
+
+	// Create one-shot listener for this connection
+	connListener := &oneShotListener{conn: conn}
+	return server.Serve(connListener)
 }
 
 // GetStatus returns the current status of the listener

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,13 +17,15 @@ import (
 // It maintains a thread-safe registry of all active and stopped listeners.
 type ListenerManager struct {
 	listeners map[string]*Listener
+	protocol  Protocol // Add field to hold the main protocol instance
 	mu        sync.RWMutex
 }
 
 // NewListenerManager creates a new listener manager instance
-func NewListenerManager() *ListenerManager {
+func NewListenerManager(proto Protocol) *ListenerManager { // Accept protocol instance
 	manager := &ListenerManager{
 		listeners: make(map[string]*Listener),
+		protocol:  proto, // Store the protocol instance
 	}
 
 	// Load saved listener configurations
@@ -35,6 +38,7 @@ func NewListenerManager() *ListenerManager {
 		return manager
 	}
 
+	// Pass the manager itself to NewListener when loading saved configs
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
@@ -50,12 +54,12 @@ func NewListenerManager() *ListenerManager {
 
 		var config ListenerConfig
 		if err := json.Unmarshal(configData, &config); err != nil {
-			log.Printf("[WARNING] Failed to parse config for listener %s: %v", entry.Name(), err)
+			log.Printf("[WARNING] Failed to parse config for listener %s: %v", entry.Name, err)
 			continue
 		}
 
-		// Create a new listener instance with STOPPED status
-		listener, err := NewListener(config)
+		// Create a new listener instance with STOPPED status, passing the manager
+		listener, err := NewListener(config) // Updated function signature
 		if err != nil {
 			log.Printf("[WARNING] Failed to create listener instance for %s: %v", config.Name, err)
 			continue
@@ -67,6 +71,11 @@ func NewListenerManager() *ListenerManager {
 	}
 
 	return manager
+}
+
+// GetProtocol returns the protocol instance associated with the manager
+func (m *ListenerManager) GetProtocol() Protocol {
+	return m.protocol
 }
 
 // CreateListener creates and starts a new listener with the given configuration
@@ -81,36 +90,55 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// Generate UUID if not provided
-	if config.ID == "" {
-		config.ID = uuid.New().String()
-		log.Printf("[INFO] Generated new UUID for listener: %s", config.ID)
-	}
-
-	// Validate configuration
+	config.ID = uuid.New().String()
 	if err := m.validateListenerConfig(config); err != nil {
-		return nil, fmt.Errorf("invalid listener configuration: %v", err)
+		return nil, err
 	}
 
-	// Check for port conflicts
-	if m.hasPortConflict(config) {
-		// Allow reusing port if the existing listener is stopped? Consider implications.
-		// For now, strict conflict check.
-		return nil, fmt.Errorf("port %d is already in use by another active listener", config.Port)
+	// HTTP polling uses a dedicated HTTP server
+	if config.Protocol == "http-polling" {
+		// Prepare listener directory and save config.json
+		listenerDir := filepath.Join("static", "listeners", config.Name)
+		if err := os.MkdirAll(listenerDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create listener directory: %w", err)
+		}
+		cfgPath := filepath.Join(listenerDir, "config.json")
+		cfgBytes, err := json.MarshalIndent(config, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal listener config: %w", err)
+		}
+		if err := os.WriteFile(cfgPath, cfgBytes, 0644); err != nil {
+			return nil, fmt.Errorf("failed to save listener config: %w", err)
+		}
+		// Setup upload directory inside listener
+		uploadDir := filepath.Join(listenerDir, "uploads")
+		protoConfig := BaseProtocolConfig{UploadDir: uploadDir, Port: fmt.Sprintf("%d", config.Port)}
+		httpProto := NewHTTPPollingProtocol(protoConfig)
+		// Always bind polling listeners on all interfaces (0.0.0.0)
+		bindAddr := fmt.Sprintf("0.0.0.0:%d", config.Port)
+		go func() {
+			if config.TLSConfig != nil {
+				log.Printf("[INFO] Starting HTTPS polling listener %s on %s", config.Name, bindAddr)
+				http.ListenAndServeTLS(bindAddr, config.TLSConfig.CertFile, config.TLSConfig.KeyFile, httpProto.GetHTTPHandler())
+			} else {
+				log.Printf("[INFO] Starting HTTP polling listener %s on %s", config.Name, bindAddr)
+				http.ListenAndServe(bindAddr, httpProto.GetHTTPHandler())
+			}
+		}()
+		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now()}
+		m.listeners[config.ID] = l
+		return l, nil
 	}
 
+	// Fallback: use raw TCP listener for other protocols
 	listener, err := NewListener(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create new listener instance: %v", err)
+		return nil, err
 	}
-
 	if err := listener.Start(); err != nil {
-		// Clean up listener resources if start fails? Depends on Start() implementation.
-		return nil, fmt.Errorf("failed to start listener %s: %v", config.Name, err)
+		return nil, err
 	}
-
 	m.listeners[config.ID] = listener
-	log.Printf("[INFO] Listener %s (%s) created and started successfully on %s:%d", listener.Config.Name, listener.Config.ID, listener.Config.BindHost, listener.Config.Port)
 	return listener, nil
 }
 
@@ -430,4 +458,24 @@ func (m *ListenerManager) CleanupInactive(threshold time.Duration) {
 			}
 		}
 	}
+}
+
+// LoadSavedListener loads a saved listener configuration from disk
+func (m *ListenerManager) LoadSavedListener(configPath string) (*Listener, error) {
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	var config ListenerConfig
+	if err := json.Unmarshal(configData, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %v", err)
+	}
+
+	listener, err := NewListener(config) // Updated function signature
+	if err != nil {
+		return nil, fmt.Errorf("failed to create listener: %v", err)
+	}
+
+	return listener, nil
 }

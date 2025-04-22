@@ -399,3 +399,8 @@ func (h *DNSMessageHandler) handleFileData(payload []byte) ([]byte, error) {
 	response := []byte{DNSTypeFileData}
 	return response, nil
 }
+
+// GetHTTPHandler returns nil for DNS protocol as it doesn't serve HTTP directly
+func (p *DNSOverHTTPSProtocol) GetHTTPHandler() http.Handler {
+	return nil
+}

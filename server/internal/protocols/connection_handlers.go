@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -57,10 +58,15 @@ func (h *HTTPHandler) ValidateConnection(conn net.Conn) error {
 
 	// Check if the path matches any configured URIs
 	validPath := false
-	for _, uri := range h.listener.Config.URIs {
-		if strings.HasPrefix(path, uri) {
-			validPath = true
-			break
+	if len(h.listener.Config.URIs) == 0 {
+		// No specific URIs configured, accept all paths
+		validPath = true
+	} else {
+		for _, uri := range h.listener.Config.URIs {
+			if strings.HasPrefix(path, uri) {
+				validPath = true
+				break
+			}
 		}
 	}
 
@@ -356,11 +362,62 @@ func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
 	return nil
 }
 
+// PollingHandler wraps HTTPPollingProtocol for per-connection serving
+type PollingHandler struct {
+	proto *HTTPPollingProtocol
+}
+
+// NewPollingHandler creates a new polling handler for this listener
+func NewPollingHandler(listener *Listener) *PollingHandler {
+	// Upload directory scoped to listener
+	uploadDir := filepath.Join("static", "listeners", listener.Config.Name, "uploads")
+	protoConfig := BaseProtocolConfig{UploadDir: uploadDir}
+	return &PollingHandler{proto: NewHTTPPollingProtocol(protoConfig)}
+}
+
+func (h *PollingHandler) ValidateConnection(conn net.Conn) error {
+	// Always accept; HTTP mux will route
+	return nil
+}
+
+func (h *PollingHandler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+	server := &http.Server{Handler: h.proto.GetHTTPHandler()}
+	server.SetKeepAlivesEnabled(false)
+	return server.Serve(&oneShotListener{conn: conn})
+}
+
+// oneShotListener implements net.Listener for a single connection
+type oneShotListener struct {
+	conn net.Conn
+}
+
+func (o *oneShotListener) Accept() (net.Conn, error) {
+	if o.conn == nil {
+		return nil, http.ErrServerClosed
+	}
+	c := o.conn
+	o.conn = nil
+	return c, nil
+}
+
+func (o *oneShotListener) Close() error {
+	return nil
+}
+
+func (o *oneShotListener) Addr() net.Addr {
+	if o.conn != nil {
+		return o.conn.LocalAddr()
+	}
+	// Dummy address
+	return &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0}
+}
+
 // GetConnectionHandler returns the appropriate connection handler for a protocol
 func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
-	case "http", "https":
-		return NewHTTPHandler(listener), nil
+	case "http-polling", "http":
+		return NewPollingHandler(listener), nil
 	case "dns-over-https":
 		return NewDNSHandler(listener), nil
 	case "socks5":

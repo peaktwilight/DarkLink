@@ -24,6 +24,9 @@ type Protocol interface {
 
 	// GetRoutes returns the HTTP routes this protocol needs
 	GetRoutes() map[string]http.HandlerFunc
+
+	// GetHTTPHandler returns the HTTP handler for the protocol (if applicable)
+	GetHTTPHandler() http.Handler
 }
 
 // BaseProtocolConfig contains common configuration for all protocols

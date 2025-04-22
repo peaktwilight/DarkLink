@@ -226,17 +226,20 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	// Create agent config file
 	configPath := filepath.Join(outputDir, "config.json")
 
-	// Determine the protocol prefix and full server URL
+	// Determine the protocol prefix
 	protocolPrefix := "http://"
 	if listener.Protocol == "https" {
 		protocolPrefix = "https://"
 	}
 
-	// Use BindHost by default, override with the first entry in Hosts if provided
-	serverUrl := fmt.Sprintf("%s%s:%d", protocolPrefix, listener.BindHost, listener.Port)
+	// Choose the advertised host: prefer Hosts[0] if set, else BindHost
+	var connectHost string
 	if len(listener.Hosts) > 0 {
-		serverUrl = fmt.Sprintf("%s%s:%d", protocolPrefix, listener.Hosts[0], listener.Port)
+		connectHost = listener.Hosts[0]
+	} else {
+		connectHost = listener.BindHost
 	}
+	serverUrl := fmt.Sprintf("%s%s:%d", protocolPrefix, connectHost, listener.Port)
 
 	agentConfig := map[string]interface{}{
 		"server_url":     serverUrl,
@@ -307,8 +310,8 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		"--build-type", buildType,
 		"--format", config.Format,
 		"--payload-id", payloadID,
-		"--listener-host", listener.BindHost, // Add listener host argument
-		"--listener-port", fmt.Sprintf("%d", listener.Port), // Add listener port argument
+		"--listener-host", connectHost, // Use advertised host for build args
+		"--listener-port", fmt.Sprintf("%d", listener.Port),
 	}
 
 	// Add additional build arguments based on configuration

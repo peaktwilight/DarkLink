@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
 type HTTPPollingProtocol struct {
 	config   BaseProtocolConfig
+	mux      *http.ServeMux
 	commands struct {
 		sync.Mutex
 		queue []string
@@ -47,9 +50,11 @@ type Agent struct {
 	Commands []string  `json:"last_commands"`
 }
 
+// NewHTTPPollingProtocol creates a new HTTP polling protocol instance
 func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
-	return &HTTPPollingProtocol{
+	p := &HTTPPollingProtocol{
 		config: config,
+		mux:    http.NewServeMux(),
 		agents: struct {
 			sync.Mutex
 			list map[string]*Agent
@@ -59,6 +64,157 @@ func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
 			list map[string]*Listener
 		}{list: make(map[string]*Listener)},
 	}
+
+	p.registerRoutes()
+	return p
+}
+
+func (p *HTTPPollingProtocol) registerRoutes() {
+	// Register agent communication routes with /api prefix
+	p.mux.HandleFunc("/api/agent/", p.handleAgentRequests)
+	log.Printf("[DEBUG] Registered agent routes on HTTP polling protocol")
+}
+
+// GetHTTPHandler returns the ServeMux that handles HTTP requests
+func (p *HTTPPollingProtocol) GetHTTPHandler() http.Handler {
+	return p.mux
+}
+
+func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+
+	// Handle preflight OPTIONS requests
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Extract agent ID and action from path
+	// Expected format: /api/agent/{agentId}/{action}
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		log.Printf("[ERROR] Invalid request path: %s", r.URL.Path)
+		http.Error(w, "Invalid request path", http.StatusBadRequest)
+		return
+	}
+
+	agentID := parts[3]
+	action := parts[4]
+
+	log.Printf("[DEBUG] Handling %s request from agent %s", action, agentID)
+
+	switch action {
+	case "heartbeat":
+		p.handleAgentHeartbeat(w, r, agentID)
+	case "tasks":
+		p.handleAgentTasks(w, r, agentID)
+	case "results":
+		p.handleAgentResults(w, r, agentID)
+	default:
+		log.Printf("[ERROR] Unknown action %s from agent %s", action, agentID)
+		http.Error(w, "Unknown action", http.StatusNotFound)
+	}
+}
+
+func (p *HTTPPollingProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request, agentID string) {
+	enableCors(&w)
+
+	// Handle preflight OPTIONS request
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		log.Printf("[ERROR] Invalid method %s for agent %s heartbeat", r.Method, agentID)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Printf("[DEBUG] Processing heartbeat from agent %s", agentID)
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("[ERROR] Failed to read heartbeat body from agent %s: %v", agentID, err)
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[DEBUG] Received heartbeat data from agent %s: %s", agentID, string(body))
+
+	if err := p.HandleAgentHeartbeat(body); err != nil {
+		log.Printf("[ERROR] Failed to process heartbeat from agent %s: %v", agentID, err)
+		http.Error(w, fmt.Sprintf("Error processing agent data: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("[INFO] Successfully processed heartbeat from agent %s", agentID)
+	// Build JSON response and include Content-Length
+	response := map[string]string{"status": "connected", "time": time.Now().UTC().Format(time.RFC3339)}
+	respBytes, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("[ERROR] Failed to marshal response for agent %s: %v", agentID, err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	w.Write(respBytes)
+}
+
+func (p *HTTPPollingProtocol) handleAgentTasks(w http.ResponseWriter, r *http.Request, agentID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Printf("[DEBUG] Agent %s requesting tasks", agentID)
+
+	// For now, return empty task list
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode([]interface{}{})
+}
+
+func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.Request, agentID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	log.Printf("[DEBUG] Received results from agent %s", agentID)
+
+	// Read and process results
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("[ERROR] Failed to read results from agent %s: %v", agentID, err)
+		http.Error(w, "Error reading request body", http.StatusBadRequest)
+		return
+	}
+
+	result := CommandResult{
+		Command:   r.Header.Get("X-Command"),
+		Output:    string(body),
+		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	p.results.Lock()
+	p.results.queue = append(p.results.queue, result)
+	p.results.Unlock()
+
+	// Acknowledge receipt
+	w.WriteHeader(http.StatusOK)
+}
+
+// Start implements the Protocol interface
+func (p *HTTPPollingProtocol) Start() error {
+	log.Printf("[DEBUG] Starting HTTP polling protocol")
+	return nil
+}
+
+// Stop implements the Protocol interface
+func (p *HTTPPollingProtocol) Stop() error {
+	log.Printf("[DEBUG] Stopping HTTP polling protocol")
+	return nil
 }
 
 func (p *HTTPPollingProtocol) Initialize() error {
@@ -103,14 +259,13 @@ func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
 
 func (p *HTTPPollingProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
-		"/queue_command":   p.handleQueueCommand,
-		"/get_command":     p.handleGetCommand,
-		"/submit_result":   p.handleSubmitResult,
-		"/get_results":     p.handleGetResults,
-		"/files/upload":    p.handleFileUpload,
-		"/files/list":      p.handleListFiles,
-		"/agent/heartbeat": p.handleAgentHeartbeat,
-		"/agent/list":      p.handleListAgents,
+		"/queue_command": p.handleQueueCommand,
+		"/get_command":   p.handleGetCommand,
+		"/submit_result": p.handleSubmitResult,
+		"/get_results":   p.handleGetResults,
+		"/files/upload":  p.handleFileUpload,
+		"/files/list":    p.handleListFiles,
+		"/agent/list":    p.handleListAgents,
 	}
 }
 
@@ -257,31 +412,6 @@ func (p *HTTPPollingProtocol) handleListFiles(w http.ResponseWriter, r *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(fileList)
-}
-
-func (p *HTTPPollingProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-
-	if err := p.HandleAgentHeartbeat(body); err != nil {
-		http.Error(w, "Error processing agent data", http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":      "connected",
-		"server_time": time.Now().Format(time.RFC3339),
-	})
 }
 
 func (p *HTTPPollingProtocol) handleListAgents(w http.ResponseWriter, r *http.Request) {
