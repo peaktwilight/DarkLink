@@ -60,6 +60,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate required flags
+if [ -z "$LISTENER_HOST" ] || [ -z "$LISTENER_PORT" ]; then
+  echo "Error: --listener-host and --listener-port are required" >&2
+  exit 1
+fi
+
 # Use environment variables if arguments not provided
 if [ -z "$TARGET" ]; then
     TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}

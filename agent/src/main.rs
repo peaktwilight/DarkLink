@@ -84,15 +84,20 @@ async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
 pub extern "C" fn DllMain(_hinst: usize, reason: u32, _reserved: usize) -> c_int {
     // DLL_PROCESS_ATTACH = 1
     if reason == 1 {
-        // Start a background thread to run the agent
-        std::thread::spawn(|| {
-            // Create a tokio runtime
-            let rt = tokio::runtime::Runtime::new().unwrap();
-            // Run the agent in the runtime
-            rt.block_on(async {
-                let _ = run_agent().await;
-            });
-        });
+        // Start a background thread to run the agent, handling runtime creation errors
+        match tokio::runtime::Runtime::new() {
+            Ok(rt) => {
+                std::thread::spawn(move || {
+                    rt.block_on(async {
+                        let _ = run_agent().await;
+                    });
+                });
+            }
+            Err(e) => {
+                eprintln!("[ERROR] DllMain: failed to initialize Tokio runtime: {}", e);
+                return 0;
+            }
+        }
     }
     1 // Return true
 }

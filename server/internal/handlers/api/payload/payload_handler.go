@@ -300,7 +300,16 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Using build script: %s", buildScript)
 
 	// Set up the command
-	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format, "--payload-id", payloadID}
+	cmdArgs := []string{
+		buildScript,
+		"--target", buildTarget,
+		"--output", outputDir,
+		"--build-type", buildType,
+		"--format", config.Format,
+		"--payload-id", payloadID,
+		"--listener-host", listener.BindHost, // Add listener host argument
+		"--listener-port", fmt.Sprintf("%d", listener.Port), // Add listener port argument
+	}
 
 	// Add additional build arguments based on configuration
 	if config.IndirectSyscall {
@@ -333,12 +342,15 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
 		fmt.Sprintf("BUILD_TYPE=%s", buildType),
-		fmt.Sprintf("LISTENER_HOST=%s", listener.BindHost),
-		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
+		// fmt.Sprintf("LISTENER_HOST=%s", listener.BindHost),
+		// fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
 	)
-	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
-		buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
+	// log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
+	//	buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
+
+	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, SLEEP_INTERVAL=%d",
+		buildTarget, outputDir, buildType, config.Sleep)
 
 	log.Printf("[INFO] Starting build process...")
 	// Execute build command

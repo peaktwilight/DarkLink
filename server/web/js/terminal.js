@@ -15,7 +15,13 @@ class TerminalManager {
         this.ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws/terminal`);
 
         this.ws.onmessage = (event) => {
-            const response = JSON.parse(event.data);
+            let response;
+            try {
+                response = JSON.parse(event.data);
+            } catch (e) {
+                console.error('Invalid JSON from terminal websocket:', e);
+                return;
+            }
             if (response.cwd) {
                 this.currentWorkingDirectory = response.cwd;
                 this.updatePrompt();

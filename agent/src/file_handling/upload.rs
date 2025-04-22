@@ -1,13 +1,16 @@
 use std::fs;
-use std::path::Path;
 use std::error::Error;
-use hyper::{Client, Request, Body};
+use hyper::{Client, Request};
+use hyper::Body;
 use hyper::header::{CONTENT_TYPE, CONTENT_LENGTH};
-use bytes::Bytes;
 
+/// Uploads a file to the given URL via HTTP POST.
+/// The file is sent with 'application/octet-stream' content type and
+/// an 'X-Filename' header set to the base file name. Returns an error
+/// if file reading or network operations fail.
 pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>> {
     let content = fs::read(filepath)?;
-    let filename = Path::new(filepath)
+    let filename = std::path::Path::new(filepath)
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or(filepath);

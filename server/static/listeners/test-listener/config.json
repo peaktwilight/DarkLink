@@ -1,11 +1,11 @@
 {
-    "id": "dd3bd006-11ba-458e-9bcd-5a3b4887e3f1",
+    "id": "0c4650fc-a2d1-4621-a885-6cc8e1573aaf",
     "name": "test-listener",
     "protocol": "http",
-    "host": "172.28.223.255",
+    "host": "172.28.249.104",
     "port": 8443,
     "headers": {
-        "X-MicroC2test": ""
+        "X-MicroC2": "1.0.0"
     },
     "user_agent": "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36",
     "host_rotation": "round-robin",
