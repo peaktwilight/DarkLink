@@ -2,18 +2,22 @@ class DashboardManager {
     constructor() {
         this.autoScroll = true;
         this.previousListenerStates = new Map();
+        this.previousAgentStates = new Map();
         this.logWebSocket = null;
         this.wsReconnectAttempts = 0;
         this.MAX_RECONNECT_ATTEMPTS = 10;
         this.RECONNECT_DELAY = 2000;
         this.reconnectTimer = null;
-        
+
         this.initializeWebSocket();
         this.setupEventListeners();
-        
-        // Add periodic refresh for listeners
+
+        // Periodically refresh active components
         this.loadActiveListeners();
         setInterval(() => this.loadActiveListeners(), 10000);
+        
+        this.loadActiveAgents();
+        setInterval(() => this.loadActiveAgents(), 5000); // Update agents every 5 seconds
     }
 
     initializeWebSocket() {
@@ -173,33 +177,51 @@ class DashboardManager {
         }
     }
 
-    sendCommand() {
+    async sendCommand() {
         const commandInput = document.getElementById('command-input');
         const command = commandInput.value.trim();
-        
-        if (command) {
+
+        if (!this.selectedAgentId) {
             this.appendLogEntry({
                 timestamp: new Date().toISOString(),
-                severity: 'INFO',
-                message: `> ${command}`,
-                source: 'user'
+                severity: 'WARNING',
+                message: 'No agent selected. Click "Interact" on an agent first.',
+                source: 'system'
             });
+            return;
+        }
 
-            if (this.logWebSocket && this.logWebSocket.readyState === WebSocket.OPEN) {
-                this.logWebSocket.send(JSON.stringify({
-                    type: 'command',
-                    command: command
-                }));
-            } else {
+        if (command) {
+            try {
+                const response = await fetch(`/api/agents/${this.selectedAgentId}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                this.appendLogEntry({
+                    timestamp: new Date().toISOString(),
+                    severity: 'INFO',
+                    message: `Command sent to agent ${this.selectedAgentId}: ${command}`,
+                    source: 'user'
+                });
+
+                commandInput.value = '';
+            } catch (error) {
+                console.error('Error sending command:', error);
                 this.appendLogEntry({
                     timestamp: new Date().toISOString(),
                     severity: 'ERROR',
-                    message: 'Not connected to server',
+                    message: `Failed to send command: ${error.message}`,
                     source: 'system'
                 });
             }
-
-            commandInput.value = '';
         }
     }
     
@@ -437,6 +459,125 @@ class DashboardManager {
                 timestamp: new Date().toISOString(),
                 severity: 'ERROR',
                 message: `Failed to start listener (fallback method): ${error.message}`,
+                source: 'system'
+            });
+        }
+    }
+
+    async loadActiveAgents() {
+        try {
+            const response = await fetch('/api/agents/list');
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            const agents = await response.json();
+            const agentsContainer = document.getElementById('agent-list');
+
+            if (!Array.isArray(agents) || agents.length === 0) {
+                agentsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>No active agents</p>
+                        <p>Generate a payload to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            agents.forEach(agent => {
+                const lastSeen = new Date(agent.last_seen || Date.now()).toLocaleString();
+                const agentStatus = agent.connected ? 'active' : 'disconnected';
+
+                // Track agent state changes for notifications
+                const previousStatus = this.previousAgentStates.get(agent.id);
+                if (previousStatus !== undefined && previousStatus !== agentStatus) {
+                    this.appendLogEntry({
+                        timestamp: new Date().toISOString(),
+                        severity: agentStatus === 'active' ? 'SUCCESS' : 'WARNING',
+                        message: `Agent ${agent.id} is now ${agentStatus}`,
+                        source: 'system'
+                    });
+                }
+                this.previousAgentStates.set(agent.id, agentStatus);
+
+                html += `
+                    <div class="agent-card" data-id="${agent.id}">
+                        <div class="agent-header">
+                            <div class="agent-title">
+                                <div class="agent-status ${agentStatus}"></div>
+                                <span class="agent-name">${agent.id}</span>
+                            </div>
+                            <span class="agent-type">${agent.type || 'Standard'}</span>
+                        </div>
+                        <div class="agent-details">
+                            <div>Last Seen: ${lastSeen}</div>
+                            <div>IP: ${agent.ip || 'Unknown'}</div>
+                            <div>Hostname: ${agent.hostname || 'Unknown'}</div>
+                            <div>OS: ${agent.os || 'Unknown'}</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button class="action-button" onclick="dashboardManager.interactWithAgent('${agent.id}')">Interact</button>
+                            <button class="action-button delete" onclick="dashboardManager.removeAgent('${agent.id}')">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            agentsContainer.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading agents:', error);
+            document.getElementById('agent-list').innerHTML = `
+                <div class="empty-state">
+                    <p>Error loading agents</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async interactWithAgent(agentId) {
+        // Select the agent for interaction
+        // This will be used by the command shell
+        this.selectedAgentId = agentId;
+        
+        this.appendLogEntry({
+            timestamp: new Date().toISOString(),
+            severity: 'INFO',
+            message: `Selected agent ${agentId} for interaction`,
+            source: 'system'
+        });
+
+        // Update command input prompt
+        const input = document.getElementById('command-input');
+        input.placeholder = `Enter command for agent ${agentId}...`;
+    }
+
+    async removeAgent(agentId) {
+        if (!confirm(`Are you sure you want to remove agent ${agentId}?`)) return;
+
+        try {
+            const response = await fetch(`/api/agents/${agentId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            await this.loadActiveAgents();
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'SUCCESS',
+                message: `Agent ${agentId} removed successfully`,
+                source: 'system'
+            });
+        } catch (error) {
+            console.error('Error removing agent:', error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to remove agent: ${error.message}`,
                 source: 'system'
             });
         }

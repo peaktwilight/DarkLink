@@ -110,6 +110,14 @@ func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http
 		p.handleAgentTasks(w, r, agentID)
 	case "results":
 		p.handleAgentResults(w, r, agentID)
+	case "command":
+		// Agent polling for next command
+		p.handleGetCommand(w, r)
+		return
+	case "result":
+		// Agent submitting command result
+		p.handleAgentResults(w, r, agentID)
+		return
 	default:
 		log.Printf("[ERROR] Unknown action %s from agent %s", action, agentID)
 		http.Error(w, "Unknown action", http.StatusNotFound)

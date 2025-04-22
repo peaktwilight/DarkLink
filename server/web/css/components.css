@@ -591,3 +591,103 @@ select,
     height: 0.1px;
     pointer-events: none;
 }
+
+/* Agent Cards */
+.agent-card {
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: box-shadow 0.3s ease;
+}
+
+.agent-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.agent-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.agent-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.agent-status.active {
+    background: var(--success-color);
+    box-shadow: 0 0 8px var(--success-color);
+    animation: pulse 2s infinite;
+}
+
+.agent-status.disconnected {
+    background: var(--error-color);
+    box-shadow: 0 0 8px var(--error-color);
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.agent-name {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.agent-type {
+    color: var(--accent-color);
+    font-size: 0.9em;
+}
+
+.agent-details {
+    font-size: 0.9em;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin-bottom: 12px;
+}
+
+.agent-details > div {
+    margin-bottom: 4px;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.action-button {
+    background: var(--button-secondary);
+    color: var(--text-color);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.action-button:hover {
+    background: var(--button-secondary-hover);
+}
+
+.action-button.delete {
+    background: var(--button-danger);
+    color: white;
+}
+
+.action-button.delete:hover {
+    background: var(--button-danger-hover);
+}
