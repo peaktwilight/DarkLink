@@ -1,12 +1,12 @@
-use tokio::net::TcpStream;
+use tokio::net::{TcpStream, TcpListener};
 use tokio_socks::tcp::Socks5Stream;
-use std::error::Error;
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use thiserror::Error;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 // SOCKS5 Protocol Constants
 pub const SOCKS5_VERSION: u8 = 0x05;
@@ -50,6 +50,8 @@ pub enum Socks5Error {
     InvalidAddress(String),
     #[error("Proxy error: {0}")]
     ProxyError(String),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 #[derive(Debug, Clone)]
@@ -143,6 +145,8 @@ impl Socks5Client {
         let proxy_addr = format!("{}:{}", self.proxy_addr, self.proxy_port);
         let addr = proxy_addr.parse::<SocketAddr>()
             .map_err(|e| Socks5Error::InvalidAddress(e.to_string()))?;
+        
+        let target = format!("{}:{}", target_addr, target_port);
 
         let stream = match (&self.username, &self.password) {
             (Some(user), Some(pass)) => {
@@ -150,8 +154,7 @@ impl Socks5Client {
                     self.timeout,
                     Socks5Stream::connect_with_password(
                         addr,
-                        target_addr.clone(),
-                        target_port,
+                        target,
                         user,
                         pass,
                     )
@@ -164,8 +167,7 @@ impl Socks5Client {
                     self.timeout,
                     Socks5Stream::connect(
                         addr,
-                        target_addr.clone(),
-                        target_port,
+                        target,
                     )
                 ).await
                 .map_err(|_| Socks5Error::Timeout)?
@@ -174,11 +176,6 @@ impl Socks5Client {
         };
 
         let tcp_stream = stream.into_inner();
-        
-        // Store a clone of the connection in the pool before returning
-        if let Ok(cloned_stream) = tcp_stream.try_clone() {
-            self.store_connection(target_key, cloned_stream).await;
-        }
 
         Ok(tcp_stream)
     }
@@ -201,6 +198,107 @@ impl Socks5Client {
         }
 
         Err(last_error.unwrap_or(Socks5Error::ConnectionFailed("Max retries exceeded".to_string())))
+    }
+
+    pub async fn start_reverse_tunnel(&self, local_port: u16) -> Result<(), Socks5Error> {
+        let listener = TcpListener::bind(format!("127.0.0.1:{}", local_port))
+            .await
+            .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to bind local port: {}", e)))?;
+
+        println!("[SOCKS5] Started reverse tunnel on local port {}", local_port);
+
+        loop {
+            match listener.accept().await {
+                Ok((local_stream, addr)) => {
+                    println!("[SOCKS5] Accepted connection from {}", addr);
+                    let client = self.clone();
+                    
+                    // Handle each connection in a separate task
+                    tokio::spawn(async move {
+                        if let Err(e) = client.handle_reverse_connection(local_stream).await {
+                            println!("[ERROR] Reverse tunnel connection failed: {}", e);
+                        }
+                    });
+                }
+                Err(e) => {
+                    println!("[ERROR] Failed to accept connection: {}", e);
+                }
+            }
+        }
+    }
+
+    async fn handle_reverse_connection(&self, mut local_stream: TcpStream) -> Result<(), Socks5Error> {
+        // Read SOCKS5 request from local client
+        let mut buf = [0u8; 4];
+        local_stream.read_exact(&mut buf).await
+            .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to read request: {}", e)))?;
+
+        if buf[0] != SOCKS5_VERSION {
+            return Err(Socks5Error::InvalidAddress("Invalid SOCKS5 version".to_string()));
+        }
+
+        // Read target address
+        let addr_type = match local_stream.read_u8().await {
+            Ok(t) => t,
+            Err(e) => return Err(Socks5Error::ConnectionFailed(format!("Failed to read address type: {}", e))),
+        };
+
+        let target_addr = match addr_type {
+            ADDR_TYPE_IPV4 => {
+                let mut addr = [0u8; 4];
+                local_stream.read_exact(&mut addr).await
+                    .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to read IPv4: {}", e)))?;
+                format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3])
+            },
+            ADDR_TYPE_DOMAIN => {
+                let len = local_stream.read_u8().await
+                    .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to read domain length: {}", e)))? as usize;
+                let mut domain = vec![0u8; len];
+                local_stream.read_exact(&mut domain).await
+                    .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to read domain: {}", e)))?;
+                String::from_utf8(domain)
+                    .map_err(|e| Socks5Error::InvalidAddress(format!("Invalid domain name: {}", e)))?
+            },
+            _ => return Err(Socks5Error::InvalidAddress("Unsupported address type".to_string())),
+        };
+
+        let target_port = local_stream.read_u16().await
+            .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to read port: {}", e)))?;
+
+        // Connect to target through SOCKS5 proxy
+        let remote_stream = self.connect_to(target_addr.clone(), target_port).await?;
+
+        // Send success response
+        let response = [
+            SOCKS5_VERSION,
+            REP_SUCCESS,
+            0x00, // Reserved
+            ADDR_TYPE_IPV4,
+            0, 0, 0, 0, // Bind address
+            0, 0, // Bind port
+        ];
+        local_stream.write_all(&response).await
+            .map_err(|e| Socks5Error::ConnectionFailed(format!("Failed to send response: {}", e)))?;
+
+        // Start bidirectional forwarding
+        let (mut local_read, mut local_write) = local_stream.into_split();
+        let (mut remote_read, mut remote_write) = remote_stream.into_split();
+
+        let client_to_target = tokio::spawn(async move {
+            tokio::io::copy(&mut local_read, &mut remote_write).await
+        });
+
+        let target_to_client = tokio::spawn(async move {
+            tokio::io::copy(&mut remote_read, &mut local_write).await
+        });
+
+        // Wait for either direction to complete
+        tokio::select! {
+            _ = client_to_target => {},
+            _ = target_to_client => {},
+        }
+
+        Ok(())
     }
 }
 
