@@ -7,6 +7,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use std::io;
 
 // SOCKS5 Protocol Constants
 pub const SOCKS5_VERSION: u8 = 0x05;
@@ -300,6 +301,70 @@ impl Socks5Client {
 
         Ok(())
     }
+}
+
+pub async fn socks5_bind(
+    proxy_addr: &str,
+    proxy_port: u16,
+    bind_port: u16,
+) -> io::Result<TcpStream> {
+    // 1) CONNECT to the proxy
+    let mut stream = TcpStream::connect((proxy_addr, proxy_port)).await?;
+
+    // 2) NO‑AUTH handshake
+    stream.write_all(&[0x05, 0x01, 0x00]).await?;
+    let mut resp = [0u8; 2];
+    stream.read_exact(&mut resp).await?;
+    if resp != [0x05, 0x00] {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("handshake failed: {:?}", resp)));
+    }
+
+    // 3) REQUEST BIND to 0.0.0.0:bind_port
+    let mut req = vec![0x05, 0x02, 0x00, 0x01];
+    req.extend(&[0, 0, 0, 0]);                // IPv4 “0.0.0.0”
+    req.extend(&bind_port.to_be_bytes());     // port
+    stream.write_all(&req).await?;
+
+    // 4) FIRST reply (bound address)
+    let mut hdr = [0u8; 4];
+    stream.read_exact(&mut hdr).await?;
+    if hdr[1] != 0x00 {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("bind failed: {:?}", hdr)));
+    }
+    // skip the bound‐address block
+    let skip = match hdr[3] {
+        0x01 => 4 + 2,
+        0x04 => 16 + 2,
+        0x03 => {
+            let mut len = [0u8]; stream.read_exact(&mut len).await?;
+            (len[0] as usize) + 2
+        }
+        _ => return Err(io::Error::new(io::ErrorKind::Other, "bad ATYP")),
+    };
+    let mut junk = vec![0u8; skip];
+    stream.read_exact(&mut junk).await?;
+
+    // 5) SECOND reply (incoming connect from server)
+    let mut hdr2 = [0u8; 4];
+    stream.read_exact(&mut hdr2).await?;
+    if hdr2[1] != 0x00 {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("bind connect failed: {:?}", hdr2)));
+    }
+    // skip the source‐address block
+    let skip2 = match hdr2[3] {
+        0x01 => 4 + 2,
+        0x04 => 16 + 2,
+        0x03 => {
+            let mut len = [0u8]; stream.read_exact(&mut len).await?;
+            (len[0] as usize) + 2
+        }
+        _ => return Err(io::Error::new(io::ErrorKind::Other, "bad ATYP2")),
+    };
+    let mut junk2 = vec![0u8; skip2];
+    stream.read_exact(&mut junk2).await?;
+
+    // 6) Now `stream` is your two‑way channel: server ↔ agent
+    Ok(stream)
 }
 
 #[cfg(test)]

