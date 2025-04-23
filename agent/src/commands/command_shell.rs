@@ -7,6 +7,7 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 use hostname;
 use os_info;
+use std::net::UdpSocket;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -96,6 +97,15 @@ fn stdin_ready() -> io::Result<bool> {
     Ok(stdin.read(&mut buf)? > 0)
 }
 
+fn get_local_ip() -> io::Result<String> {
+    // Create a UDP socket and "connect" it to a public IP
+    // This doesn't send any packets, it just helps us determine which local interface would be used
+    let socket = UdpSocket::bind("0.0.0.0:0")?;
+    socket.connect("8.8.8.8:80")?;
+    let addr = socket.local_addr()?;
+    Ok(addr.ip().to_string())
+}
+
 async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
     println!("[DEBUG] Sending heartbeat to {} for agent {}", url, agent_id);
@@ -104,11 +114,13 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
     let hostname = hostname::get()?
         .to_string_lossy()
         .to_string();
+    let ip = get_local_ip().unwrap_or_else(|_| "Unknown".to_string());
 
     let data = json!({
         "id": agent_id,
         "os": os.os_type().to_string(),
         "hostname": hostname,
+        "ip": ip,
         "commands": Vec::<String>::new()
     });
 
