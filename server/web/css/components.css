@@ -87,6 +87,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* Highlight selected listener */
+.listener-card.selected {
+    border: 2px solid var(--accent-color);
+}
+
 .listener-header {
     display: flex;
     justify-content: space-between;
