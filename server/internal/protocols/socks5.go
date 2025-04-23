@@ -375,8 +375,7 @@ func (s *SOCKS5Server) handleBind(conn net.Conn, header []byte) error {
 	if err != nil {
 		return err
 	}
-	// once we accept, close the listener
-	listener.Close()
+	// once we accept, proceed with the connection
 
 	// 5) reply #2: “connection established from this source”
 	remoteTCP := remoteConn.RemoteAddr().(*net.TCPAddr)
