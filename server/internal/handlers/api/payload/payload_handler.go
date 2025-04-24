@@ -26,6 +26,8 @@ type PayloadConfig struct {
 	DllSideloading  bool   `json:"dllSideloading"`
 	SideloadDll     string `json:"sideloadDll,omitempty"`
 	ExportName      string `json:"exportName,omitempty"`
+	Socks5Enabled   bool   `json:"socks5Enabled"`
+	Socks5Port      int    `json:"socks5Port"`
 }
 
 // PayloadResult contains information about a generated payload
@@ -247,6 +249,13 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		"jitter":         2,           // Default jitter value
 		"payload_id":     listener.ID, // Use listener ID as payload ID
 		"protocol":       listener.Protocol,
+	}
+
+	// Include SOCKS5 proxy settings if requested
+	agentConfig["socks5Enabled"] = config.Socks5Enabled
+	agentConfig["socks5Port"] = config.Socks5Port
+	if config.Socks5Enabled {
+		agentConfig["protocol"] = "socks5"
 	}
 
 	// Add additional configuration options based on payload settings

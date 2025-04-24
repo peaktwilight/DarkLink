@@ -19,6 +19,10 @@ class PayloadManager {
         document.getElementById('dllSideloading').addEventListener('change', function() {
             document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
         });
+        // SOCKS5 proxy toggle
+        document.getElementById('socks5Enabled').addEventListener('change', function() {
+            document.getElementById('socks5Options').classList.toggle('hidden', !this.checked);
+        });
 
         // Architecture change handler
         document.getElementById('architecture').addEventListener('change', (e) => {
@@ -211,23 +215,25 @@ class PayloadManager {
     async handleFormSubmission(e) {
         const formData = new FormData(e.target);
         const config = Object.fromEntries(formData);
-        
+        // Convert checkbox values to boolean
+        config.indirectSyscall = config.indirectSyscall === 'on';
+        config.dllSideloading = config.dllSideloading === 'on';
+        config.socks5Enabled = config.socks5Enabled === 'on';
+        config.socks5Port = parseInt(config.socks5Port, 10) || 0;
+
         if (config.sleep) {
             config.sleep = parseInt(config.sleep, 10);
         }
-        
-        config.indirectSyscall = config.indirectSyscall === 'on';
-        config.dllSideloading = config.dllSideloading === 'on';
-        
+
         const downloadSection = document.getElementById('download-section');
         downloadSection.classList.add('hidden');
-        
+
         this.clearLogDisplay();
         this.isGeneratingPayload = true;
-        
+
         this.addLogEntry('payload', 'Starting payload generation...', 'INFO');
         this.addLogEntry('payload', `Payload configuration: ${JSON.stringify(config, null, 2)}`, 'INFO');
-        
+
         try {
             const response = await fetch('/api/payload/generate', {
                 method: 'POST',

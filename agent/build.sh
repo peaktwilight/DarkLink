@@ -143,7 +143,9 @@ cat > "$OUTPUT_DIR/.config/config.json" << EOF
     "sleep_interval": ${SLEEP_INTERVAL:-60},
     "jitter": ${JITTER:-2},
     "payload_id": "${PAYLOAD_ID}",
-    "protocol": "http"
+    "protocol": "${PROTOCOL}",
+    "socks5_enabled": ${SOCKS5_ENABLED},
+    "socks5_port": ${SOCKS5_PORT}
 }
 EOF
 

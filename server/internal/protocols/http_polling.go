@@ -46,6 +46,7 @@ type Agent struct {
 	OS       string    `json:"os"`
 	Hostname string    `json:"hostname"`
 	IP       string    `json:"ip"`
+	IPList   []string  `json:"ip_list,omitempty"`
 	LastSeen time.Time `json:"last_seen"`
 	Commands []string  `json:"last_commands"`
 }
