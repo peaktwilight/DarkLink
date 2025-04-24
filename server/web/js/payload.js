@@ -153,7 +153,7 @@ class PayloadManager {
                 const config = listener.config || {};
                 const id = config.id || listener.id || '';
                 const name = config.name || listener.name || 'Unnamed';
-                const protocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const protocol = config.protocol || listener.Protocol || listener.type || 'Unknown';
                 
                 if (id) {
                     const option = document.createElement('option');

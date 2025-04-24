@@ -198,14 +198,10 @@ class DashboardManager {
 
         if (command) {
             try {
-                // Determine base URL based on selected listener or default
-                let baseUrl;
-                if (this.selectedListenerHost && this.selectedListenerPort) {
-                    baseUrl = `${window.location.protocol}//${this.selectedListenerHost}:${this.selectedListenerPort}`;
-                } else {
-                    baseUrl = `${window.location.protocol}//${window.location.host}`;
-                }
-                const response = await fetch(`${baseUrl}/api/agents/${this.selectedAgentId}/command`, {
+                // Always send to main API server (default port 8080)
+                const apiPort = 8080; // Change if your main API server uses a different port
+                const apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+                const response = await fetch(`${apiBaseUrl}/api/agents/${this.selectedAgentId}/command`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -263,7 +259,7 @@ class DashboardManager {
                 const config = listener.config || {};
                 const listenerId = config.id || listener.id;
                 const listenerName = config.name || listener.name || 'Unnamed';
-                const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const listenerProtocol = config.protocol || listener.Protocol || listener.type || 'Unknown';
                 const listenerHost = config.host || listener.host || 'Unknown';
                 const listenerPort = config.port || listener.port || 'Unknown';
                 const listenerStatus = listener.status || 'Unknown';

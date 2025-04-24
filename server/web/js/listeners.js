@@ -251,7 +251,7 @@ class ListenerManager {
                 // header
                 const header = document.createElement('div'); header.className='listener-header';
                 header.innerHTML = `<span class="listener-name">${config.name||listener.name||'Unnamed'}</span>`+
-                    `<span class="listener-type">${config.protocol||listener.protocol||listener.type||'?'}</span>`;
+                    `<span class="listener-type">${config.protocol||listener.Protocol||listener.type||'?'}</span>`;
                 card.appendChild(header);
                 // details
                 const details = document.createElement('div'); details.className='listener-details';

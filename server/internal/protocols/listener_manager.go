@@ -129,7 +129,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 				http.ListenAndServe(bindAddr, httpProto.GetHTTPHandler())
 			}
 		}()
-		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now(), protocol: httpProto}
+		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now(), Protocol: httpProto}
 		m.listeners[config.ID] = l
 		return l, nil
 	}
@@ -490,8 +490,8 @@ func (m *ListenerManager) AllAgents() map[string]interface{} {
 	defer m.mu.RUnlock()
 	allAgents := make(map[string]interface{})
 	for _, listener := range m.listeners {
-		if listener.protocol != nil {
-			if agenter, ok := listener.protocol.(interface{ GetAllAgents() map[string]interface{} }); ok {
+		if listener.Protocol != nil {
+			if agenter, ok := listener.Protocol.(interface{ GetAllAgents() map[string]interface{} }); ok {
 				for id, agent := range agenter.GetAllAgents() {
 					allAgents[id] = agent
 				}
