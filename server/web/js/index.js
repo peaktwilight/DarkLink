@@ -484,7 +484,9 @@ class DashboardManager {
                 throw new Error(`Server returned ${response.status}`);
             }
 
-            const agents = await response.json();
+            const agentData = await response.json();
+            // Convert agent map/object to array for rendering
+            const agents = Object.values(agentData);
             const agentsContainer = document.getElementById('agent-list');
 
             if (!Array.isArray(agents) || agents.length === 0) {
