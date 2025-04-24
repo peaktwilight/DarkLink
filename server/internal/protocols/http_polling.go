@@ -327,7 +327,8 @@ func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Re
 	if len(queue) > 0 {
 		log.Printf("[DEBUG] handleGetCommand: returning command to agent %s: %s", agentID, cmd)
 	}
-	w.Write([]byte(cmd))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"command": cmd})
 }
 
 func (p *HTTPPollingProtocol) handleSubmitResult(w http.ResponseWriter, r *http.Request) {

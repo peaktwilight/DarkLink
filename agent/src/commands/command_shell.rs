@@ -177,15 +177,17 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
 async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
     let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
     let agent = create_agent();
-    
     match agent.get(&url).call() {
         Ok(response) => {
             if response.status() == 204 {
                 return Ok(None);
             }
-            
-            let command: String = response.into_json()?;
-            Ok(Some(command))
+            #[derive(serde::Deserialize)]
+            struct CommandResponse {
+                command: String,
+            }
+            let cmd_resp: CommandResponse = response.into_json()?;
+            Ok(Some(cmd_resp.command))
         },
         Err(e) => {
             println!("[DEBUG] No command available: {}", e);
