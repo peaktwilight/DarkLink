@@ -114,8 +114,12 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 		uploadDir := filepath.Join(listenerDir, "uploads")
 		protoConfig := BaseProtocolConfig{UploadDir: uploadDir, Port: fmt.Sprintf("%d", config.Port)}
 		httpProto := NewHTTPPollingProtocol(protoConfig)
-		// Always bind polling listeners on all interfaces (0.0.0.0)
-		bindAddr := fmt.Sprintf("0.0.0.0:%d", config.Port)
+		// Use config.BindHost if provided, otherwise default to 0.0.0.0
+		bindHost := config.BindHost
+		if bindHost == "" {
+			bindHost = "0.0.0.0"
+		}
+		bindAddr := fmt.Sprintf("%s:%d", bindHost, config.Port)
 		go func() {
 			if config.TLSConfig != nil {
 				log.Printf("[INFO] Starting HTTPS polling listener %s on %s", config.Name, bindAddr)
