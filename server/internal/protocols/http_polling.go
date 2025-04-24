@@ -494,3 +494,19 @@ func (p *HTTPPollingProtocol) QueueCommand(agentID, cmd string) {
 	p.commands.Unlock()
 	log.Printf("[DEBUG] QueueCommand: agentID=%s, cmd=%s, queueLen=%d", agentID, cmd, len(p.commands.queue[agentID]))
 }
+
+func (p *HTTPPollingProtocol) GetResults(agentID string) []map[string]interface{} {
+	p.results.Lock()
+	defer p.results.Unlock()
+	var results []map[string]interface{}
+	for _, res := range p.results.queue {
+		// If you store agentID in CommandResult, filter by agentID
+		// If not, just return all results (or adjust as needed)
+		results = append(results, map[string]interface{}{
+			"command":   res.Command,
+			"output":    res.Output,
+			"timestamp": res.Timestamp,
+		})
+	}
+	return results
+}

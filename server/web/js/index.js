@@ -562,6 +562,8 @@ class DashboardManager {
         // Update command input prompt
         const input = document.getElementById('command-input');
         input.placeholder = `Enter command for agent ${agentId}...`;
+
+        this.loadAgentResults(agentId);
     }
 
     async removeAgent(agentId) {
@@ -606,6 +608,32 @@ class DashboardManager {
             source: 'system'
         });
         await this.loadActiveListeners();
+    }
+
+    async loadAgentResults(agentId) {
+        const outputDiv = document.getElementById('command-output');
+        outputDiv.innerHTML = '<div>Loading results...</div>';
+        try {
+            const response = await fetch(`/api/agents/${agentId}/results`);
+            if (!response.ok) {
+                outputDiv.innerHTML = '<div>No results found.</div>';
+                return;
+            }
+            const results = await response.json();
+            if (!Array.isArray(results) || results.length === 0) {
+                outputDiv.innerHTML = '<div>No results found.</div>';
+                return;
+            }
+            outputDiv.innerHTML = results.map(res => `
+                <div class="command-result">
+                    <span class="timestamp">${res.timestamp || ''}</span>
+                    <span class="command">${res.command || ''}</span>
+                    <pre class="output">${res.output || ''}</pre>
+                </div>
+            `).join('');
+        } catch (e) {
+            outputDiv.innerHTML = `<div>Error loading results: ${e.message}</div>`;
+        }
     }
 }
 
