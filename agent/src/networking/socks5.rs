@@ -5,7 +5,6 @@ use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use thiserror::Error;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use std::io;
 
@@ -39,20 +38,42 @@ pub const REP_TTL_EXPIRED: u8 = 0x06;
 pub const REP_CMD_NOT_SUPPORTED: u8 = 0x07;
 pub const REP_ADDR_NOT_SUPPORTED: u8 = 0x08;
 
-#[derive(Error, Debug)]
+#[derive(Debug)]
 pub enum Socks5Error {
-    #[error("Connection timeout")]
     Timeout,
-    #[error("Connection failed: {0}")]
     ConnectionFailed(String),
-    #[error("Authentication failed")]
     AuthenticationFailed,
-    #[error("Invalid address: {0}")]
     InvalidAddress(String),
-    #[error("Proxy error: {0}")]
     ProxyError(String),
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(std::io::Error),
+}
+
+impl std::fmt::Display for Socks5Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Socks5Error::Timeout => write!(f, "Connection timeout"),
+            Socks5Error::ConnectionFailed(s) => write!(f, "Connection failed: {}", s),
+            Socks5Error::AuthenticationFailed => write!(f, "Authentication failed"),
+            Socks5Error::InvalidAddress(s) => write!(f, "Invalid address: {}", s),
+            Socks5Error::ProxyError(s) => write!(f, "Proxy error: {}", s),
+            Socks5Error::Io(e) => write!(f, "IO error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for Socks5Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Socks5Error::Io(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for Socks5Error {
+    fn from(err: std::io::Error) -> Socks5Error {
+        Socks5Error::Io(err)
+    }
 }
 
 #[derive(Debug, Clone)]
