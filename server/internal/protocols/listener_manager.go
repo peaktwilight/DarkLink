@@ -125,7 +125,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 				http.ListenAndServe(bindAddr, httpProto.GetHTTPHandler())
 			}
 		}()
-		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now()}
+		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now(), protocol: httpProto}
 		m.listeners[config.ID] = l
 		return l, nil
 	}
@@ -478,4 +478,21 @@ func (m *ListenerManager) LoadSavedListener(configPath string) (*Listener, error
 	}
 
 	return listener, nil
+}
+
+// AllAgents returns a combined map of all agents from all listeners
+func (m *ListenerManager) AllAgents() map[string]interface{} {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	allAgents := make(map[string]interface{})
+	for _, listener := range m.listeners {
+		if listener.protocol != nil {
+			if agenter, ok := listener.protocol.(interface{ GetAllAgents() map[string]interface{} }); ok {
+				for id, agent := range agenter.GetAllAgents() {
+					allAgents[id] = agent
+				}
+			}
+		}
+	}
+	return allAgents
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"microc2/server/pkg/communication"
 	"net/http"
 )
@@ -32,16 +33,8 @@ func (h *APIHandler) handleListAgents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the protocol instance which maintains the agent list
-	protocol := h.serverManager.GetProtocol()
-
-	// Access the protocol's agent list through its routes
-	if agentListHandler := protocol.GetRoutes()["/agent/list"]; agentListHandler != nil {
-		agentListHandler(w, r)
-		return
-	}
-
-	// If no handler found, return empty list
+	// Aggregate agents from all listeners
+	agents := h.serverManager.GetListenerManager().AllAgents()
 	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("[]"))
+	json.NewEncoder(w).Encode(agents)
 }

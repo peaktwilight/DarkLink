@@ -151,7 +151,7 @@ func (p *HTTPPollingProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *htt
 
 	log.Printf("[DEBUG] Received heartbeat data from agent %s: %s", agentID, string(body))
 
-	if err := p.HandleAgentHeartbeat(body); err != nil {
+	if err := p.processAgentHeartbeat(body); err != nil {
 		log.Printf("[ERROR] Failed to process heartbeat from agent %s: %v", agentID, err)
 		http.Error(w, fmt.Sprintf("Error processing agent data: %v", err), http.StatusBadRequest)
 		return
@@ -252,18 +252,24 @@ func (p *HTTPPollingProtocol) HandleFileDownload(filename string) (io.Reader, er
 	return os.Open(filepath.Join(p.config.UploadDir, filename))
 }
 
-func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
+func (p *HTTPPollingProtocol) processAgentHeartbeat(agentData []byte) error {
 	var agent Agent
 	if err := json.Unmarshal(agentData, &agent); err != nil {
-		return err
+		log.Printf("[ERROR] Failed to unmarshal agent data: %v. Data: %s", err, string(agentData))
+		return fmt.Errorf("failed to unmarshal agent data: %w", err)
 	}
 
 	p.agents.Lock()
+	defer p.agents.Unlock()
 	agent.LastSeen = time.Now()
 	p.agents.list[agent.ID] = &agent
-	p.agents.Unlock()
-
+	log.Printf("[DEBUG] Agent %s added/updated in list. Total agents: %d", agent.ID, len(p.agents.list))
 	return nil
+}
+
+// Restore the interface method for Protocol compatibility
+func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
+	return p.processAgentHeartbeat(agentData)
 }
 
 func (p *HTTPPollingProtocol) GetRoutes() map[string]http.HandlerFunc {
@@ -457,4 +463,15 @@ func (p *HTTPPollingProtocol) handleListeners(w http.ResponseWriter, r *http.Req
 		http.Error(w, "Error encoding listeners", http.StatusInternalServerError)
 		return
 	}
+}
+
+// GetAllAgents returns a map of all agents for aggregation
+func (p *HTTPPollingProtocol) GetAllAgents() map[string]interface{} {
+	p.agents.Lock()
+	defer p.agents.Unlock()
+	result := make(map[string]interface{}, len(p.agents.list))
+	for id, agent := range p.agents.list {
+		result[id] = agent
+	}
+	return result
 }

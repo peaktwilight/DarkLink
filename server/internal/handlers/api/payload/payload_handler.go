@@ -115,6 +115,13 @@ func (h *PayloadHandler) HandleGeneratePayload(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Enforce listener selection
+	if config.ListenerID == "" {
+		http.Error(w, "Listener selection is required. You must select a listener for agent communication.", http.StatusBadRequest)
+		log.Printf("[ERROR] Payload generation aborted: no listener selected.")
+		return
+	}
+
 	// Generate payload
 	result, err := h.GeneratePayload(config)
 	if err != nil {
@@ -203,6 +210,9 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	if err != nil {
 		log.Printf("[ERROR] Failed to get listener %s: %v", config.ListenerID, err)
 		return PayloadResult{}, fmt.Errorf("failed to get listener: %w", err)
+	}
+	if listener.Port == 8080 {
+		log.Printf("[WARNING] Listener port is 8080 (web server port). This is not recommended for agent communication.")
 	}
 	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.BindHost, listener.Port)
 

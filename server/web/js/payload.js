@@ -215,6 +215,12 @@ class PayloadManager {
     async handleFormSubmission(e) {
         const formData = new FormData(e.target);
         const config = Object.fromEntries(formData);
+        // Enforce listener selection
+        if (!config.listener || config.listener === "") {
+            alert("You must select a listener before generating a payload. Agents must connect to a valid listener port, not the web server port.");
+            this.addLogEntry('payload', 'No listener selected. Payload generation aborted.', 'ERROR');
+            return;
+        }
         // Convert checkbox values to boolean
         config.indirectSyscall = config.indirectSyscall === 'on';
         config.dllSideloading = config.dllSideloading === 'on';
