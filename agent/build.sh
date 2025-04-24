@@ -185,6 +185,11 @@ else
     BINARY_EXT=""
 fi
 
+# Use musl for static linking and smallest binary
+# if [[ "$TARGET" == "x86_64-unknown-linux-gnu" ]]; then
+#   TARGET="x86_64-unknown-linux-musl"
+# fi
+
 # Build the agent
 echo "Building for $TARGET..."
 if [[ "$TARGET" == *windows* ]]; then
@@ -225,6 +230,28 @@ else
     BUILD_DIR="target/$TARGET/release"
 fi
 
+# Print contents of build directory for debugging
+if [ -d "$BUILD_DIR" ]; then
+    echo "Contents of $BUILD_DIR before copy:" >&2
+    ls -la "$BUILD_DIR" >&2
+else
+    echo "Build directory $BUILD_DIR does not exist!" >&2
+fi
+
+# Copy the binary to the output directory (absolute path)
+if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
+    echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
+    mkdir -p "$OUTPUT_DIR"
+    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
+    # Timestamped copy for reference
+    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
+    echo "Agent binary copied successfully to specified output location"
+else
+    echo "ERROR: agent binary not found at $BUILD_DIR/agent$BINARY_EXT" >&2
+    echo "Contents of $BUILD_DIR:" >&2
+    ls -la "$BUILD_DIR" >&2
+fi
+
 echo "Build complete in $BUILD_DIR"
 
 # Copy the binary to the output directory
@@ -256,6 +283,16 @@ else
     # List directory contents to aid debugging
     echo "Contents of $BUILD_DIR:"
     ls -la "$BUILD_DIR"
+fi
+
+# After copying the binary, strip and compress with upx if available
+if [ -f "$OUTPUT_DIR/agent$BINARY_EXT" ]; then
+    echo "Stripping binary..."
+    strip "$OUTPUT_DIR/agent$BINARY_EXT" || true
+    if command -v upx &> /dev/null; then
+        echo "Compressing binary with upx..."
+        upx --best --lzma "$OUTPUT_DIR/agent$BINARY_EXT"
+    fi
 fi
 
 # For DLL format, we need to properly handle DLL creation

@@ -393,15 +393,10 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	// Log the first few lines of the output and summarize the rest
 	outputLines := strings.Split(string(output), "\n")
-	maxLogLines := 10
-	for i, line := range outputLines {
+	// Log ALL lines, not just the first 10
+	for _, line := range outputLines {
 		if line != "" {
-			if i < maxLogLines {
-				log.Printf("[INFO] Build output: %s", line)
-			} else {
-				log.Printf("[INFO] Skipping remaining %d lines of output...", len(outputLines)-maxLogLines)
-				break
-			}
+			log.Printf("[INFO] Build output: %s", line)
 		}
 	}
 
