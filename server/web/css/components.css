@@ -73,7 +73,7 @@
     margin-top: 15px;
 }
 .listener-card, .payload-item, .agent-card {
-    background: var(--secondary-bg);
+    background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 15px;

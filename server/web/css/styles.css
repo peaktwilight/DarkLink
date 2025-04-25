@@ -7,7 +7,7 @@
 :root {
     /* Theme Colors */
     --bg-color: #1a1a1a;
-    --secondary-bg: #2b2b2b;
+    --secondary-bg: #222222;
     --text-color: #e6e6e6;
     --border-color: #444;
     --accent-color: #5ac8fa;
@@ -113,7 +113,7 @@ body {
 
 /* ========== Cards (Agent, Listener, etc.) ========== */
 .agent-card, .listener-card {
-    background: var (--secondary-bg);
+    background: var (var(--bg-color));
     border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 12px;
@@ -335,6 +335,10 @@ button.danger:hover, .action-button.danger:hover, .file-actions button.delete:ho
     .split-panel {
         grid-template-columns: 200px 1fr;
     }
+    .smart-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
 }
 
 @media (max-width: 768px) {
@@ -421,4 +425,44 @@ select:focus,
 textarea:focus {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
+}
+
+.smart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+}
+
+.panel-section {
+    min-width: 0;
+    box-sizing: border-box;
+    background: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.event-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.event-viewer-controls button {
+    margin-left: 6px;
+}
+
+.event-log {
+    height: 610px;           /* Adjust as needed */
+    overflow-y: auto;
+    background: var(--bg-color);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 13px;
+    box-sizing: border-box;
 }
