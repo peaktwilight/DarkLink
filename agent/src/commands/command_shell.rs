@@ -7,7 +7,7 @@ use os_info;
 use std::env;
 use get_if_addrs::get_if_addrs;
 use tokio::time::timeout;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
 use reqwest::StatusCode;
 
 #[cfg(windows)]
@@ -166,15 +166,10 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
         .build()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
     
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::from_secs(0))
-        .as_secs();
-    
+    // REMOVE timestamp from the data sent to the server
     let data = json!({
         "command": command,
-        "output": output,
-        "timestamp": timestamp
+        "output": output
     });
 
     let response = client.post(&url)

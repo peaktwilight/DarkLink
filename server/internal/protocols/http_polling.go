@@ -23,7 +23,7 @@ type HTTPPollingProtocol struct {
 	}
 	results struct {
 		sync.Mutex
-		queue []CommandResult
+		history map[string][]CommandResult // agentID -> []CommandResult
 	}
 	agents struct {
 		sync.Mutex
@@ -66,6 +66,7 @@ func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
 		}{list: make(map[string]*Listener)},
 	}
 	p.commands.queue = make(map[string][]string)
+	p.results.history = make(map[string][]CommandResult)
 	p.registerRoutes()
 	return p
 }
@@ -185,12 +186,13 @@ func (p *HTTPPollingProtocol) handleAgentTasks(w http.ResponseWriter, r *http.Re
 }
 
 func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.Request, agentID string) {
+	log.Printf("[TRACE] Entered handleAgentResults for agentID=%s, method=%s", agentID, r.Method)
+
 	if r.Method != http.MethodPost {
+		log.Printf("[WARN] handleAgentResults: Invalid method %s for agent %s", r.Method, agentID)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
-	log.Printf("[DEBUG] Received results from agent %s", agentID)
 
 	// Read and process results
 	body, err := io.ReadAll(r.Body)
@@ -200,20 +202,26 @@ func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.
 		return
 	}
 
-	result := CommandResult{
-		Command:   r.Header.Get("X-Command"),
-		Output:    string(body),
-		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
-	}
+	log.Printf("[TRACE] handleAgentResults: Raw body from agent %s: %s", agentID, string(body))
 
-	log.Printf("[DEBUG] handleAgentResults: agentID=%s, command=%s, output=%s", agentID, result.Command, result.Output)
+	var result CommandResult
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("[ERROR] Failed to unmarshal CommandResult from agent %s: %v", agentID, err)
+		http.Error(w, "Invalid result format", http.StatusBadRequest)
+		return
+	}
+	result.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+
+	log.Printf("[TRACE] handleAgentResults: Parsed CommandResult for agent %s: %+v", agentID, result)
 
 	p.results.Lock()
-	p.results.queue = append(p.results.queue, result)
+	p.results.history[agentID] = append(p.results.history[agentID], result)
+	log.Printf("[TRACE] handleAgentResults: Results history length for agent %s after append: %d", agentID, len(p.results.history[agentID]))
 	p.results.Unlock()
 
 	// Acknowledge receipt
 	w.WriteHeader(http.StatusOK)
+	log.Printf("[TRACE] handleAgentResults: Sent HTTP 200 OK to agent %s", agentID)
 }
 
 // Start implements the Protocol interface
@@ -267,11 +275,11 @@ func (p *HTTPPollingProtocol) HandleAgentHeartbeat(agentData []byte) error {
 	return p.processAgentHeartbeat(agentData)
 }
 
+// Remove handleSubmitResult from GetRoutes, as it no longer exists or is needed.
 func (p *HTTPPollingProtocol) GetRoutes() map[string]http.HandlerFunc {
 	return map[string]http.HandlerFunc{
 		"/queue_command": p.handleQueueCommand,
 		"/get_command":   p.handleGetCommand,
-		"/submit_result": p.handleSubmitResult,
 		"/get_results":   p.handleGetResults,
 		"/files/upload":  p.handleFileUpload,
 		"/files/list":    p.handleListFiles,
@@ -331,62 +339,35 @@ func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(map[string]string{"command": cmd})
 }
 
-func (p *HTTPPollingProtocol) handleSubmitResult(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
-	if r.Method == http.MethodGet {
-		w.Header().Set("Content-Type", "application/json")
-		p.results.Lock()
-		defer p.results.Unlock()
-
-		if len(p.results.queue) == 0 {
-			w.Write([]byte("[]"))
-			return
-		}
-
-		json.NewEncoder(w).Encode(p.results.queue)
-		p.results.queue = nil
-		return
-	}
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-
-	result := CommandResult{
-		Command:   r.Header.Get("X-Command"),
-		Output:    string(body),
-		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
-	}
-
-	p.results.Lock()
-	p.results.queue = append(p.results.queue, result)
-	p.results.Unlock()
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
-}
-
 func (p *HTTPPollingProtocol) handleGetResults(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	w.Header().Set("Content-Type", "application/json")
 
-	p.results.Lock()
-	defer p.results.Unlock()
+	// Extract agentID from URL: /api/agent/{agentId}/results
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		http.Error(w, "Invalid request path", http.StatusBadRequest)
+		return
+	}
+	agentID := parts[3]
 
-	if len(p.results.queue) == 0 {
+	p.results.Lock()
+	history := p.results.history[agentID]
+	p.results.Unlock()
+
+	log.Printf("[TRACE] handleGetResults: Results history length for agent %s: %d", agentID, len(history))
+
+	if len(history) == 0 {
+		log.Printf("[TRACE] handleGetResults: No results to return for agent %s", agentID)
 		w.Write([]byte("[]"))
 		return
 	}
 
-	json.NewEncoder(w).Encode(p.results.queue)
-	p.results.queue = nil
+	for i, res := range history {
+		log.Printf("[TRACE] handleGetResults: Returning result %d for agent %s: %+v", i, agentID, res)
+	}
+
+	json.NewEncoder(w).Encode(history)
 }
 
 func (p *HTTPPollingProtocol) handleFileUpload(w http.ResponseWriter, r *http.Request) {
@@ -493,20 +474,4 @@ func (p *HTTPPollingProtocol) QueueCommand(agentID, cmd string) {
 	p.commands.queue[agentID] = append(p.commands.queue[agentID], cmd)
 	p.commands.Unlock()
 	log.Printf("[DEBUG] QueueCommand: agentID=%s, cmd=%s, queueLen=%d", agentID, cmd, len(p.commands.queue[agentID]))
-}
-
-func (p *HTTPPollingProtocol) GetResults(agentID string) []map[string]interface{} {
-	p.results.Lock()
-	defer p.results.Unlock()
-	var results []map[string]interface{}
-	for _, res := range p.results.queue {
-		// If you store agentID in CommandResult, filter by agentID
-		// If not, just return all results (or adjust as needed)
-		results = append(results, map[string]interface{}{
-			"command":   res.Command,
-			"output":    res.Output,
-			"timestamp": res.Timestamp,
-		})
-	}
-	return results
 }

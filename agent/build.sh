@@ -185,11 +185,6 @@ else
     BINARY_EXT=""
 fi
 
-# Use musl for static linking and smallest binary
-# if [[ "$TARGET" == "x86_64-unknown-linux-gnu" ]]; then
-#   TARGET="x86_64-unknown-linux-musl"
-# fi
-
 # Build the agent
 echo "Building for $TARGET..."
 if [[ "$TARGET" == *windows* ]]; then
