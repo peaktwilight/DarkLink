@@ -9,6 +9,7 @@ use get_if_addrs::get_if_addrs;
 use tokio::time::timeout;
 use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
 use reqwest::StatusCode;
+use crate::networking::eggress::get_egress_ip;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -96,6 +97,7 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
         .to_string();
     let ip_list = get_all_local_ips();
     let ip = if ip_list.is_empty() { "Unknown".into() } else { ip_list.join(",") };
+    let egress_ip = get_egress_ip(server_addr);
 
     let data = json!({
         "id": agent_id,
@@ -103,6 +105,7 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
         "hostname": hostname,
         "ip": ip,
         "ip_list": ip_list,
+        "egress_ip": egress_ip,
         "commands": Vec::<String>::new()
     });
 

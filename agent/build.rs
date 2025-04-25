@@ -2,7 +2,12 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
+fn log_build(msg: &str) {
+    println!("[BUILD] {}", msg);
+}
+
 fn main() {
+    log_build("Build script started");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=config.json");
     println!("cargo:rerun-if-env-changed=LISTENER_HOST");
@@ -32,8 +37,17 @@ fn main() {
     
     let protocol = env::var("PROTOCOL").unwrap_or_else(|_| default_protocol.to_string());
 
+    log_build(&format!("LISTENER_HOST: {}", server_host));
+    log_build(&format!("LISTENER_PORT: {}", server_port));
+    log_build(&format!("SLEEP_INTERVAL: {}", sleep_interval));
+    log_build(&format!("PAYLOAD_ID: {}", payload_id));
+    log_build(&format!("PROTOCOL: {}", protocol));
+    log_build(&format!("SOCKS5_ENABLED: {}", socks5_enabled));
+    log_build(&format!("SOCKS5_PORT: {}", socks5_port));
+
     // Only use environment config if we have all required values
     let config_content = if !server_host.is_empty() && !server_port.is_empty() && !payload_id.is_empty() {
+        log_build("Using environment variables for config");
         format!(
             r#"{{
                 "server_url": "{}:{}",
@@ -48,10 +62,10 @@ fn main() {
             socks5_enabled, socks5_port
         )
     } else if let Ok(content) = fs::read_to_string("config.json") {
-        // If we have a config.json file, use it as fallback
+        log_build("Using config.json file for config");
         content
     } else {
-        // Empty config that will force error at runtime
+        log_build("No valid config found, using empty config (will cause runtime error)");
         r#"{
             "server_url": "",
             "sleep_interval": 5,
@@ -66,6 +80,7 @@ fn main() {
     // Generate Rust code with the embedded config
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("config.rs");
+    log_build(&format!("Writing embedded config to {:?}", dest_path));
     
     // Create the config code with proper raw string nesting 
     let config_code = format!(
@@ -73,5 +88,10 @@ fn main() {
         config_content
     );
 
-    fs::write(dest_path, config_code).unwrap();
+    if let Err(e) = fs::write(&dest_path, config_code) {
+        log_build(&format!("Failed to write config.rs: {}", e));
+        panic!("Failed to write config.rs: {}", e);
+    } else {
+        log_build("Embedded config written successfully");
+    }
 }

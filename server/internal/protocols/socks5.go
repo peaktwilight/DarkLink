@@ -336,58 +336,11 @@ func (s *SOCKS5Server) handleRequest(conn net.Conn) error {
 
 	switch header[1] {
 	case CmdConnect:
-		// … your existing CONNECT logic …
 		return s.handleConnect(conn, header)
-	case CmdBind:
-		return s.handleBind(conn, header)
 	default:
 		s.sendReply(conn, RepCmdNotSupported, nil)
 		return fmt.Errorf("unsupported command: %d", header[1])
 	}
-}
-
-// new function: handleBind
-func (s *SOCKS5Server) handleBind(conn net.Conn, header []byte) error {
-	// 1) parse the address the agent wants us to bind to
-	bindReq, err := s.readAddress(conn, header[3])
-	if err != nil {
-		s.sendReply(conn, RepAddrNotSupported, nil)
-		return err
-	}
-
-	// 2) listen on that address (or “0.0.0.0:0” for ephemeral)
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:0", bindReq.IP.String()))
-	if err != nil {
-		s.sendReply(conn, RepServerFailure, nil)
-		return err
-	}
-	defer listener.Close()
-
-	// 3) reply #1: “OK, here’s the address/port I’m listening on”
-	bindAddr := listener.Addr().(*net.TCPAddr)
-	if err := s.sendReply(conn, RepSuccess, bindAddr); err != nil {
-		return err
-	}
-
-	// 4) wait for *you* (the server operator) to connect to that listener
-	//    this is how you dial *into* the agent
-	remoteConn, err := listener.Accept()
-	if err != nil {
-		return err
-	}
-	// once we accept, proceed with the connection
-
-	// 5) reply #2: “connection established from this source”
-	remoteTCP := remoteConn.RemoteAddr().(*net.TCPAddr)
-	if err := s.sendReply(conn, RepSuccess, remoteTCP); err != nil {
-		remoteConn.Close()
-		return err
-	}
-
-	// 6) now proxy traffic both ways
-	tunnelID := s.state.trackTunnel(remoteTCP.String(), conn.RemoteAddr().String())
-	defer s.state.removeTunnel(tunnelID)
-	return s.proxyData(conn, remoteConn, tunnelID)
 }
 
 // handleConnect processes the client's connection request for CONNECT command
