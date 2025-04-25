@@ -9,13 +9,11 @@ class DashboardManager {
         this.RECONNECT_DELAY = 2000;
         this.reconnectTimer = null;
 
-        // Selected listener for routing commands
-        this.selectedListenerId = null;
-        this.selectedListenerHost = null;
-        this.selectedListenerPort = null;
-
         this.initializeWebSocket();
         this.setupEventListeners();
+
+        this.selectedAgentId = null;
+        this.resultsPollingInterval = null;
 
         // Periodically refresh active components
         this.loadActiveListeners();
@@ -271,7 +269,7 @@ class DashboardManager {
                 }
 
                 html += `
-                    <div class="listener-card ${this.selectedListenerId === listenerId ? 'selected' : ''}" data-id="${listenerId}" data-host="${listenerHost}" data-port="${listenerPort}">
+                    <div class="listener-card" data-id="${listenerId}" data-host="${listenerHost}" data-port="${listenerPort}">
                         <div class="listener-header">
                             <span class="listener-name">${listenerName}</span>
                             <span class="listener-type">${listenerProtocol}</span>
@@ -287,7 +285,6 @@ class DashboardManager {
                               `<button class="action-button success" onclick="dashboardManager.startListener('${listenerId}')">Start</button>` : 
                               `<button class="action-button" onclick="dashboardManager.stopListener('${listenerId}')">Stop</button>`}
                             <button class="action-button delete" onclick="dashboardManager.deleteListener('${listenerId}', '${listenerName}')">Delete</button>
-                            <button class="action-button select" onclick="dashboardManager.selectListener('${listenerId}', '${listenerHost}', ${listenerPort})">Select</button>
                         </div>
                     </div>
                 `;
@@ -596,20 +593,6 @@ class DashboardManager {
         }
     }
 
-    // New method to select listener for routing
-    async selectListener(listenerId, host, port) {
-        this.selectedListenerId = listenerId;
-        this.selectedListenerHost = host;
-        this.selectedListenerPort = port;
-        this.appendLogEntry({
-            timestamp: new Date().toISOString(),
-            severity: 'INFO',
-            message: `Selected listener ${listenerId} at ${host}:${port}`,
-            source: 'system'
-        });
-        await this.loadActiveListeners();
-    }
-
     async loadAgentResults(AgentID) {
         const outputDiv = document.getElementById('command-output');
         outputDiv.innerHTML = '<div>Loading results...</div>';
@@ -620,6 +603,7 @@ class DashboardManager {
                 return;
             }
             const results = await response.json();
+            console.log('Results from backend:', results);
             if (!Array.isArray(results) || results.length === 0) {
                 outputDiv.innerHTML = '<div>No results found.</div>';
                 return;
