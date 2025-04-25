@@ -20,7 +20,7 @@ class PayloadManager {
             document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
         });
         // SOCKS5 proxy toggle
-        document.getElementById('socks5Enabled').addEventListener('change', function() {
+        document.getElementById('socks5_enabled').addEventListener('change', function() {
             document.getElementById('socks5Options').classList.toggle('hidden', !this.checked);
         });
 
@@ -224,8 +224,8 @@ class PayloadManager {
         // Convert checkbox values to boolean
         config.indirectSyscall = config.indirectSyscall === 'on';
         config.dllSideloading = config.dllSideloading === 'on';
-        config.socks5Enabled = config.socks5Enabled === 'on';
-        config.socks5Port = parseInt(config.socks5Port, 10) || 0;
+        config.socks5_enabled = config.socks5_enabled === 'on';
+        config.socks5_port = parseInt(config.socks5_port, 10) || 0;
 
         if (config.sleep) {
             config.sleep = parseInt(config.sleep, 10);

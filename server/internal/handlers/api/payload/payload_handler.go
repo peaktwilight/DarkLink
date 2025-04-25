@@ -26,8 +26,8 @@ type PayloadConfig struct {
 	DllSideloading  bool   `json:"dllSideloading"`
 	SideloadDll     string `json:"sideloadDll,omitempty"`
 	ExportName      string `json:"exportName,omitempty"`
-	Socks5Enabled   bool   `json:"socks5Enabled"`
-	Socks5Port      int    `json:"socks5Port"`
+	Socks5Enabled   bool   `json:"socks5_enabled"`
+	Socks5Port      int    `json:"socks5_port"`
 }
 
 // PayloadResult contains information about a generated payload
@@ -262,8 +262,8 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	}
 
 	// Include SOCKS5 proxy settings if requested
-	agentConfig["socks5Enabled"] = config.Socks5Enabled
-	agentConfig["socks5Port"] = config.Socks5Port
+	agentConfig["socks5_enabled"] = config.Socks5Enabled
+	agentConfig["socks5_port"] = config.Socks5Port
 	if config.Socks5Enabled {
 		agentConfig["protocol"] = "socks5"
 	}

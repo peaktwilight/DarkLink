@@ -1,12 +1,10 @@
-use tokio::net::{TcpStream, TcpListener};
+use tokio::net::TcpStream;
 use tokio_socks::tcp::Socks5Stream;
 use std::net::SocketAddr;
 use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use std::io;
 use log::{debug, info, warn, error};
 
 // SOCKS5 Protocol Constants

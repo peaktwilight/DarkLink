@@ -9,7 +9,7 @@ use get_if_addrs::get_if_addrs;
 use tokio::time::timeout;
 use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
 use reqwest::StatusCode;
-use crate::networking::eggress::get_egress_ip;
+use crate::networking::egress::get_egress_ip;
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {

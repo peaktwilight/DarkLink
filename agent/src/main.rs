@@ -1,5 +1,6 @@
 mod commands;
 mod config;
+mod networking;
 
 use commands::command_shell::run_shell;
 use config::AgentConfig;

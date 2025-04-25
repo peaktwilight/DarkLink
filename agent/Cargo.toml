@@ -12,6 +12,8 @@ hostname = "0.3"
 os_info = "3.7"
 rand = "0.8"
 get_if_addrs = "0.5"
+tokio-socks = "0.5.2"
+log = "0.4.27"
 
 [features]
 default = []
