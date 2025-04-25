@@ -186,7 +186,7 @@ class DashboardManager {
         const commandInput = document.getElementById('command-input');
         const command = commandInput.value.trim();
 
-        if (!this.selectedAgentId) {
+        if (!this.selectedAgentID) {
             this.appendLogEntry({
                 timestamp: new Date().toISOString(),
                 severity: 'WARNING',
@@ -201,7 +201,7 @@ class DashboardManager {
                 // Always send to main API server (default port 8080)
                 const apiPort = 8080; // Change if your main API server uses a different port
                 const apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
-                const response = await fetch(`${apiBaseUrl}/api/agents/${this.selectedAgentId}/command`, {
+                const response = await fetch(`${apiBaseUrl}/api/agents/${this.selectedAgentID}/command`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -216,7 +216,7 @@ class DashboardManager {
                 this.appendLogEntry({
                     timestamp: new Date().toISOString(),
                     severity: 'INFO',
-                    message: `Command sent to agent ${this.selectedAgentId}: ${command}`,
+                    message: `Command sent to agent ${this.selectedAgentID}: ${command}`,
                     source: 'user'
                 });
 
@@ -547,30 +547,30 @@ class DashboardManager {
         }
     }
 
-    async interactWithAgent(agentId) {
+    async interactWithAgent(AgentID) {
         // Select the agent for interaction
         // This will be used by the command shell
-        this.selectedAgentId = agentId;
+        this.selectedAgentID = AgentID;
         
         this.appendLogEntry({
             timestamp: new Date().toISOString(),
             severity: 'INFO',
-            message: `Selected agent ${agentId} for interaction`,
+            message: `Selected agent ${AgentID} for interaction`,
             source: 'system'
         });
 
         // Update command input prompt
         const input = document.getElementById('command-input');
-        input.placeholder = `Enter command for agent ${agentId}...`;
+        input.placeholder = `Enter command for agent ${AgentID}...`;
 
-        this.loadAgentResults(agentId);
+        this.loadAgentResults(AgentID);
     }
 
-    async removeAgent(agentId) {
-        if (!confirm(`Are you sure you want to remove agent ${agentId}?`)) return;
+    async removeAgent(AgentID) {
+        if (!confirm(`Are you sure you want to remove agent ${AgentID}?`)) return;
 
         try {
-            const response = await fetch(`/api/agents/${agentId}`, {
+            const response = await fetch(`/api/agents/${AgentID}`, {
                 method: 'DELETE'
             });
 
@@ -582,7 +582,7 @@ class DashboardManager {
             this.appendLogEntry({
                 timestamp: new Date().toISOString(),
                 severity: 'SUCCESS',
-                message: `Agent ${agentId} removed successfully`,
+                message: `Agent ${AgentID} removed successfully`,
                 source: 'system'
             });
         } catch (error) {
@@ -610,11 +610,11 @@ class DashboardManager {
         await this.loadActiveListeners();
     }
 
-    async loadAgentResults(agentId) {
+    async loadAgentResults(AgentID) {
         const outputDiv = document.getElementById('command-output');
         outputDiv.innerHTML = '<div>Loading results...</div>';
         try {
-            const response = await fetch(`/api/agents/${agentId}/results`);
+            const response = await fetch(`/api/agents/${AgentID}/results`);
             if (!response.ok) {
                 outputDiv.innerHTML = '<div>No results found.</div>';
                 return;
