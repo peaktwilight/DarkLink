@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -57,10 +58,15 @@ func (h *HTTPHandler) ValidateConnection(conn net.Conn) error {
 
 	// Check if the path matches any configured URIs
 	validPath := false
-	for _, uri := range h.listener.Config.URIs {
-		if strings.HasPrefix(path, uri) {
-			validPath = true
-			break
+	if len(h.listener.Config.URIs) == 0 {
+		// No specific URIs configured, accept all paths
+		validPath = true
+	} else {
+		for _, uri := range h.listener.Config.URIs {
+			if strings.HasPrefix(path, uri) {
+				validPath = true
+				break
+			}
 		}
 	}
 
@@ -299,13 +305,123 @@ func (d *DNSHandler) HandleConnection(conn net.Conn) error {
 	return nil
 }
 
+// SOCKS5Handler implements connection handling for SOCKS5 listeners
+type SOCKS5Handler struct {
+	listener *Listener
+	server   *SOCKS5Server
+}
+
+// NewSOCKS5Handler creates a new SOCKS5 connection handler
+func NewSOCKS5Handler(listener *Listener) (*SOCKS5Handler, error) {
+	config := SOCKS5Config{
+		ListenAddr:  listener.Config.BindHost,
+		ListenPort:  listener.Config.Port,
+		RequireAuth: false, // Set from listener config if auth is needed
+		Timeout:     300,   // 5 minutes default timeout
+	}
+
+	// If proxy auth is configured in the listener, set up SOCKS5 auth
+	if listener.Config.Proxy != nil && listener.Config.Proxy.Username != "" {
+		config.RequireAuth = true
+		config.Username = listener.Config.Proxy.Username
+		config.Password = listener.Config.Proxy.Password
+	}
+
+	server, err := NewSOCKS5Server(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize SOCKS5 server: %v", err)
+	}
+	return &SOCKS5Handler{
+		listener: listener,
+		server:   server,
+	}, nil
+}
+
+func (h *SOCKS5Handler) ValidateConnection(conn net.Conn) error {
+	// SOCKS5 validation happens during the handshake phase
+	return nil
+}
+
+func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+
+	// Update connection stats
+	h.listener.mu.Lock()
+	h.listener.Stats.TotalConnections++
+	h.listener.Stats.ActiveConnections++
+	h.listener.mu.Unlock()
+
+	defer func() {
+		h.listener.mu.Lock()
+		h.listener.Stats.ActiveConnections--
+		h.listener.mu.Unlock()
+	}()
+
+	// Let the SOCKS5 server handle the connection
+	h.server.handleConnection(conn)
+	return nil
+}
+
+// PollingHandler wraps HTTPPollingProtocol for per-connection serving
+type PollingHandler struct {
+	proto *HTTPPollingProtocol
+}
+
+// NewPollingHandler creates a new polling handler for this listener
+func NewPollingHandler(listener *Listener) *PollingHandler {
+	// Upload directory scoped to listener
+	uploadDir := filepath.Join("static", "listeners", listener.Config.Name, "uploads")
+	protoConfig := BaseProtocolConfig{UploadDir: uploadDir}
+	return &PollingHandler{proto: NewHTTPPollingProtocol(protoConfig)}
+}
+
+func (h *PollingHandler) ValidateConnection(conn net.Conn) error {
+	// Always accept; HTTP mux will route
+	return nil
+}
+
+func (h *PollingHandler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+	server := &http.Server{Handler: h.proto.GetHTTPHandler()}
+	server.SetKeepAlivesEnabled(false)
+	return server.Serve(&oneShotListener{conn: conn})
+}
+
+// oneShotListener implements net.Listener for a single connection
+type oneShotListener struct {
+	conn net.Conn
+}
+
+func (o *oneShotListener) Accept() (net.Conn, error) {
+	if o.conn == nil {
+		return nil, http.ErrServerClosed
+	}
+	c := o.conn
+	o.conn = nil
+	return c, nil
+}
+
+func (o *oneShotListener) Close() error {
+	return nil
+}
+
+func (o *oneShotListener) Addr() net.Addr {
+	if o.conn != nil {
+		return o.conn.LocalAddr()
+	}
+	// Dummy address
+	return &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0}
+}
+
 // GetConnectionHandler returns the appropriate connection handler for a protocol
 func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
-	case "http", "https":
-		return NewHTTPHandler(listener), nil
+	case "http-polling", "http":
+		return NewPollingHandler(listener), nil
 	case "dns-over-https":
 		return NewDNSHandler(listener), nil
+	case "socks5":
+		return NewSOCKS5Handler(listener)
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", listener.Config.Protocol)
 	}

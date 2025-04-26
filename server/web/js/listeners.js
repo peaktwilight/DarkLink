@@ -1,8 +1,26 @@
+// Helper: safely parse JSON text to object or null
+function safeParseJson(text) {
+    try { return JSON.parse(text); }
+    catch (e) { console.error('JSON parse error:', e); return null; }
+}
+
+// Helper: parse headers lines (key:value) into an object
+function parseHeaderLines(raw) {
+    return raw.split('\n')
+      .map(l => l.trim())
+      .filter(l => l)
+      .reduce((obj, line) => {
+          const [key, ...vals] = line.split(':');
+          obj[key.trim()] = vals.join(':').trim();
+          return obj;
+      }, {});
+}
+
 class ListenerManager {
     constructor() {
         this.setupEventListeners();
         this.startAutoRefresh();
-        this.updateListenersList();
+        this.fetchListenerList();
     }
 
     setupEventListeners() {
@@ -95,11 +113,6 @@ class ListenerManager {
         const formData = new FormData(e.target);
         const formValues = Object.fromEntries(formData);
         
-        // Basic validation
-        if (!formValues.listenerName) {
-            this.showError('Listener name is required');
-            return;
-        }
         
         const listenerConfig = {
             name: formValues.listenerName,
@@ -107,6 +120,12 @@ class ListenerManager {
             host: formValues.bindHost,
             port: parseInt(formValues.port, 10)
         };
+
+        // Basic validation
+        if (!formValues.listenerName) {
+            this.showError('Listener name is required');
+            return;
+        }
 
         // Add arrays if they have non-empty values
         if (formValues.hosts) {
@@ -128,22 +147,8 @@ class ListenerManager {
 
         // Parse and add headers if they exist
         if (formValues.headers) {
-            try {
-                const headerPairs = formValues.headers.split('\n')
-                    .map(h => h.trim())
-                    .filter(h => h.length > 0)
-                    .map(h => {
-                        const [key, ...values] = h.split(':');
-                        return [key.trim(), values.join(':').trim()];
-                    });
-                
-                if (headerPairs.length > 0) {
-                    listenerConfig.headers = Object.fromEntries(headerPairs);
-                }
-            } catch (error) {
-                this.showError('Invalid header format');
-                return;
-            }
+            const parsed = parseHeaderLines(formValues.headers);
+            if (Object.keys(parsed).length) listenerConfig.headers = parsed;
         }
 
         // Parse and add URIs if they exist
@@ -198,8 +203,8 @@ class ListenerManager {
             
             if (!response.ok) {
                 try {
-                    const errorJson = JSON.parse(responseText);
-                    errorMessage = errorJson.error || errorMessage;
+                    const errorJson = safeParseJson(responseText);
+                    if (errorJson && errorJson.error) errorMessage = errorJson.error;
                 } catch {
                     errorMessage = responseText || errorMessage;
                 }
@@ -209,79 +214,69 @@ class ListenerManager {
             this.showSuccess('Listener created successfully');
             e.target.reset();
             this.clearAllLists();
-            await this.updateListenersList();
+            await this.fetchListenerList();
         } catch (error) {
             console.error('Error creating listener:', error);
             this.showError(error.message);
         }
     }
 
-    async updateListenersList() {
+    async fetchListenerList() {
         const listenersList = document.getElementById('active-listeners');
-        
         if (!listenersList) {
             console.warn("Element 'active-listeners' not found in DOM");
             return;
         }
-        
-        listenersList.innerHTML = '<div class="loading-spinner">Loading...</div>';
+        // show loading state
+        listenersList.textContent = '';
+        const spinner = document.createElement('div'); spinner.className = 'loading-spinner'; spinner.textContent = 'Loading...';
+        listenersList.appendChild(spinner);
         try {
             const response = await fetch('/api/listeners/list');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error ${response.status}`);
-            }
-            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const listeners = await response.json();
-            console.log("Received listeners:", listeners);
-            
-            if (listeners.length === 0) {
-                listenersList.innerHTML = '<div class="empty-state">No active listeners</div>';
+            // if empty
+            if (!Array.isArray(listeners) || listeners.length === 0) {
+                listenersList.textContent = '';
+                const empty = document.createElement('div'); empty.className='empty-state'; empty.textContent='No active listeners';
+                listenersList.appendChild(empty);
                 return;
             }
-            
-            let listenersHTML = '';
-            for (const listener of listeners) {
-                const config = listener.config || {};
-                const listenerId = config.id || listener.id;
-                const listenerName = config.name || listener.name || 'Unnamed';
-                const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
-                const listenerHost = config.host || listener.host || 'Unknown';
-                const listenerPort = config.port || listener.port || 'Unknown';
-                const listenerStatus = listener.status || 'Unknown';
-                const listenerError = listener.error || '';
-                
-                if (!listenerId) {
-                    console.warn('Listener missing ID:', listener);
-                    continue;
-                }
-
-                listenersHTML += `
-                    <div class="listener-card" data-id="${listenerId}">
-                        <div class="listener-header">
-                            <span class="listener-name">${listenerName}</span>
-                            <span class="listener-type">${listenerProtocol}</span>
-                        </div>
-                        <div class="listener-details">
-                            <div class="listener-id">ID: ${listenerId}</div>
-                            <div>Host: ${listenerHost}:${listenerPort}</div>
-                            <div>Status: <span class="status-${listenerStatus.toLowerCase()}">${listenerStatus}</span></div>
-                            ${listenerError ? `<div class="error-message">Error: ${listenerError}</div>` : ''}
-                        </div>
-                        <div class="listener-actions">
-                            ${listenerStatus.toLowerCase() === 'stopped' ? 
-                              `<button class="action-button success" onclick="listenerManager.startListener('${listenerId}')">Start</button>` : 
-                              `<button class="action-button" onclick="listenerManager.stopListener('${listenerId}')">Stop</button>`}
-                            <button class="action-button delete" onclick="listenerManager.deleteListener('${listenerId}', '${listenerName}')">Delete</button>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            listenersList.innerHTML = listenersHTML || '<div class="empty-state">No active listeners</div>';
+            // rebuild list via fragment
+            const frag = document.createDocumentFragment();
+            listeners.forEach(listener => {
+                const config = listener.config||{};
+                const id = config.id||listener.id; if(!id) return;
+                const card = document.createElement('div'); card.className='listener-card'; card.dataset.id=id;
+                // header
+                const header = document.createElement('div'); header.className='listener-header';
+                header.innerHTML = `<span class="listener-name">${config.name||listener.name||'Unnamed'}</span>`+
+                    `<span class="listener-type">${config.protocol||listener.Protocol||listener.type||'?'}</span>`;
+                card.appendChild(header);
+                // details
+                const details = document.createElement('div'); details.className='listener-details';
+                details.innerHTML = `<div class="listener-id">ID: ${id}</div>`+
+                    `<div>Host: ${config.host||listener.host||'?'}:${config.port||listener.port||'?'}</div>`+
+                    `<div>Status: <span class="status-${(listener.status||'').toLowerCase()}">${listener.status||'?'}</span></div>`+
+                    `${listener.error?`<div class="error-message">Error: ${listener.error}</div>`:''}`;
+                card.appendChild(details);
+                // actions
+                const actions = document.createElement('div'); actions.className='listener-actions';
+                const btn = document.createElement('button');
+                if((listener.status||'').toLowerCase()==='stopped'){ btn.className='action-button success'; btn.textContent='Start'; btn.onclick=()=>listenerManager.startListener(id);
+                } else { btn.className='action-button'; btn.textContent='Stop'; btn.onclick=()=>listenerManager.stopListener(id);}                
+                const del = document.createElement('button'); del.className='action-button delete'; del.textContent='Delete'; del.onclick=()=>listenerManager.deleteListener(id, config.name||listener.name);
+                actions.append(btn, del);
+                card.appendChild(actions);
+                frag.appendChild(card);
+            });
+            listenersList.textContent = '';
+            listenersList.appendChild(frag);
         } catch (error) {
             console.error('Error fetching listeners:', error);
-            listenersList.innerHTML = `<div class="error-state">Error loading listeners: ${error.message}</div>`;
+            listenersList.textContent = '';
+            const err = document.createElement('div'); err.className='error-state'; err.textContent=`Error loading listeners: ${error.message}`;
+            listenersList.appendChild(err);
         }
     }
 
@@ -309,7 +304,7 @@ class ListenerManager {
                 const responseText = await response.text();
                 let errorMsg;
                 try {
-                    const result = JSON.parse(responseText);
+                    const result = safeParseJson(responseText);
                     errorMsg = result.error || `Failed to stop listener (${response.status})`;
                 } catch {
                     errorMsg = responseText || `Failed to stop listener (${response.status})`;
@@ -319,7 +314,7 @@ class ListenerManager {
             
             statusMessage.textContent = "Listener stopped successfully";
             statusMessage.className = "status-message success";
-            await this.updateListenersList();
+            await this.fetchListenerList();
             
             setTimeout(() => {
                 statusMessage.className = "status-message hidden";
@@ -356,7 +351,7 @@ class ListenerManager {
                 const responseText = await response.text();
                 let errorMsg;
                 try {
-                    const result = JSON.parse(responseText);
+                    const result = safeParseJson(responseText);
                     errorMsg = result.error || `Failed to delete listener (${response.status})`;
                 } catch {
                     errorMsg = responseText || `Failed to delete listener (${response.status})`;
@@ -366,7 +361,7 @@ class ListenerManager {
             
             statusMessage.textContent = `Listener "${name}" deleted successfully`;
             statusMessage.className = "status-message success";
-            await this.updateListenersList();
+            await this.fetchListenerList();
             
             setTimeout(() => {
                 statusMessage.className = "status-message hidden";
@@ -409,7 +404,7 @@ class ListenerManager {
                 const responseText = await response.text();
                 let errorMsg;
                 try {
-                    const result = JSON.parse(responseText);
+                    const result = safeParseJson(responseText);
                     errorMsg = result.error || `Failed to start listener (${response.status})`;
                 } catch {
                     errorMsg = responseText || `Failed to start listener (${response.status})`;
@@ -419,7 +414,7 @@ class ListenerManager {
             
             statusMessage.textContent = "Listener started successfully";
             statusMessage.className = "status-message success";
-            await this.updateListenersList();
+            await this.fetchListenerList();
             
             setTimeout(() => {
                 statusMessage.className = "status-message hidden";
@@ -477,7 +472,7 @@ class ListenerManager {
             
             statusMessage.textContent = "Listener started successfully (recreated)";
             statusMessage.className = "status-message success";
-            await this.updateListenersList();
+            await this.fetchListenerList();
             
             setTimeout(() => {
                 statusMessage.className = "status-message hidden";
@@ -512,20 +507,20 @@ class ListenerManager {
     }
 
     startAutoRefresh() {
-        const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
-        let refreshTimer = setInterval(() => this.refreshListenersList(), AUTO_REFRESH_INTERVAL);
-        
-        // Clear interval when page is hidden to save resources
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                clearInterval(refreshTimer);
-            } else {
-                // Refresh immediately when page becomes visible
-                this.refreshListenersList();
-                // Restart the timer
-                refreshTimer = setInterval(() => this.refreshListenersList(), AUTO_REFRESH_INTERVAL);
-            }
-        });
+        // Server-Sent Events for live updates
+        if (window.EventSource) {
+            const es = new EventSource('/api/listeners/stream');
+            es.onmessage = () => this.fetchListenerList();
+            es.onerror = () => console.warn('Listeners SSE error, falling back to polling');
+        } else {
+            // fallback polling
+            const interval = 30000;
+            let timer = setInterval(() => this.refreshListenersList(), interval);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) clearInterval(timer);
+                else { this.refreshListenersList(); timer = setInterval(() => this.refreshListenersList(), interval); }
+            });
+        }
     }
 
     refreshListenersList() {
@@ -535,7 +530,7 @@ class ListenerManager {
             return false;
         }
         
-        return this.updateListenersList().catch(error => {
+        return this.fetchListenerList().catch(error => {
             console.error("Error refreshing listeners list:", error);
             return false;
         });

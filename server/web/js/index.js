@@ -2,18 +2,25 @@ class DashboardManager {
     constructor() {
         this.autoScroll = true;
         this.previousListenerStates = new Map();
+        this.previousAgentStates = new Map();
         this.logWebSocket = null;
         this.wsReconnectAttempts = 0;
         this.MAX_RECONNECT_ATTEMPTS = 10;
         this.RECONNECT_DELAY = 2000;
         this.reconnectTimer = null;
-        
+
         this.initializeWebSocket();
         this.setupEventListeners();
-        
-        // Add periodic refresh for listeners
+
+        this.selectedAgentId = null;
+        this.resultsPollingInterval = null;
+
+        // Periodically refresh active components
         this.loadActiveListeners();
         setInterval(() => this.loadActiveListeners(), 10000);
+        
+        this.loadActiveAgents();
+        setInterval(() => this.loadActiveAgents(), 5000); // Update agents every 5 seconds
     }
 
     initializeWebSocket() {
@@ -173,33 +180,54 @@ class DashboardManager {
         }
     }
 
-    sendCommand() {
+    async sendCommand() {
         const commandInput = document.getElementById('command-input');
         const command = commandInput.value.trim();
-        
-        if (command) {
+
+        if (!this.selectedAgentID) {
             this.appendLogEntry({
                 timestamp: new Date().toISOString(),
-                severity: 'INFO',
-                message: `> ${command}`,
-                source: 'user'
+                severity: 'WARNING',
+                message: 'No agent selected. Click "Interact" on an agent first.',
+                source: 'system'
             });
+            return;
+        }
 
-            if (this.logWebSocket && this.logWebSocket.readyState === WebSocket.OPEN) {
-                this.logWebSocket.send(JSON.stringify({
-                    type: 'command',
-                    command: command
-                }));
-            } else {
+        if (command) {
+            try {
+                // Always send to main API server (default port 8080)
+                const apiPort = 8080; // Change if your main API server uses a different port
+                const apiBaseUrl = `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+                const response = await fetch(`${apiBaseUrl}/api/agents/${this.selectedAgentID}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                this.appendLogEntry({
+                    timestamp: new Date().toISOString(),
+                    severity: 'INFO',
+                    message: `Command sent to agent ${this.selectedAgentID}: ${command}`,
+                    source: 'user'
+                });
+
+                commandInput.value = '';
+            } catch (error) {
+                console.error('Error sending command:', error);
                 this.appendLogEntry({
                     timestamp: new Date().toISOString(),
                     severity: 'ERROR',
-                    message: 'Not connected to server',
+                    message: `Failed to send command: ${error.message}`,
                     source: 'system'
                 });
             }
-
-            commandInput.value = '';
         }
     }
     
@@ -229,7 +257,7 @@ class DashboardManager {
                 const config = listener.config || {};
                 const listenerId = config.id || listener.id;
                 const listenerName = config.name || listener.name || 'Unnamed';
-                const listenerProtocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const listenerProtocol = config.protocol || listener.Protocol || listener.type || 'Unknown';
                 const listenerHost = config.host || listener.host || 'Unknown';
                 const listenerPort = config.port || listener.port || 'Unknown';
                 const listenerStatus = listener.status || 'Unknown';
@@ -241,7 +269,7 @@ class DashboardManager {
                 }
 
                 html += `
-                    <div class="listener-card" data-id="${listenerId}">
+                    <div class="listener-card" data-id="${listenerId}" data-host="${listenerHost}" data-port="${listenerPort}">
                         <div class="listener-header">
                             <span class="listener-name">${listenerName}</span>
                             <span class="listener-type">${listenerProtocol}</span>
@@ -439,6 +467,156 @@ class DashboardManager {
                 message: `Failed to start listener (fallback method): ${error.message}`,
                 source: 'system'
             });
+        }
+    }
+
+    async loadActiveAgents() {
+        try {
+            const response = await fetch('/api/agents/list');
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            const agentData = await response.json();
+            // Convert agent map/object to array for rendering
+            const agents = Object.values(agentData);
+            const agentsContainer = document.getElementById('agent-list');
+
+            if (!Array.isArray(agents) || agents.length === 0) {
+                agentsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <p>No active agents</p>
+                        <p>Generate a payload to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            agents.forEach(agent => {
+                const lastSeen = new Date(agent.last_seen || Date.now()).toLocaleString();
+                const agentStatus = agent.connected ? 'active' : 'disconnected';
+
+                // Track agent state changes for notifications
+                const previousStatus = this.previousAgentStates.get(agent.id);
+                if (previousStatus !== undefined && previousStatus !== agentStatus) {
+                    this.appendLogEntry({
+                        timestamp: new Date().toISOString(),
+                        severity: agentStatus === 'active' ? 'SUCCESS' : 'WARNING',
+                        message: `Agent ${agent.id} is now ${agentStatus}`,
+                        source: 'system'
+                    });
+                }
+                this.previousAgentStates.set(agent.id, agentStatus);
+
+                html += `
+                    <div class="agent-card" data-id="${agent.id}">
+                        <div class="agent-header">
+                            <div class="agent-title">
+                                <div class="agent-status ${agentStatus}"></div>
+                                <span class="agent-name">${agent.id}</span>
+                            </div>
+                            <span class="agent-type">${agent.type || 'Standard'}</span>
+                        </div>
+                        <div class="agent-details">
+                            <div>Last Seen: ${lastSeen}</div>
+                            <div>IP: ${agent.ip || 'Unknown'}</div>
+                            <div>Hostname: ${agent.hostname || 'Unknown'}</div>
+                            <div>OS: ${agent.os || 'Unknown'}</div>
+                        </div>
+                        <div class="agent-actions">
+                            <button class="action-button" onclick="dashboardManager.interactWithAgent('${agent.id}')">Interact</button>
+                            <button class="action-button delete" onclick="dashboardManager.removeAgent('${agent.id}')">Remove</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            agentsContainer.innerHTML = html;
+        } catch (error) {
+            console.error('Error loading agents:', error);
+            document.getElementById('agent-list').innerHTML = `
+                <div class="empty-state">
+                    <p>Error loading agents</p>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async interactWithAgent(AgentID) {
+        // Select the agent for interaction
+        // This will be used by the command shell
+        this.selectedAgentID = AgentID;
+        
+        this.appendLogEntry({
+            timestamp: new Date().toISOString(),
+            severity: 'INFO',
+            message: `Selected agent ${AgentID} for interaction`,
+            source: 'system'
+        });
+
+        // Update command input prompt
+        const input = document.getElementById('command-input');
+        input.placeholder = `Enter command for agent ${AgentID}...`;
+
+        this.loadAgentResults(AgentID);
+    }
+
+    async removeAgent(AgentID) {
+        if (!confirm(`Are you sure you want to remove agent ${AgentID}?`)) return;
+
+        try {
+            const response = await fetch(`/api/agents/${AgentID}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}`);
+            }
+
+            await this.loadActiveAgents();
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'SUCCESS',
+                message: `Agent ${AgentID} removed successfully`,
+                source: 'system'
+            });
+        } catch (error) {
+            console.error('Error removing agent:', error);
+            this.appendLogEntry({
+                timestamp: new Date().toISOString(),
+                severity: 'ERROR',
+                message: `Failed to remove agent: ${error.message}`,
+                source: 'system'
+            });
+        }
+    }
+
+    async loadAgentResults(AgentID) {
+        const outputDiv = document.getElementById('command-output');
+        outputDiv.innerHTML = '<div>Loading results...</div>';
+        try {
+            const response = await fetch(`/api/agents/${AgentID}/results`);
+            if (!response.ok) {
+                outputDiv.innerHTML = '<div>No results found.</div>';
+                return;
+            }
+            const results = await response.json();
+            console.log('Results from backend:', results);
+            if (!Array.isArray(results) || results.length === 0) {
+                outputDiv.innerHTML = '<div>No results found.</div>';
+                return;
+            }
+            outputDiv.innerHTML = results.map(res => `
+                <div class="command-result">
+                    <span class="timestamp">${res.timestamp || ''}</span>
+                    <span class="command">${res.command || ''}</span>
+                    <pre class="output">${res.output || ''}</pre>
+                </div>
+            `).join('');
+        } catch (e) {
+            outputDiv.innerHTML = `<div>Error loading results: ${e.message}</div>`;
         }
     }
 }

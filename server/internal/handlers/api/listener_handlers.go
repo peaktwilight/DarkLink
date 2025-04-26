@@ -32,6 +32,9 @@ func (h *ListenerHandlers) HandleCreateListener(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// Trim whitespace from bind host to avoid invalid addresses
+	config.BindHost = strings.TrimSpace(config.BindHost)
+
 	listener, err := h.manager.CreateListener(config)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

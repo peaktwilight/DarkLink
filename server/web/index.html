@@ -17,28 +17,24 @@
         </div>
 
         <div class="content">
-            <div class="top-panel">
-                <div class="split-panel">
-                    <div class="agents-list">
-                        <div class="nav-header">AGENTS</div>
-                        <div id="agent-list"></div>
-                    </div>
-                    <div class="split-panel">
-                        <div id="listeners-list">
-                            <div class="nav-header">ACTIVE LISTENERS</div>
-                            <div id="active-listeners"></div>
-                        </div>
-                        <div id="event-viewer">
-                            <div class="event-viewer-header">
-                                <span class="title">EVENT VIEWER</span>
-                                <div class="event-viewer-controls">
-                                    <button onclick="dashboardManager.clearEventLog()">Clear</button>
-                                    <button onclick="dashboardManager.toggleAutoScroll()" id="autoScrollBtn">Auto-scroll: On</button>
-                                </div>
-                            </div>
-                            <div id="event-log" class="event-log"></div>
+            <div class="top-panel smart-grid">
+                <div class="panel-section agents-section">
+                    <div class="nav-header">AGENTS</div>
+                    <div id="agent-list"></div>
+                </div>
+                <div class="panel-section listeners-section">
+                    <div class="nav-header">ACTIVE LISTENERS</div>
+                    <div id="active-listeners"></div>
+                </div>
+                <div class="panel-section event-section">
+                    <div class="event-viewer-header">
+                        <span class="nav-header">EVENT VIEWER</span>
+                        <div class="event-viewer-controls">
+                            <button onclick="dashboardManager.clearEventLog()">Clear</button>
+                            <button onclick="dashboardManager.toggleAutoScroll()" id="autoScrollBtn">Auto-scroll: On</button>
                         </div>
                     </div>
+                    <div id="event-log" class="event-log"></div>
                 </div>
             </div>
 

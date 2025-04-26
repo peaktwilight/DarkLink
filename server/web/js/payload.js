@@ -19,6 +19,10 @@ class PayloadManager {
         document.getElementById('dllSideloading').addEventListener('change', function() {
             document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
         });
+        // SOCKS5 proxy toggle
+        document.getElementById('socks5_enabled').addEventListener('change', function() {
+            document.getElementById('socks5Options').classList.toggle('hidden', !this.checked);
+        });
 
         // Architecture change handler
         document.getElementById('architecture').addEventListener('change', (e) => {
@@ -149,7 +153,7 @@ class PayloadManager {
                 const config = listener.config || {};
                 const id = config.id || listener.id || '';
                 const name = config.name || listener.name || 'Unnamed';
-                const protocol = config.protocol || listener.protocol || listener.type || 'Unknown';
+                const protocol = config.protocol || listener.Protocol || listener.type || 'Unknown';
                 
                 if (id) {
                     const option = document.createElement('option');
@@ -211,23 +215,31 @@ class PayloadManager {
     async handleFormSubmission(e) {
         const formData = new FormData(e.target);
         const config = Object.fromEntries(formData);
-        
+        // Enforce listener selection
+        if (!config.listener || config.listener === "") {
+            alert("You must select a listener before generating a payload. Agents must connect to a valid listener port, not the web server port.");
+            this.addLogEntry('payload', 'No listener selected. Payload generation aborted.', 'ERROR');
+            return;
+        }
+        // Convert checkbox values to boolean
+        config.indirectSyscall = config.indirectSyscall === 'on';
+        config.dllSideloading = config.dllSideloading === 'on';
+        config.socks5_enabled = config.socks5_enabled === 'on';
+        config.socks5_port = parseInt(config.socks5_port, 10) || 0;
+
         if (config.sleep) {
             config.sleep = parseInt(config.sleep, 10);
         }
-        
-        config.indirectSyscall = config.indirectSyscall === 'on';
-        config.dllSideloading = config.dllSideloading === 'on';
-        
+
         const downloadSection = document.getElementById('download-section');
         downloadSection.classList.add('hidden');
-        
+
         this.clearLogDisplay();
         this.isGeneratingPayload = true;
-        
+
         this.addLogEntry('payload', 'Starting payload generation...', 'INFO');
         this.addLogEntry('payload', `Payload configuration: ${JSON.stringify(config, null, 2)}`, 'INFO');
-        
+
         try {
             const response = await fetch('/api/payload/generate', {
                 method: 'POST',

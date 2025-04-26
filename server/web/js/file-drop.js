@@ -6,7 +6,7 @@ class FileDropManager {
         this.progressBarFill = document.getElementById('progressBarFill');
 
         this.setupEventListeners();
-        this.loadFiles();
+        this.fetchFileList();
         this.startAutoRefresh();
     }
 
@@ -75,7 +75,7 @@ class FileDropManager {
 
             xhr.onload = () => {
                 if (xhr.status === 200) {
-                    this.loadFiles();
+                    this.fetchFileList();
                     this.fileInput.value = '';
                     setTimeout(() => {
                         this.uploadProgress.style.display = 'none';
@@ -97,7 +97,7 @@ class FileDropManager {
         }
     }
 
-    async loadFiles() {
+    async fetchFileList() {
         try {
             const response = await fetch('/api/file_drop/list');
             if (!response.ok) {
@@ -106,11 +106,8 @@ class FileDropManager {
             
             const text = await response.text();
             let files;
-            try {
-                files = JSON.parse(text);
-            } catch (e) {
-                throw new Error('Invalid server response format');
-            }
+            try { files = JSON.parse(text); } 
+            catch { throw new Error('Invalid server response format'); }
 
             if (!Array.isArray(files)) {
                 throw new Error('Server returned invalid data format');
@@ -131,20 +128,26 @@ class FileDropManager {
                 return;
             }
 
-            fileListBody.innerHTML = '';
+            // Efficiently rebuild list using DocumentFragment
+            const fragment = document.createDocumentFragment();
             files.forEach(file => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${this.escapeHtml(file.name)}</td>
-                    <td>${this.formatBytes(file.size)}</td>
-                    <td>${new Date(file.modified).toLocaleString()}</td>
-                    <td class="file-actions">
-                        <button onclick="fileDropManager.downloadFile('${encodeURIComponent(file.name)}')">Download</button>
-                        <button class="delete" onclick="fileDropManager.deleteFile('${encodeURIComponent(file.name)}')">Delete</button>
-                    </td>
-                `;
-                fileListBody.appendChild(row);
+                const nameCell = document.createElement('td');
+                nameCell.textContent = this.escapeHtml(file.name);
+                const sizeCell = document.createElement('td');
+                sizeCell.textContent = this.formatBytes(file.size);
+                const modifiedCell = document.createElement('td');
+                modifiedCell.textContent = new Date(file.modified).toLocaleString();
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'file-actions';
+                const dlBtn = document.createElement('button'); dlBtn.textContent = 'Download'; dlBtn.onclick = () => this.downloadFile(encodeURIComponent(file.name));
+                const delBtn = document.createElement('button'); delBtn.textContent = 'Delete'; delBtn.className = 'delete'; delBtn.onclick = () => this.deleteFile(encodeURIComponent(file.name));
+                actionsCell.append(dlBtn, delBtn);
+                row.append(nameCell, sizeCell, modifiedCell, actionsCell);
+                fragment.appendChild(row);
             });
+            fileListBody.textContent = ''; // clear old rows
+            fileListBody.appendChild(fragment);
         } catch (error) {
             console.error('Error loading files:', error);
             document.getElementById('fileListBody').innerHTML = `
@@ -174,7 +177,7 @@ class FileDropManager {
             });
 
             if (response.ok) {
-                this.loadFiles();
+                this.fetchFileList();
             } else {
                 throw new Error('Failed to delete file');
             }
@@ -202,8 +205,16 @@ class FileDropManager {
     }
 
     startAutoRefresh() {
-        // Refresh file list every 30 seconds
-        setInterval(() => this.loadFiles(), 30000);
+        // Use Server-Sent Events if available to push updates
+        if (window.EventSource) {
+            const es = new EventSource('/api/file_drop/stream');
+            es.onmessage = () => this.fetchFileList();
+            es.onerror = () => console.warn('SSE connection error, falling back to polling');
+        }
+        // Fallback to polling
+        else {
+            setInterval(() => this.fetchFileList(), 30000);
+        }
     }
 }
 

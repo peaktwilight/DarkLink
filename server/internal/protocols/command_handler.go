@@ -48,7 +48,7 @@ func NewCommandQueue() *CommandQueue {
 }
 
 // QueueCommand adds a new command to the queue
-func (q *CommandQueue) QueueCommand(agentID, cmdStr string) (*Command, error) {
+func (q *CommandQueue) QueueCommand(AgentID, cmdStr string) (*Command, error) {
 	if cmdStr == "" {
 		return nil, errors.New("empty command")
 	}
@@ -56,7 +56,7 @@ func (q *CommandQueue) QueueCommand(agentID, cmdStr string) (*Command, error) {
 	cmd := &Command{
 		ID:        uuid.New().String(),
 		Command:   cmdStr,
-		AgentID:   agentID,
+		AgentID:   AgentID,
 		Status:    StatusQueued,
 		QueueTime: time.Now(),
 	}
@@ -71,14 +71,14 @@ func (q *CommandQueue) QueueCommand(agentID, cmdStr string) (*Command, error) {
 }
 
 // GetNextCommand retrieves the next command for an agent
-func (q *CommandQueue) GetNextCommand(agentID string) (*Command, error) {
+func (q *CommandQueue) GetNextCommand(AgentID string) (*Command, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	// Find first command for this agent
 	for i, id := range q.queue {
 		cmd := q.commands[id]
-		if cmd.AgentID == agentID && cmd.Status == StatusQueued {
+		if cmd.AgentID == AgentID && cmd.Status == StatusQueued {
 			// Remove from queue and mark as sent
 			q.queue = append(q.queue[:i], q.queue[i+1:]...)
 			cmd.Status = StatusSent
