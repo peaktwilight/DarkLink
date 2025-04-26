@@ -3,11 +3,13 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::env;
+use log::{info, error};
+use reqwest::{Client, Proxy};
 
 // Include the generated config file
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AgentConfig {
     pub server_url: String,
     pub sleep_interval: u64,
@@ -75,6 +77,33 @@ impl AgentConfig {
             self.server_url.clone()
         } else {
             format!("{}://{}", self.protocol, self.server_url)
+        }
+    }
+
+    /// Build an HTTP client that respects the SOCKS5 proxy config and logs the proxy status.
+    pub fn build_http_client(&self) -> Result<Client, io::Error> {
+        if self.socks5_enabled {
+            let proxy_url = format!("socks5h://127.0.0.1:{}", self.socks5_port);
+            info!("[HTTP] Building HTTP client with SOCKS5 proxy: {}", proxy_url);
+            match Client::builder()
+                .proxy(Proxy::all(&proxy_url).map_err(|e| {
+                    error!("[HTTP] Invalid proxy URL: {}", e);
+                    io::Error::new(io::ErrorKind::Other, format!("Invalid proxy URL: {}", e))
+                })?)
+                .danger_accept_invalid_certs(true)
+                .build() {
+                Ok(client) => Ok(client),
+                Err(e) => {
+                    error!("[HTTP] Failed to build HTTP client with SOCKS5 proxy: {}", e);
+                    Err(io::Error::new(io::ErrorKind::Other, format!("Failed to build HTTP client with proxy: {}", e)))
+                }
+            }
+        } else {
+            info!("[HTTP] Building HTTP client with direct connection (no proxy)");
+            Client::builder()
+                .danger_accept_invalid_certs(true)
+                .build()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
         }
     }
 }

