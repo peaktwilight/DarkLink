@@ -364,15 +364,15 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
 		fmt.Sprintf("BUILD_TYPE=%s", buildType),
-		// fmt.Sprintf("LISTENER_HOST=%s", listener.BindHost),
-		// fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
+		fmt.Sprintf("LISTENER_HOST=%s", connectHost),
+		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
+		fmt.Sprintf("SOCKS5_ENABLED=%t", config.Socks5Enabled),
+		fmt.Sprintf("SOCKS5_PORT=%d", config.Socks5Port),
 	)
-	// log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, LISTENER_HOST=%s, LISTENER_PORT=%d, SLEEP_INTERVAL=%d",
-	//	buildTarget, outputDir, buildType, listener.BindHost, listener.Port, config.Sleep)
 
-	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, SLEEP_INTERVAL=%d",
-		buildTarget, outputDir, buildType, config.Sleep)
+	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, SLEEP_INTERVAL=%d, SOCKS5_ENABLED=%t, SOCKS5_PORT=%d",
+		buildTarget, outputDir, buildType, config.Sleep, config.Socks5Enabled, config.Socks5Port)
 
 	log.Printf("[INFO] Starting build process...")
 	// Execute build command
