@@ -8,17 +8,12 @@ server:
     keyFile: "certs/server.key"
   
 communication:
-  # Available protocols: http-polling, dns-over-https
+  # Available protocols: http-polling
   protocol: http-polling
   
   # Protocol-specific settings
   http-polling:
     heartbeatInterval: 60  # seconds
-    
-  dns-over-https:
-    # DNS over HTTPS specific settings
-    resolverEndpoint: "/dns-query"
-    maxChunkSize: 255  # Maximum size of DNS message chunks
     
 security:
   enableCORS: true

@@ -1,4 +1,4 @@
-package protocols
+package networking
 
 import (
 	"bufio"
@@ -281,30 +281,6 @@ func (h *HTTPHandler) sendErrorResponse(conn net.Conn, statusCode int, message s
 	return err
 }
 
-// DNSHandler implements connection handling for DNS-over-HTTPS listeners
-type DNSHandler struct {
-	listener *Listener
-}
-
-// NewDNSHandler creates a new DNS connection handler
-func NewDNSHandler(listener *Listener) *DNSHandler {
-	return &DNSHandler{
-		listener: listener,
-	}
-}
-
-func (d *DNSHandler) ValidateConnection(conn net.Conn) error {
-	// DNS-over-HTTPS validation logic
-	// TODO: Implement DNS-specific validation
-	return nil
-}
-
-func (d *DNSHandler) HandleConnection(conn net.Conn) error {
-	// DNS-over-HTTPS connection handling
-	// TODO: Implement DNS protocol handling
-	return nil
-}
-
 // SOCKS5Handler implements connection handling for SOCKS5 listeners
 type SOCKS5Handler struct {
 	listener *Listener
@@ -418,8 +394,6 @@ func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
 	case "http-polling", "http":
 		return NewPollingHandler(listener), nil
-	case "dns-over-https":
-		return NewDNSHandler(listener), nil
 	case "socks5":
 		return NewSOCKS5Handler(listener)
 	default:

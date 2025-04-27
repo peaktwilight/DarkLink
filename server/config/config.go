@@ -48,7 +48,7 @@ func validateConfig(config *Config) error {
 
 	// Validate protocol selection
 	switch config.Communication.Protocol {
-	case "http-polling", "dns-over-https", "socks5":
+	case "http-polling", "socks5":
 		// Valid protocols
 	default:
 		return fmt.Errorf("unsupported protocol: %s", config.Communication.Protocol)
@@ -61,10 +61,6 @@ func validateConfig(config *Config) error {
 
 	if config.Communication.HTTPPolling.HeartbeatInterval == 0 {
 		config.Communication.HTTPPolling.HeartbeatInterval = 60
-	}
-
-	if config.Communication.DNSOverHTTPS.MaxChunkSize == 0 {
-		config.Communication.DNSOverHTTPS.MaxChunkSize = 255
 	}
 
 	if config.Logging.Level == "" {

@@ -12,7 +12,7 @@ import (
 	"microc2/server/internal/handlers/api"
 	"microc2/server/internal/handlers/web"
 	"microc2/server/internal/handlers/ws"
-	"microc2/server/internal/protocols"
+	"microc2/server/internal/networking"
 	"microc2/server/internal/websocket"
 	"microc2/server/pkg/communication"
 )
@@ -115,7 +115,7 @@ func main() {
 
 	// Set up SOCKS5 management routes if protocol is SOCKS5
 	if cfg.Communication.Protocol == "socks5" {
-		if socks5Protocol, ok := serverManager.GetProtocol().(*protocols.SOCKS5Protocol); ok {
+		if socks5Protocol, ok := serverManager.GetProtocol().(*networking.SOCKS5Protocol); ok {
 			socks5Handler := api.NewSOCKS5Handler(socks5Protocol)
 			for route, handler := range socks5Handler.RegisterRoutes() {
 				http.HandleFunc(route, handler)

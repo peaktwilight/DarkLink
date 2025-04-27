@@ -2,7 +2,7 @@ package api
 
 import (
 	"microc2/server/internal/filestore"
-	"microc2/server/internal/protocols"
+	"microc2/server/internal/networking"
 	"microc2/server/pkg/communication"
 )
 
@@ -20,10 +20,10 @@ type FileHandlers struct {
 
 // ListenerHandlers manages HTTP handlers for listener operations
 type ListenerHandlers struct {
-	manager *protocols.ListenerManager
+	manager *networking.ListenerManager
 }
 
 // SOCKS5Handler handles SOCKS5 management API endpoints
 type SOCKS5Handler struct {
-	protocol *protocols.SOCKS5Protocol
+	protocol *networking.SOCKS5Protocol
 }

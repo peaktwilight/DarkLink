@@ -2,12 +2,12 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/internal/protocols"
+	"microc2/server/internal/networking"
 	"net/http"
 )
 
 // NewSOCKS5Handler creates a new SOCKS5 management handler
-func NewSOCKS5Handler(protocol *protocols.SOCKS5Protocol) *SOCKS5Handler {
+func NewSOCKS5Handler(protocol *networking.SOCKS5Protocol) *SOCKS5Handler {
 	return &SOCKS5Handler{
 		protocol: protocol,
 	}
@@ -72,7 +72,7 @@ func (h *SOCKS5Handler) handleUpdateConfig(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var config protocols.SOCKS5Config
+	var config networking.SOCKS5Config
 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return

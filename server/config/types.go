@@ -12,10 +12,6 @@ type Config struct {
 		HTTPPolling struct {
 			HeartbeatInterval int `yaml:"heartbeatInterval"`
 		} `yaml:"http-polling"`
-		DNSOverHTTPS struct {
-			ResolverEndpoint string `yaml:"resolverEndpoint"`
-			MaxChunkSize     int    `yaml:"maxChunkSize"`
-		} `yaml:"dns-over-https"`
 	} `yaml:"communication"`
 
 	Security struct {

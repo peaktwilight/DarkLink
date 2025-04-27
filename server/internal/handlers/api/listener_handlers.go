@@ -2,13 +2,13 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/internal/protocols"
+	"microc2/server/internal/networking"
 	"net/http"
 	"strings"
 )
 
 // NewListenerHandlers creates a new listener handlers instance
-func NewListenerHandlers(manager *protocols.ListenerManager) *ListenerHandlers {
+func NewListenerHandlers(manager *networking.ListenerManager) *ListenerHandlers {
 	return &ListenerHandlers{
 		manager: manager,
 	}
@@ -21,7 +21,7 @@ func (h *ListenerHandlers) HandleCreateListener(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	var config protocols.ListenerConfig
+	var config networking.ListenerConfig
 	if err := json.NewDecoder(r.Body).Decode(&config); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return

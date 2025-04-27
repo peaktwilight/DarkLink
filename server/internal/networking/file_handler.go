@@ -1,4 +1,4 @@
-package protocols
+package networking
 
 import (
 	"errors"
