@@ -10,13 +10,6 @@ import (
 	"strings"
 )
 
-// FileHandlers manages HTTP endpoints for file operations
-// It coordinates file uploads, downloads, listings, and deletions
-// using the underlying filestore system.
-type FileHandlers struct {
-	fileStore *filestore.FileStore
-}
-
 // NewFileHandlers creates a new file handlers instance
 //
 // Pre-conditions:

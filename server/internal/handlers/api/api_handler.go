@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-type APIHandler struct {
-	serverManager *communication.ServerManager
-}
-
 func NewAPIHandler(manager *communication.ServerManager) *APIHandler {
 	return &APIHandler{
 		serverManager: manager,

@@ -6,11 +6,6 @@ import (
 	"net/http"
 )
 
-// SOCKS5Handler handles SOCKS5 management API endpoints
-type SOCKS5Handler struct {
-	protocol *protocols.SOCKS5Protocol
-}
-
 // NewSOCKS5Handler creates a new SOCKS5 management handler
 func NewSOCKS5Handler(protocol *protocols.SOCKS5Protocol) *SOCKS5Handler {
 	return &SOCKS5Handler{

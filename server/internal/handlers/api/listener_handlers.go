@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-// ListenerHandlers manages HTTP handlers for listener operations
-type ListenerHandlers struct {
-	manager *protocols.ListenerManager
-}
-
 // NewListenerHandlers creates a new listener handlers instance
 func NewListenerHandlers(manager *protocols.ListenerManager) *ListenerHandlers {
 	return &ListenerHandlers{
