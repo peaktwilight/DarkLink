@@ -1,4 +1,5 @@
-package networking
+// This file will be moved to the new 'handlers' folder as 'connection_handler.go'.
+package handlers
 
 import (
 	"bufio"
@@ -9,10 +10,76 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"microc2/server/internal/common"    // Import the `common` package for BaseProtocolConfig
+	"microc2/server/internal/listeners" // Corrected path to the `listeners` package
 
 	"github.com/google/uuid"
 )
+
+// Define missing types
+// Listener represents a communication protocol listener
+// This is a placeholder definition to resolve errors.
+type Listener struct {
+	Config struct {
+		Protocol  string
+		URIs      []string
+		Headers   map[string]string
+		UserAgent string
+		BindHost  string
+		Port      int
+		Proxy     *ProxyConfig
+		Name      string
+	}
+	mu    sync.Mutex
+	Stats struct {
+		FailedConnections int
+		TotalConnections  int
+		ActiveConnections int
+	}
+	GetFileHandler func() *FileHandler
+}
+
+// Define the ProxyConfig type.
+type ProxyConfig struct {
+	Type     string
+	Host     string
+	Port     int
+	Username string
+	Password string
+}
+
+// Define the BaseProtocolConfig type.
+type BaseProtocolConfig struct {
+	UploadDir string
+	Port      string
+}
+
+// SOCKS5Server is a placeholder for the actual implementation
+type SOCKS5Server struct{}
+
+// NewSOCKS5Server is a placeholder function to resolve errors
+func NewSOCKS5Server(config interface{}) (*SOCKS5Server, error) {
+	return &SOCKS5Server{}, nil
+}
+
+// Add the handleConnection method to SOCKS5Server.
+func (s *SOCKS5Server) handleConnection(conn net.Conn) error {
+	// Placeholder implementation for handling SOCKS5 connections.
+	return nil
+}
+
+// SOCKS5Config is a placeholder for the actual implementation
+type SOCKS5Config struct {
+	ListenAddr  string
+	ListenPort  int
+	RequireAuth bool
+	Username    string
+	Password    string
+	Timeout     int
+}
 
 // ConnectionHandler defines the interface for protocol-specific connection handling
 type ConnectionHandler interface {
@@ -340,15 +407,15 @@ func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
 
 // PollingHandler wraps HTTPPollingProtocol for per-connection serving
 type PollingHandler struct {
-	proto *HTTPPollingProtocol
+	proto *listeners.HTTPPollingProtocol
 }
 
 // NewPollingHandler creates a new polling handler for this listener
 func NewPollingHandler(listener *Listener) *PollingHandler {
 	// Upload directory scoped to listener
 	uploadDir := filepath.Join("static", "listeners", listener.Config.Name, "uploads")
-	protoConfig := BaseProtocolConfig{UploadDir: uploadDir}
-	return &PollingHandler{proto: NewHTTPPollingProtocol(protoConfig)}
+	protoConfig := common.BaseProtocolConfig{UploadDir: uploadDir}
+	return &PollingHandler{proto: listeners.NewHTTPPollingProtocol(protoConfig)}
 }
 
 func (h *PollingHandler) ValidateConnection(conn net.Conn) error {

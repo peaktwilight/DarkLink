@@ -17,7 +17,7 @@ import (
 func New(staticDir string) *StaticHandler {
 	return &StaticHandler{
 		staticDir: staticDir,
-		webDir:    filepath.Join(filepath.Dir(staticDir), "web"),
+		webDir:    "/home/darkroom/coding/MicroC2/server/web", // Use absolute path for webDir
 	}
 }
 

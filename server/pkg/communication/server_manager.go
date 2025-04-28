@@ -7,13 +7,16 @@ import (
 	"os"
 	"strings"
 
-	"microc2/server/internal/networking"
+	"microc2/server/internal/behaviour"
+	"microc2/server/internal/common"
+	"microc2/server/internal/listeners"
+	"microc2/server/internal/protocols"
 )
 
 type ServerManager struct {
-	protocol        networking.Protocol
+	protocol        listeners.Protocol
 	config          *ServerConfig
-	listenerManager *networking.ListenerManager
+	listenerManager *listeners.ListenerManager
 }
 
 type ServerConfig struct {
@@ -28,17 +31,17 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 		return nil, fmt.Errorf("failed to create upload directory: %v", err)
 	}
 
-	baseConfig := networking.BaseProtocolConfig{
+	baseConfig := common.BaseProtocolConfig{
 		UploadDir: config.UploadDir,
 		Port:      config.Port,
 	}
 
-	var protocol networking.Protocol
+	var protocol listeners.Protocol
 	switch config.ProtocolType {
 	case "http-polling":
-		protocol = networking.NewHTTPPollingProtocol(baseConfig)
+		protocol = behaviour.NewHTTPPollingProtocol(baseConfig)
 	case "socks5":
-		protocol = networking.NewSOCKS5Protocol(baseConfig)
+		protocol = protocols.NewSOCKS5Protocol(baseConfig)
 	default:
 		return nil, fmt.Errorf("unsupported protocol type: %s", config.ProtocolType)
 	}
@@ -47,8 +50,7 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 		return nil, fmt.Errorf("failed to initialize protocol: %v", err)
 	}
 
-	// Initialize ListenerManager with the protocol instance
-	listenerManager := networking.NewListenerManager(protocol)
+	listenerManager := listeners.NewListenerManager(protocol)
 
 	return &ServerManager{
 		protocol:        protocol,
@@ -58,7 +60,7 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 }
 
 // GetProtocol returns the current protocol instance
-func (sm *ServerManager) GetProtocol() networking.Protocol {
+func (sm *ServerManager) GetProtocol() listeners.Protocol {
 	return sm.protocol
 }
 
@@ -66,11 +68,15 @@ func (sm *ServerManager) Start() error {
 	// Register protocol-specific routes
 	for path, handler := range sm.protocol.GetRoutes() {
 		// Skip routes that might conflict with API handlers
-		if strings.HasPrefix(path, "/api/") {
+		if strings.HasPrefix(path, "/api/agent/") {
 			log.Printf("[ROUTES] Skipping protocol route %s to avoid conflicts with API handlers", path)
 			continue
 		}
 		http.HandleFunc(path, handler)
+	}
+
+	if httpProto, ok := sm.protocol.(*behaviour.HTTPPollingProtocol); ok {
+		http.HandleFunc("/api/agent/", httpProto.HandleAgentRequests)
 	}
 
 	log.Printf("[STARTUP] Server initializing with %s protocol...", sm.config.ProtocolType)
@@ -82,6 +88,6 @@ func (sm *ServerManager) Start() error {
 	return http.ListenAndServe(":"+sm.config.Port, nil)
 }
 
-func (sm *ServerManager) GetListenerManager() *networking.ListenerManager {
+func (sm *ServerManager) GetListenerManager() *listeners.ListenerManager {
 	return sm.listenerManager
 }

@@ -1,14 +1,19 @@
-package networking
+// This file will be moved to the new 'listeners' folder as 'listener.go'.
+
+package listeners
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log"
+	behaviour "microc2/server/internal/behaviour"
+	"microc2/server/internal/common" // Import BaseProtocolConfig
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -71,18 +76,21 @@ type SOCKS5ListenerConfig struct {
 // Listener represents a communication protocol listener that agents connect to
 // It manages the lifecycle of the listening service and tracks its operational state.
 type Listener struct {
-	Config          ListenerConfig `json:"config"`
-	Status          ListenerStatus `json:"status"`
-	Error           string         `json:"error,omitempty"`
-	StartTime       time.Time      `json:"start_time"`
-	StopTime        time.Time      `json:"stop_time,omitempty"`
-	Stats           ListenerStats  `json:"stats"`
+	Config          ListenerConfig    `json:"config"`
+	Status          ListenerStatus    `json:"status"`
+	Error           string            `json:"error,omitempty"`
+	StartTime       time.Time         `json:"start_time"`
+	StopTime        time.Time         `json:"stop_time,omitempty"`
+	Stats           ListenerStats     `json:"stats"`
+	URIs            []string          `json:"uris,omitempty"`
+	Headers         map[string]string `json:"headers,omitempty"`
+	UserAgent       string            `json:"user_agent,omitempty"`
+	mu              sync.RWMutex
 	fileHandler     *FileHandler
 	cmdQueue        *CommandQueue
 	stopChan        chan struct{}
 	listener        net.Listener
 	tlsConfig       *tls.Config
-	mu              sync.RWMutex
 	protocolHandler http.Handler // HTTP handler for http-polling
 	Protocol        Protocol     // underlying protocol instance
 }
@@ -135,11 +143,11 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 	var protoHandler http.Handler
 	var proto Protocol
 	if config.Protocol == "http-polling" || config.Protocol == "http" {
-		protoConfig := BaseProtocolConfig{
+		protoConfig := common.BaseProtocolConfig{
 			UploadDir: filepath.Join("static", "listeners", config.Name, "uploads"),
 			Port:      fmt.Sprintf("%d", config.Port),
 		}
-		httpProto := NewHTTPPollingProtocol(protoConfig)
+		httpProto := behaviour.NewHTTPPollingProtocol(protoConfig)
 		protoHandler = httpProto.GetHTTPHandler()
 		proto = httpProto
 		// Ensure upload directory exists
@@ -416,4 +424,117 @@ func (l *Listener) SetError(err error) {
 	} else {
 		l.Error = "Unknown error"
 	}
+}
+
+// Define the oneShotListener type.
+type oneShotListener struct {
+	conn net.Conn
+}
+
+func (o *oneShotListener) Accept() (net.Conn, error) {
+	if o.conn == nil {
+		return nil, fmt.Errorf("no connection available")
+	}
+	c := o.conn
+	o.conn = nil
+	return c, nil
+}
+
+func (o *oneShotListener) Close() error {
+	return nil
+}
+
+func (o *oneShotListener) Addr() net.Addr {
+	if o.conn != nil {
+		return o.conn.LocalAddr()
+	}
+	return &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0}
+}
+
+// Define the GetConnectionHandler function.
+func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
+	switch strings.ToLower(listener.Config.Protocol) {
+	case "http-polling", "http":
+		return NewPollingHandler(listener), nil
+	case "socks5":
+		return NewSOCKS5Handler(listener)
+	default:
+		return nil, fmt.Errorf("unsupported protocol: %s", listener.Config.Protocol)
+	}
+}
+
+// Define the ConnectionHandler interface.
+type ConnectionHandler interface {
+	HandleConnection(conn net.Conn) error
+	ValidateConnection(conn net.Conn) error
+}
+
+// Define the NewPollingHandler function.
+func NewPollingHandler(listener *Listener) *PollingHandler {
+	return &PollingHandler{
+		proto: behaviour.NewHTTPPollingProtocol(common.BaseProtocolConfig{
+			UploadDir: filepath.Join("static", "listeners", listener.Config.Name, "uploads"),
+		}),
+	}
+}
+
+// Define the NewSOCKS5Handler function.
+func NewSOCKS5Handler(listener *Listener) (*SOCKS5Handler, error) {
+	return &SOCKS5Handler{
+		listener: listener,
+	}, nil
+}
+
+// Define the PollingHandler type.
+type PollingHandler struct {
+	proto *behaviour.HTTPPollingProtocol
+}
+
+// Add the HandleConnection method to PollingHandler.
+func (h *PollingHandler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+	server := &http.Server{Handler: h.proto.GetHTTPHandler()}
+	server.SetKeepAlivesEnabled(false)
+	return server.Serve(&oneShotListener{conn: conn})
+}
+
+// Add the ValidateConnection method to PollingHandler.
+func (h *PollingHandler) ValidateConnection(conn net.Conn) error {
+	// Placeholder implementation for validating connections.
+	return nil
+}
+
+// Define the SOCKS5Handler type.
+type SOCKS5Handler struct {
+	listener *Listener
+}
+
+// Add the HandleConnection method to SOCKS5Handler.
+func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
+	defer conn.Close()
+	// Placeholder implementation for SOCKS5 connection handling.
+	return nil
+}
+
+// Add the ValidateConnection method to SOCKS5Handler.
+func (h *SOCKS5Handler) ValidateConnection(conn net.Conn) error {
+	// Placeholder implementation for validating SOCKS5 connections.
+	return nil
+}
+
+// Define missing types
+// FileHandler is a placeholder for the actual implementation
+type FileHandler struct{}
+
+// NewFileHandler is a placeholder function to resolve errors
+func NewFileHandler(dir string) (*FileHandler, error) {
+	return &FileHandler{}, nil
+}
+
+// CommandQueue is a placeholder for the actual implementation
+type CommandQueue struct{}
+
+// NewCommandQueue is a placeholder function to resolve errors
+func NewCommandQueue() *CommandQueue {
+	return &CommandQueue{}
 }

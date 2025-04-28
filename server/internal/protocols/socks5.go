@@ -1,4 +1,5 @@
-package networking
+// This file will be moved to the new 'protocols' folder as 'socks5.go'.
+package protocols
 
 import (
 	"encoding/json"
@@ -11,6 +12,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"microc2/server/internal/common" // Import BaseProtocolConfig
 
 	"github.com/google/uuid"
 )
@@ -527,20 +530,16 @@ func (s *SOCKS5Server) isPortDisallowed(port int) bool {
 
 // SOCKS5Protocol implements the Protocol interface for SOCKS5 communication
 type SOCKS5Protocol struct {
-	config   BaseProtocolConfig
+	config   common.BaseProtocolConfig
 	server   *SOCKS5Server
 	commands struct {
 		sync.Mutex
 		queue []string
 	}
-	results struct {
-		sync.Mutex
-		queue []string
-	}
 }
 
-// NewSOCKS5Protocol creates a new SOCKS5 protocol instance
-func NewSOCKS5Protocol(config BaseProtocolConfig) *SOCKS5Protocol {
+// Update NewSOCKS5Protocol to accept common.BaseProtocolConfig.
+func NewSOCKS5Protocol(config common.BaseProtocolConfig) *SOCKS5Protocol {
 	return &SOCKS5Protocol{
 		config: config,
 	}

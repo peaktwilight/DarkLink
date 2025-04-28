@@ -1,8 +1,10 @@
-package networking
+// This file will be moved to the new 'listeners' folder as 'listener_management.go'.
+package listeners
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,8 +12,27 @@ import (
 	"sync"
 	"time"
 
+	behaviour "microc2/server/internal/behaviour"
+	"microc2/server/internal/common"
+
 	"github.com/google/uuid"
 )
+
+// Define missing types
+// BaseProtocolConfig is a placeholder for the actual implementation
+// Removed local definition of BaseProtocolConfig
+
+// Define missing Protocol interface
+// Protocol defines the interface that all communication protocols must implement
+type Protocol interface {
+	Initialize() error
+	HandleCommand(cmd string) error
+	HandleFileUpload(filename string, fileData io.Reader) error
+	HandleFileDownload(filename string) (io.Reader, error)
+	HandleAgentHeartbeat(agentData []byte) error
+	GetRoutes() map[string]http.HandlerFunc
+	GetHTTPHandler() http.Handler
+}
 
 // ListenerManager handles the creation, management, and tracking of protocol listeners.
 // It maintains a thread-safe registry of all active and stopped listeners.
@@ -112,21 +133,27 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 		}
 		// Setup upload directory inside listener
 		uploadDir := filepath.Join(listenerDir, "uploads")
-		protoConfig := BaseProtocolConfig{UploadDir: uploadDir, Port: fmt.Sprintf("%d", config.Port)}
-		httpProto := NewHTTPPollingProtocol(protoConfig)
+		protoConfig := common.BaseProtocolConfig{UploadDir: uploadDir, Port: fmt.Sprintf("%d", config.Port)}
+		httpProto := behaviour.NewHTTPPollingProtocol(protoConfig)
 		// Use config.BindHost if provided, otherwise default to 0.0.0.0
 		bindHost := config.BindHost
 		if bindHost == "" {
 			bindHost = "0.0.0.0"
 		}
 		bindAddr := fmt.Sprintf("%s:%d", bindHost, config.Port)
+		handler := httpProto.GetHTTPHandler()
+		if handler == nil {
+			log.Fatalf("[FATAL] HTTPPollingProtocol.GetHTTPHandler() returned nil for listener %s on %s", config.Name, bindAddr)
+			panic("HTTPPollingProtocol.GetHTTPHandler() returned nil")
+		}
+		log.Printf("[DEBUG] Starting HTTP server for listener %s on %s with handler type: %T", config.Name, bindAddr, handler)
 		go func() {
 			if config.TLSConfig != nil {
 				log.Printf("[INFO] Starting HTTPS polling listener %s on %s", config.Name, bindAddr)
-				http.ListenAndServeTLS(bindAddr, config.TLSConfig.CertFile, config.TLSConfig.KeyFile, httpProto.GetHTTPHandler())
+				http.ListenAndServeTLS(bindAddr, config.TLSConfig.CertFile, config.TLSConfig.KeyFile, handler)
 			} else {
 				log.Printf("[INFO] Starting HTTP polling listener %s on %s", config.Name, bindAddr)
-				http.ListenAndServe(bindAddr, httpProto.GetHTTPHandler())
+				http.ListenAndServe(bindAddr, handler)
 			}
 		}()
 		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now(), Protocol: httpProto}

@@ -1,10 +1,12 @@
-package networking
+// This file will be moved to the new 'behaviour' folder as 'static_polling.go'.
+package behaviour
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"microc2/server/internal/common"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,7 +17,7 @@ import (
 )
 
 type HTTPPollingProtocol struct {
-	config   BaseProtocolConfig
+	config   common.BaseProtocolConfig
 	mux      *http.ServeMux
 	commands struct {
 		sync.Mutex
@@ -52,7 +54,7 @@ type Agent struct {
 }
 
 // NewHTTPPollingProtocol creates a new HTTP polling protocol instance
-func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
+func NewHTTPPollingProtocol(config common.BaseProtocolConfig) *HTTPPollingProtocol {
 	p := &HTTPPollingProtocol{
 		config: config,
 		mux:    http.NewServeMux(),
@@ -73,17 +75,28 @@ func NewHTTPPollingProtocol(config BaseProtocolConfig) *HTTPPollingProtocol {
 
 func (p *HTTPPollingProtocol) registerRoutes() {
 	// Register agent communication routes with /api prefix
-	p.mux.HandleFunc("/api/agent/", p.handleAgentRequests)
-	log.Printf("[DEBUG] Registered agent routes on HTTP polling protocol")
+	p.mux.HandleFunc("/api/agent/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[DEBUG] /api/agent/ handler triggered: %s %s", r.Method, r.URL.Path)
+		p.handleAgentRequests(w, r)
+	})
+	p.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[DEBUG] Unmatched HTTP request: %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("404 not found"))
+	})
+	log.Printf("[DEBUG] Registered agent routes on HTTP polling protocol (mux: %p)", p.mux)
 }
 
 // GetHTTPHandler returns the ServeMux that handles HTTP requests
 func (p *HTTPPollingProtocol) GetHTTPHandler() http.Handler {
+	log.Printf("[DEBUG] GetHTTPHandler called for HTTPPollingProtocol (mux: %p)", p.mux)
 	return p.mux
 }
 
 func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
+
+	log.Printf("[DEBUG] HandleAgentRequests called: %s %s", r.Method, r.URL.Path)
 
 	// Handle preflight OPTIONS requests
 	if r.Method == http.MethodOptions {
@@ -124,6 +137,10 @@ func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http
 		log.Printf("[ERROR] Unknown action %s from agent %s", action, AgentID)
 		http.Error(w, "Unknown action", http.StatusNotFound)
 	}
+}
+
+func (p *HTTPPollingProtocol) HandleAgentRequests(w http.ResponseWriter, r *http.Request) {
+	p.handleAgentRequests(w, r)
 }
 
 func (p *HTTPPollingProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request, AgentID string) {
@@ -511,3 +528,12 @@ func (p *HTTPPollingProtocol) GetResults(AgentID string) []map[string]interface{
 	log.Printf("[DEBUG] Returning %d results for AgentID=%s", len(results), AgentID)
 	return results
 }
+
+// Define missing types
+// BaseProtocolConfig is a placeholder for the actual implementation
+type BaseProtocolConfig struct {
+	UploadDir string
+}
+
+// Listener is a placeholder for the actual implementation
+type Listener struct{}

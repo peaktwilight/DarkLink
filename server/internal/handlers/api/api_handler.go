@@ -2,8 +2,9 @@ package api
 
 import (
 	"encoding/json"
-	"log"
-	"microc2/server/internal/networking"
+	"log" // Updated from `networking`
+	// Updated from `networking`
+	"microc2/server/internal/behaviour"
 	"microc2/server/pkg/communication"
 	"net/http"
 	"reflect"
@@ -117,7 +118,7 @@ func (h *APIHandler) handleGetAgentResults(w http.ResponseWriter, AgentID string
 						GetResults(AgentID string) []map[string]interface{}
 					}); ok {
 						// Add debug: print keys in results.history
-						if hp, ok := listener.Protocol.(*networking.HTTPPollingProtocol); ok {
+						if hp, ok := listener.Protocol.(*behaviour.HTTPPollingProtocol); ok {
 							keys := hp.GetResultsHistoryKeys()
 							log.Printf("[DEBUG] Results history keys: %v", keys)
 						}

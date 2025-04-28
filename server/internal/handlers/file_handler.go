@@ -1,4 +1,4 @@
-package networking
+package handlers
 
 import (
 	"errors"
@@ -181,3 +181,5 @@ func (h *FileHandler) DeleteFile(filename string) error {
 	}
 	return nil
 }
+
+// This file will be moved to the new 'handlers' folder as 'file_handler.go'.
