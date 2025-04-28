@@ -15,9 +15,15 @@ import (
 //   - Returns a properly configured StaticHandler instance
 //   - webDir is set to the web subdirectory relative to staticDir
 func New(staticDir string) *StaticHandler {
+	exePath, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	exeDir := filepath.Dir(exePath)
+	webDir := filepath.Join(exeDir, "web")
 	return &StaticHandler{
 		staticDir: staticDir,
-		webDir:    "/home/darkroom/coding/MicroC2/server/web", // Use absolute path for webDir
+		webDir:    webDir,
 	}
 }
 
