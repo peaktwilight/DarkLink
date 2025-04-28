@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"microc2/server/internal/behaviour" // Corrected path to the `listeners` package
 	"microc2/server/internal/common"    // Import the `common` package for BaseProtocolConfig
-	"microc2/server/internal/listeners" // Corrected path to the `listeners` package
 
 	"github.com/google/uuid"
 )
@@ -407,7 +407,7 @@ func (h *SOCKS5Handler) HandleConnection(conn net.Conn) error {
 
 // PollingHandler wraps HTTPPollingProtocol for per-connection serving
 type PollingHandler struct {
-	proto *listeners.HTTPPollingProtocol
+	proto *behaviour.HTTPPollingProtocol
 }
 
 // NewPollingHandler creates a new polling handler for this listener
@@ -415,7 +415,7 @@ func NewPollingHandler(listener *Listener) *PollingHandler {
 	// Upload directory scoped to listener
 	uploadDir := filepath.Join("static", "listeners", listener.Config.Name, "uploads")
 	protoConfig := common.BaseProtocolConfig{UploadDir: uploadDir}
-	return &PollingHandler{proto: listeners.NewHTTPPollingProtocol(protoConfig)}
+	return &PollingHandler{proto: behaviour.NewHTTPPollingProtocol(protoConfig)}
 }
 
 func (h *PollingHandler) ValidateConnection(conn net.Conn) error {
