@@ -14,17 +14,17 @@ import (
 // Post-conditions:
 //   - Returns a properly configured StaticHandler instance
 //   - webDir is set to the web subdirectory relative to staticDir
-func New(staticDir string) *StaticHandler {
+func New(staticDir string) (*StaticHandler, error) {
 	exePath, err := os.Executable()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	exeDir := filepath.Dir(exePath)
 	webDir := filepath.Join(exeDir, "web")
 	return &StaticHandler{
 		staticDir: staticDir,
 		webDir:    webDir,
-	}
+	}, nil
 }
 
 // HandleRoot serves the root path and static files
