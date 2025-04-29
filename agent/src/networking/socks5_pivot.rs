@@ -65,6 +65,10 @@ impl Socks5PivotHandler {
     }
 
     pub async fn handle_frame(&mut self, frame: PivotFrame) {
+        log::info!(
+            "[SOCKS5-PIVOT] Received frame: type={:?}, stream_id={}, payload_len={}",
+            frame.frame_type, frame.stream_id, frame.payload.len()
+        );
         match frame.frame_type {
             PivotFrameType::Data => {
                 if let Some(stream) = self.streams.get(&frame.stream_id) {
@@ -76,8 +80,8 @@ impl Socks5PivotHandler {
                 }
             }
             PivotFrameType::Close => {
-                self.streams.remove(&frame.stream_id);
                 log::info!("[SOCKS5-PIVOT] Closing stream {}", frame.stream_id);
+                self.streams.remove(&frame.stream_id);
             }
             _ => {}
         }
