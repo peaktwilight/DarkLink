@@ -4,18 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-fast-socks5 = "1.0.0-rc.0"
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.11", features = ["json", "socks"] }
+reqwest = { version = "0.12.15", features = ["json", "socks"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-hostname = "0.3"
+hostname = "0.4.1"
 os_info = "3.7"
-rand = "0.8"
+rand = "0.9.1"
 get_if_addrs = "0.5"
 tokio-socks = "0.5.2"
 env_logger = "0.11"
 log = "0.4.27"
+socks5-proxy = "0.1.1"
 
 [features]
 default = []
