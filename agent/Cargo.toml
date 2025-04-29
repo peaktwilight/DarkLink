@@ -16,6 +16,7 @@ tokio-socks = "0.5.2"
 env_logger = "0.11"
 log = "0.4.27"
 socks5-proxy = "0.1.1"
+once_cell = "1.19"
 
 [features]
 default = []

