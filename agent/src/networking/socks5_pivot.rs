@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use tokio::io::AsyncWriteExt;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::net::tcp::OwnedWriteHalf;
 
 #[derive(Debug)]
 pub enum PivotFrameType {
@@ -47,7 +48,7 @@ impl PivotFrame {
 }
 
 pub struct Socks5PivotHandler {
-    streams: HashMap<u32, Arc<Mutex<TcpStream>>>,
+    streams: HashMap<u32, Arc<Mutex<OwnedWriteHalf>>>,
     c2_sender: mpsc::Sender<PivotFrame>,
 }
 
@@ -60,8 +61,8 @@ impl Socks5PivotHandler {
         }
     }
 
-    pub fn register_stream(&mut self, stream_id: u32, stream: Arc<Mutex<TcpStream>>) {
-        self.streams.insert(stream_id, stream);
+    pub fn register_stream(&mut self, stream_id: u32, writer: Arc<Mutex<OwnedWriteHalf>>) {
+        self.streams.insert(stream_id, writer);
     }
 
     pub async fn handle_frame(&mut self, frame: PivotFrame) {

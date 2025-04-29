@@ -107,17 +107,10 @@ async fn handle_socks5_client(
     stream.write_all(&reply).await?;
 
     // 6. Register stream with handler for multiplexing
-    let stream_arc = Arc::new(Mutex::new(stream));
-    {
+    let (mut reader, writer) = stream.into_split();{
         let mut handler = pivot_handler.lock().await;
-        handler.register_stream(stream_id, stream_arc.clone());
+        handler.register_stream(stream_id, Arc::new(Mutex::new(writer)));
     }
-
-    // Now split the stream for local relay
-    let stream = Arc::try_unwrap(stream_arc)
-        .map_err(|_| "Failed to unwrap Arc for stream splitting")?
-        .into_inner();
-    let (mut reader, _writer) = stream.into_split();
 
     let c2_sender = pivot_tx.clone();
 
