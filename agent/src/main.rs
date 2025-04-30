@@ -26,11 +26,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pivot_handler = Arc::new(tokio::sync::Mutex::new(Socks5PivotHandler::new(pivot_tx.clone())));
 
     if config.socks5_enabled {
-        info!("[CONFIG] SOCKS5 is enabled. Proxy: 127.0.0.1:{}, all C2 traffic will use SOCKS5 Reverse Proxy tunnel.", config.socks5_port);
+        info!("[CONFIG] SOCKS5 is enabled. Proxy: {}:{}, all C2 traffic will use SOCKS5 Proxy tunnel.", config.socks5_host, config.socks5_port);
 
         // Start SOCKS5 pivot server for operator-side pivoting
         let pivot_server = Socks5PivotServer::new(
-            "127.0.0.1".to_string(),
+            config.socks5_host.clone(),
             config.socks5_port,
             pivot_tx.clone(),
         );

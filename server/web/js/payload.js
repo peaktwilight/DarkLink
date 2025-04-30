@@ -225,6 +225,7 @@ class PayloadManager {
         config.indirectSyscall = config.indirectSyscall === 'on';
         config.dllSideloading = config.dllSideloading === 'on';
         config.socks5_enabled = config.socks5_enabled === 'on';
+        config.socks5_host = String(config.socks5_host || '').trim();
         config.socks5_port = parseInt(config.socks5_port, 10) || 0;
 
         if (config.sleep) {

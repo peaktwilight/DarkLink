@@ -15,6 +15,7 @@ type PayloadConfig struct {
 	SideloadDll     string `json:"sideloadDll,omitempty"`
 	ExportName      string `json:"exportName,omitempty"`
 	Socks5Enabled   bool   `json:"socks5_enabled"`
+	Socks5Host      string `json:"socks5_host"`
 	Socks5Port      int    `json:"socks5_port"`
 }
 
