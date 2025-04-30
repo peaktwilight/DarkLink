@@ -78,7 +78,10 @@ func main() {
 
 	// Initialize handlers
 	fileHandlers := api.NewFileHandlers(fileStore)
-	staticHandlers := web.New(cfg.Server.StaticDir)
+	staticHandlers, err := web.New(cfg.Server.StaticDir)
+	if err != nil {
+		log.Fatalf("Failed to initialize static handlers: %v", err)
+	}
 	wsHandlers := ws.New(logStreamer)
 	listenerHandlers := api.NewListenerHandlers(serverManager.GetListenerManager())
 

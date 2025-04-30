@@ -145,6 +145,7 @@ cat > "$OUTPUT_DIR/.config/config.json" << EOF
     "payload_id": "${PAYLOAD_ID}",
     "protocol": "${PROTOCOL}",
     "socks5_enabled": ${SOCKS5_ENABLED},
+    "socks5_host": "${SOCKS5_HOST}",
     "socks5_port": ${SOCKS5_PORT}
 }
 EOF

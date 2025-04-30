@@ -208,6 +208,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 
 	// Include SOCKS5 proxy settings if requested
 	agentConfig["socks5_enabled"] = config.Socks5Enabled
+	agentConfig["socks5_host"] = config.Socks5Host
 	agentConfig["socks5_port"] = config.Socks5Port
 	if config.Socks5Enabled {
 		agentConfig["protocol"] = "socks5"
@@ -313,6 +314,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),
 		fmt.Sprintf("SOCKS5_ENABLED=%t", config.Socks5Enabled),
+		fmt.Sprintf("SOCKS5_HOST=%s", config.Socks5Host),
 		fmt.Sprintf("SOCKS5_PORT=%d", config.Socks5Port),
 	)
 

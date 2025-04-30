@@ -16,6 +16,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PAYLOAD_ID");
     println!("cargo:rerun-if-env-changed=PROTOCOL");
     println!("cargo:rerun-if-env-changed=SOCKS5_ENABLED");
+    println!("cargo:rerun-if-env-changed=SOCKS5_HOST");
     println!("cargo:rerun-if-env-changed=SOCKS5_PORT");
 
     // Get configuration from environment variables
@@ -27,6 +28,7 @@ fn main() {
         .unwrap_or_else(|_| "true".to_string())
         .parse::<bool>()
         .unwrap_or(true);
+    let socks5_host = env::var("SOCKS5_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let socks5_port = env::var("SOCKS5_PORT").unwrap_or_else(|_| "9050".to_string());
     
     let default_protocol = if server_port == "443" {
@@ -43,6 +45,7 @@ fn main() {
     log_build(&format!("PAYLOAD_ID: {}", payload_id));
     log_build(&format!("PROTOCOL: {}", protocol));
     log_build(&format!("SOCKS5_ENABLED: {}", socks5_enabled));
+    log_build(&format!("SOCKS5_HOST: {}", socks5_host));
     log_build(&format!("SOCKS5_PORT: {}", socks5_port));
 
     // Only use environment config if we have all required values
@@ -56,10 +59,11 @@ fn main() {
                 "payload_id": "{}",
                 "protocol": "{}",
                 "socks5_enabled": {},
+                "socks5_host": "{}",
                 "socks5_port": {}
             }}"#,
             server_host, server_port, sleep_interval, payload_id, protocol,
-            socks5_enabled, socks5_port
+            socks5_enabled, socks5_host, socks5_port
         )
     } else if let Ok(content) = fs::read_to_string("config.json") {
         log_build("Using config.json file for config");
@@ -73,6 +77,7 @@ fn main() {
             "payload_id": "",
             "protocol": "http",
             "socks5_enabled": true,
+            "socks5_host": 127.0.0.1,
             "socks5_port": 9050
         }"#.to_string()
     };
