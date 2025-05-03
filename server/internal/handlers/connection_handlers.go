@@ -459,7 +459,7 @@ func (o *oneShotListener) Addr() net.Addr {
 // GetConnectionHandler returns the appropriate connection handler for a protocol
 func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
-	case "http-polling", "http":
+	case "https", "http":
 		return NewPollingHandler(listener), nil
 	case "socks5":
 		return NewSOCKS5Handler(listener)

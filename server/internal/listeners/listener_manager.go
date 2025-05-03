@@ -117,7 +117,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 	}
 
 	// HTTP polling uses a dedicated HTTP server
-	if config.Protocol == "http-polling" {
+	if config.Protocol == "http" {
 		// Prepare listener directory and save config.json
 		listenerDir := filepath.Join("static", "listeners", config.Name)
 		if err := os.MkdirAll(listenerDir, 0755); err != nil {

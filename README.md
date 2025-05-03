@@ -108,7 +108,7 @@ Client <-> Server <-> VM1 <-> VM2
     ```
   - and connect on the agent side with
     ```sh
-    ssh -D SOCKS5_PROXY_PORT ServerUsername@ServerIP
+    ssh -N -D SOCKS5_PROXY_PORT ServerUsername@ServerIP
     ```
 
 - **On VM2:**
@@ -120,7 +120,7 @@ Client <-> Server <-> VM1 <-> VM2
     ```
   - SSH from VM2 to VM1 if needed:
     ```sh
-    ssh -D VM1_PROXY_PORT Vm1Username@IPofVm1
+    ssh -N -D VM1_PROXY_PORT Vm1Username@IPofVm1
     ```
 
 ---

@@ -91,7 +91,7 @@ type Listener struct {
 	stopChan        chan struct{}
 	listener        net.Listener
 	tlsConfig       *tls.Config
-	protocolHandler http.Handler // HTTP handler for http-polling
+	protocolHandler http.Handler // HTTP handler for http
 	Protocol        Protocol     // underlying protocol instance
 }
 
@@ -142,7 +142,8 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 	// Initialize protocol handler based on config
 	var protoHandler http.Handler
 	var proto Protocol
-	if config.Protocol == "http-polling" || config.Protocol == "http" {
+	switch config.Protocol {
+	case "http", "https":
 		protoConfig := common.BaseProtocolConfig{
 			UploadDir: filepath.Join("static", "listeners", config.Name, "uploads"),
 			Port:      fmt.Sprintf("%d", config.Port),
@@ -152,6 +153,9 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 		proto = httpProto
 		// Ensure upload directory exists
 		os.MkdirAll(protoConfig.UploadDir, 0755)
+	case "DNSoverHTTPS":
+		// DNSoverHTTPS logic (may be implemented later)
+		return nil, fmt.Errorf("DNSoverHTTPS protocol is not implemented yet")
 	}
 
 	// Construct listener instance
@@ -209,40 +213,35 @@ func (l *Listener) Start() error {
 		return fmt.Errorf("listener %s is already running", l.Config.Name)
 	}
 
-	// Clear any previous error
 	l.Error = ""
-
-	// Create the appropriate listener based on protocol
-	var err error
 	addr := fmt.Sprintf("%s:%d", l.Config.BindHost, l.Config.Port)
 
-	if l.Config.TLSConfig != nil {
-		cert, err := tls.LoadX509KeyPair(l.Config.TLSConfig.CertFile, l.Config.TLSConfig.KeyFile)
-		if err != nil {
-			return fmt.Errorf("failed to load TLS certificates: %v", err)
-		}
-		l.tlsConfig = &tls.Config{
-			Certificates: []tls.Certificate{cert},
-		}
-		l.listener, err = tls.Listen("tcp", addr, l.tlsConfig)
-	} else {
-		l.listener, err = net.Listen("tcp", addr)
+	server := &http.Server{
+		Addr:    addr,
+		Handler: l.protocolHandler,
 	}
 
-	if err != nil {
-		l.Status = StatusError
-		l.Error = err.Error()
-		return fmt.Errorf("failed to start listener: %v", err)
-	}
+	go func() {
+		var err error
+		if l.Config.Protocol == "https" {
+			certFile := l.Config.TLSConfig.CertFile
+			keyFile := l.Config.TLSConfig.KeyFile
+			log.Printf("[DEBUG] Loading TLS configuration from %s and %s", certFile, keyFile)
+			log.Printf("[DEBUG] Starting HTTPS server on %s", addr)
+			err = server.ListenAndServeTLS(certFile, keyFile)
+		} else {
+			log.Printf("[DEBUG] Starting HTTP server on %s", addr)
+			err = server.ListenAndServe()
+		}
+		if err != nil && err != http.ErrServerClosed {
+			log.Printf("[ERROR] HTTP server error: %v", err)
+			l.SetError(err)
+		}
+	}()
 
 	l.Status = StatusActive
 	l.StartTime = time.Now()
 	l.StopTime = time.Time{}
-
-	// Start accepting connections
-	go l.acceptConnections()
-
-	log.Printf("[INFO] Started listener %s on %s:%d", l.Config.Name, l.Config.BindHost, l.Config.Port)
 	return nil
 }
 
@@ -277,106 +276,6 @@ func (l *Listener) Stop() error {
 	l.StopTime = time.Now()
 	log.Printf("[INFO] Stopped listener %s", l.Config.Name)
 	return nil
-}
-
-// acceptConnections handles incoming connections
-//
-// Pre-conditions:
-//   - Listener is in active state
-//
-// Post-conditions:
-//   - Accepts and processes incoming connections
-//   - Updates listener statistics
-//   - Handles errors gracefully
-func (l *Listener) acceptConnections() {
-	for {
-		select {
-		case <-l.stopChan:
-			return
-		default:
-			conn, err := l.listener.Accept()
-			if err != nil {
-				select {
-				case <-l.stopChan:
-					return
-				default:
-					l.mu.Lock()
-					l.Stats.FailedConnections++
-					l.mu.Unlock()
-					log.Printf("[ERROR] Failed to accept connection on listener %s: %v", l.Config.Name, err)
-					continue
-				}
-			}
-
-			l.mu.Lock()
-			l.Stats.TotalConnections++
-			l.Stats.ActiveConnections++
-			l.Stats.LastConnection = time.Now()
-			l.mu.Unlock()
-
-			// Handle the connection in a goroutine
-			go l.handleConnection(conn)
-		}
-	}
-}
-
-// handleConnection processes an individual client connection
-//
-// Pre-conditions:
-//   - Connection is valid and established
-//
-// Post-conditions:
-//   - Processes the connection using the appropriate protocol handler
-//   - Updates listener statistics
-//   - Handles errors gracefully
-func (l *Listener) handleConnection(conn net.Conn) {
-	defer func() {
-		conn.Close()
-		l.mu.Lock()
-		l.Stats.ActiveConnections--
-		l.mu.Unlock()
-	}()
-
-	// Get the appropriate protocol handler
-	handler, err := GetConnectionHandler(l)
-	if err != nil {
-		l.mu.Lock()
-		l.Stats.FailedConnections++
-		l.Error = err.Error()
-		l.mu.Unlock()
-		log.Printf("[ERROR] Failed to get connection handler for listener %s: %v", l.Config.Name, err)
-		return
-	}
-
-	// Handle the connection using the protocol-specific handler
-	if err := handler.HandleConnection(conn); err != nil {
-		log.Printf("[ERROR] Error handling connection on listener %s: %v", l.Config.Name, err)
-		return
-	}
-}
-
-// handleHTTPConnection processes an individual HTTP client connection
-//
-// Pre-conditions:
-//   - Connection is valid and established
-//
-// Post-conditions:
-//   - Processes the connection using the appropriate protocol handler
-//   - Updates listener statistics
-//   - Handles errors gracefully
-func (l *Listener) handleHTTPConnection(conn net.Conn) error {
-	if l.protocolHandler == nil {
-		// ...existing code...
-	}
-
-	server := &http.Server{
-		Handler: l.protocolHandler,
-	}
-	server.SetKeepAlivesEnabled(false)
-
-	// Create one-shot listener for this connection
-	connListener := &oneShotListener{conn: conn}
-	return server.Serve(connListener)
 }
 
 // GetStatus returns the current status of the listener
@@ -454,7 +353,7 @@ func (o *oneShotListener) Addr() net.Addr {
 // Define the GetConnectionHandler function.
 func GetConnectionHandler(listener *Listener) (ConnectionHandler, error) {
 	switch strings.ToLower(listener.Config.Protocol) {
-	case "http-polling", "http":
+	case "http", "https":
 		return NewPollingHandler(listener), nil
 	case "socks5":
 		return NewSOCKS5Handler(listener)

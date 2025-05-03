@@ -310,6 +310,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("TARGET=%s", buildTarget),
 		fmt.Sprintf("OUTPUT_DIR=%s", outputDir),
 		fmt.Sprintf("BUILD_TYPE=%s", buildType),
+		fmt.Sprintf("PROTOCOL=%s", listener.Protocol),
 		fmt.Sprintf("LISTENER_HOST=%s", connectHost),
 		fmt.Sprintf("LISTENER_PORT=%d", listener.Port),
 		fmt.Sprintf("SLEEP_INTERVAL=%d", config.Sleep),

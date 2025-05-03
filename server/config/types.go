@@ -11,7 +11,7 @@ type Config struct {
 		Protocol    string `yaml:"protocol"`
 		HTTPPolling struct {
 			HeartbeatInterval int `yaml:"heartbeatInterval"`
-		} `yaml:"http-polling"`
+		} `yaml:"http"`
 	} `yaml:"communication"`
 
 	Security struct {

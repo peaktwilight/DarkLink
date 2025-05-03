@@ -48,7 +48,7 @@ func validateConfig(config *Config) error {
 
 	// Validate protocol selection
 	switch config.Communication.Protocol {
-	case "http-polling", "socks5":
+	case "http", "socks5":
 		// Valid protocols
 	default:
 		return fmt.Errorf("unsupported protocol: %s", config.Communication.Protocol)
