@@ -7,3 +7,4 @@
 /server/server.log
 /server/static/*
 /server/uploads/*
+/server/certs/*

@@ -39,12 +39,12 @@ func (h *ListenerHandlers) HandleCreateListener(w http.ResponseWriter, r *http.R
 	response := map[string]interface{}{
 		"status": "success",
 		"listener": map[string]interface{}{
-			"id":     listener.Config.ID,
-			"name":   listener.Config.Name,
-			"type":   listener.Config.Protocol,
-			"host":   listener.Config.BindHost,
-			"port":   listener.Config.Port,
-			"status": listener.Status,
+			"id":       listener.Config.ID,
+			"name":     listener.Config.Name,
+			"protocol": listener.Config.Protocol,
+			"host":     listener.Config.BindHost,
+			"port":     listener.Config.Port,
+			"status":   listener.Status,
 		},
 	}
 

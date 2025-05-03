@@ -52,6 +52,12 @@ This project proposes the design of a lightweight C2 framework for penetration t
 - Edit `server/config/settings.yaml` for server settings.
 - Edit `agent/src/config.rs` or use environment variables for agent configuration.
 
+### TLS certificates for using HTTPS
+- Run the following in MicroC2/server/ to generate TLS certificates
+    ```
+    openssl req -x509 -newkey rsa:4096 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost"
+    ```
+
 ### Creating Listeners
 - Use the web UI to create HTTP Polling or SOCKS5 listeners.
 - Agents will connect to the listener endpoints you configure.
@@ -102,7 +108,7 @@ Client <-> Server <-> VM1 <-> VM2
     ```
   - and connect on the agent side with
     ```sh
-    ssh -D SOCKS5_PROXY_PORT ServerUsername@ServerIP
+    ssh -N -D SOCKS5_PROXY_PORT ServerUsername@ServerIP
     ```
 
 - **On VM2:**
@@ -114,7 +120,7 @@ Client <-> Server <-> VM1 <-> VM2
     ```
   - SSH from VM2 to VM1 if needed:
     ```sh
-    ssh -D VM1_PROXY_PORT Vm1Username@IPofVm1
+    ssh -N -D VM1_PROXY_PORT Vm1Username@IPofVm1
     ```
 
 ---

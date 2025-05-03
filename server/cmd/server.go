@@ -134,7 +134,31 @@ func main() {
 	log.Printf("[CONFIG] Payloads directory: %s", payloadDir)
 	log.Printf("[NETWORK] Port: %s", cfg.Server.Port)
 
-	if err := serverManager.Start(); err != nil {
-		log.Fatalf("[ERROR] Server error: %v", err)
+	// --- HTTPS Support ---
+	certFile := "certs/server.crt"
+	keyFile := "certs/server.key"
+	addr := ":" + cfg.Server.Port
+
+	/*
+		// Redirect HTTP to HTTPS
+		go func() {
+			// Listen on port 8081 and redirect all requests to HTTPS
+			if err := http.ListenAndServe(":8081", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				target := "https://" + r.Host + r.URL.RequestURI()
+				http.Redirect(w, r, target, http.StatusMovedPermanently)
+			})); err != nil {
+				log.Printf("[ERROR] HTTP redirect server error: %v", err)
+			}
+		}()
+	*/
+
+	// Start HTTPS server
+	log.Printf("[STARTUP] Starting HTTPS server on %s ...", addr)
+	if err := http.ListenAndServeTLS(addr, certFile, keyFile, nil); err != nil {
+		log.Fatalf("[ERROR] HTTPS server error: %v", err)
 	}
+	// Remove or comment out the old serverManager.Start() call:
+	// if err := serverManager.Start(); err != nil {
+	// 	log.Fatalf("[ERROR] Server error: %v", err)
+	// }
 }

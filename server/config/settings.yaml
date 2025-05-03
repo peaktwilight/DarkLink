@@ -8,11 +8,11 @@ server:
     keyFile: "certs/server.key"
   
 communication:
-  # Available protocols: http-polling
-  protocol: http-polling
+  # Available protocols: http
+  protocol: http
   
   # Protocol-specific settings
-  http-polling:
+  http:
     heartbeatInterval: 60  # seconds
     
 security:
