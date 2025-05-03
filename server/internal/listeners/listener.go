@@ -224,8 +224,8 @@ func (l *Listener) Start() error {
 	go func() {
 		var err error
 		if l.Config.Protocol == "https" {
-			certFile := l.Config.TLSConfig.CertFile
-			keyFile := l.Config.TLSConfig.KeyFile
+			certFile := "certs/server.crt"
+			keyFile := "certs/server.key"
 			log.Printf("[DEBUG] Loading TLS configuration from %s and %s", certFile, keyFile)
 			log.Printf("[DEBUG] Starting HTTPS server on %s", addr)
 			err = server.ListenAndServeTLS(certFile, keyFile)
