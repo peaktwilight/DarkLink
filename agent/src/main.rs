@@ -11,6 +11,7 @@ use rand::Rng;
 use log::{info, warn, error};
 use networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::opsec::{detect_opsec_level, OpsecLevel};
 use std::sync::Arc;
 
 #[tokio::main]
