@@ -31,3 +31,63 @@ impl XorProtector {
 pub fn zeroize_vec(data: &mut Vec<u8>) {
     data.zeroize();
 }
+
+pub struct SensitiveState {
+    pub command_queue: Vec<Vec<u8>>, // Commands as bytes
+    pub file_buffer: Vec<u8>,
+    pub config: Option<Vec<u8>>, // Serialized config
+}
+
+impl SensitiveState {
+    pub fn zeroize(&mut self) {
+        self.command_queue.iter_mut().for_each(|cmd| cmd.zeroize());
+        self.file_buffer.zeroize();
+        if let Some(cfg) = &mut self.config {
+            cfg.zeroize();
+        }
+    }
+}
+
+pub struct MemoryProtector {
+    xor: XorProtector,
+    pub state: SensitiveState,
+    encrypted: bool,
+}
+
+impl MemoryProtector {
+    pub fn new(state: SensitiveState) -> Self {
+        let xor = XorProtector::new(32); // 256-bit key
+        Self { xor, state, encrypted: false }
+    }
+
+    pub fn protect(&mut self) {
+        if !self.encrypted {
+            for cmd in &mut self.state.command_queue {
+                self.xor.xor(cmd);
+            }
+            self.xor.xor(&mut self.state.file_buffer);
+            if let Some(cfg) = &mut self.state.config {
+                self.xor.xor(cfg);
+            }
+            self.encrypted = true;
+        }
+    }
+
+    pub fn unprotect(&mut self) {
+        if self.encrypted {
+            for cmd in &mut self.state.command_queue {
+                self.xor.xor(cmd);
+            }
+            self.xor.xor(&mut self.state.file_buffer);
+            if let Some(cfg) = &mut self.state.config {
+                self.xor.xor(cfg);
+            }
+            self.encrypted = false;
+        }
+    }
+
+    pub fn zeroize(&mut self) {
+        self.state.zeroize();
+        self.xor.zeroize();
+    }
+}

