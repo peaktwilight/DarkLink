@@ -1,9 +1,9 @@
 use log::{debug};
-use std::process;
 use once_cell::sync::Lazy;
 use std::sync::Mutex;
 use chrono::Timelike;
 use sysinfo::{System};
+use std::process;
 
 // Opsec mode per default on High risk to ensure maximum security.
 // This module is responsible for detecting the current opsec level based on user activity and system state.
@@ -273,16 +273,6 @@ fn is_user_idle_linux() -> bool {
     }
 }
 
-pub fn is_sandboxed() -> bool {
-    // TODO: Implement sandbox detection
-    false
-}
-
-pub fn is_debugged() -> bool {
-    // TODO: Implement debugger detection
-    false
-}
-
 // Self delete and exit
 pub fn self_delete_and_exit() -> ! {
     use std::env;
@@ -292,6 +282,7 @@ pub fn self_delete_and_exit() -> ! {
         let _ = fs::remove_file(&path);
     }
     process::exit(0);
+    panic!("Agent should have exited");
 }
 
 #[derive(Default, Debug)]
@@ -332,12 +323,14 @@ fn has_suspicious_process() -> bool {
     false
 }
 
-// Placeholder: returns false, implement with platform-specific code for real use
-fn has_suspicious_window() -> bool {
-    false
-}
+// TODO: Implement Sandbox detection
+// pub fn is_sandboxed() -> bool { false }
+
+//TODO: Implement Debugger detection
+// pub fn is_debugged() -> bool { false }
 
 // Placeholder: returns false, implement with platform-specific code for real use
-fn is_suspicious_network() -> bool {
-    false
-}
+fn has_suspicious_window() -> bool { false }
+
+// Placeholder: returns false, implement with platform-specific code for real use
+fn is_suspicious_network() -> bool { false }
