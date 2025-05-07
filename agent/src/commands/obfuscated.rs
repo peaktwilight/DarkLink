@@ -1,5 +1,3 @@
-use rand::Rng;
-
 /// XOR obfuscate a string with a key (agent_id)
 pub fn xor_obfuscate(data: &str, key: &str) -> String {
     let key_bytes = key.as_bytes();
@@ -42,11 +40,10 @@ pub fn obfuscate_command(cmd: &str) -> String {
 }
 
 pub fn random_case(s: &str, probability: f32) -> String {
-    let mut rng = rand::thread_rng();
     s.chars()
         .map(|c| {
-            if c.is_ascii_alphabetic() && rng.gen::<f32>() < probability {
-                if rng.gen::<bool>() {
+            if c.is_ascii_alphabetic() && rand::random::<f32>() < probability {
+                if rand::random::<bool>() {
                     c.to_ascii_uppercase()
                 } else {
                     c.to_ascii_lowercase()
@@ -59,10 +56,10 @@ pub fn random_case(s: &str, probability: f32) -> String {
 }
 
 pub fn random_quote_insertion(s: &str, probability: f32) -> String {
-    let mut rng = rand::thread_rng();
+    //let mut rng = rand::rng();
     let mut result = String::new();
     for word in s.split_whitespace() {
-        if rng.gen::<f32>() < probability {
+        if rand::random::<f32>() < probability {
             result.push('"');
             result.push_str(word);
             result.push('"');
@@ -75,13 +72,12 @@ pub fn random_quote_insertion(s: &str, probability: f32) -> String {
 }
 
 pub fn random_char_insertion(s: &str, probability: f32) -> String {
-    let mut rng = rand::thread_rng();
     let mut result = String::new();
     for c in s.chars() {
         result.push(c);
-        if rng.gen::<f32>() < probability {
+        if rand::random::<f32>() < probability {
             // Insert a random ASCII symbol
-            let rand_char = (33u8 + (rng.gen::<u8>() % 15)) as char;
+            let rand_char = (33u8 + (rand::random::<u8>() % 15)) as char;
             result.push(rand_char);
         }
     }

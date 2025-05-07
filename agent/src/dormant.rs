@@ -10,7 +10,7 @@ impl XorProtector {
     /// Create a new protector with a random key of the given length.
     pub fn new(len: usize) -> Self {
         let mut key = vec![0u8; len];
-        rand::thread_rng().fill_bytes(&mut key);
+        rand::rng().fill_bytes(&mut key);
         Self { key }
     }
 

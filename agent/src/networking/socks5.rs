@@ -277,8 +277,8 @@ mod tests {
         
         let result = client.connect_to("example.com".to_string(), 80).await;
         match result {
-            Ok(_) => println!("Connection successful"),
-            Err(e) => println!("Connection failed: {}", e),
+            Ok(_) => info!("Connection successful"),
+            Err(e) => error!("Connection failed: {}", e),
         }
     }
 
@@ -290,8 +290,8 @@ mod tests {
         
         let result = client.connect_with_retries("example.com".to_string(), 80, 3).await;
         match result {
-            Ok(_) => println!("Authenticated connection successful"),
-            Err(e) => println!("Authenticated connection failed: {}", e),
+            Ok(_) => info!("Authenticated connection successful"),
+            Err(e) => error!("Authenticated connection failed: {}", e),
         }
     }
 }
