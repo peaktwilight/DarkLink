@@ -22,6 +22,7 @@ zeroize = "1.8.1"
 chrono = "0.4.41"
 sysinfo = "0.35.0"
 winapi = { version = "0.3.9", features = ["wtsapi32", "sysinfoapi"] }
+obfstr = "0.4.4"
 
 [features]
 default = []

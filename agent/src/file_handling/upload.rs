@@ -3,6 +3,7 @@ use std::error::Error;
 use hyper::{Client, Request};
 use hyper::Body;
 use hyper::header::{CONTENT_TYPE, CONTENT_LENGTH};
+use obfstr::obfstr;
 
 /// Uploads a file to the given URL via HTTP POST.
 /// The file is sent with 'application/octet-stream' content type and
@@ -20,15 +21,15 @@ pub async fn upload_file(url: &str, filepath: &str) -> Result<(), Box<dyn Error>
     let req = Request::builder()
         .method("POST")
         .uri(url)
-        .header("X-Filename", filename)
-        .header(CONTENT_TYPE, "application/octet-stream")
+        .header(obfstr!("X-Filename").to_string(), filename)
+        .header(CONTENT_TYPE, obfstr!("application/octet-stream").to_string())
         .header(CONTENT_LENGTH, content.len())
         .body(Body::from(content))?;
 
     let resp = client.request(req).await?;
     
     if !resp.status().is_success() {
-        return Err("Upload failed".into());
+        return Err(obfstr!("Upload failed").to_string().into());
     }
     
     Ok(())

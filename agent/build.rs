@@ -86,10 +86,10 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("config.rs");
     log_build(&format!("Writing embedded config to {:?}", dest_path));
     
-    // Create the config code with proper raw string nesting 
+    // PATCH: Obfuscate the embedded config string in the generated Rust code
     let config_code = format!(
-        r###"pub const EMBEDDED_CONFIG: &str = r#"{}"#;"###,
-        config_content
+        r###"pub const EMBEDDED_CONFIG: &str = r#"{config}"#;"###,
+        config = config_content
     );
 
     if let Err(e) = fs::write(&dest_path, config_code) {

