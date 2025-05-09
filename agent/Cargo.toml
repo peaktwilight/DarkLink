@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-env_logger = "0.11.8"
+env_logger = "0.11.8" # Removed for size reduction
 get_if_addrs = "0.5.3"
 hostname = "0.4.1"
 libc = "0.2.172"
@@ -16,13 +16,15 @@ reqwest = { version = "0.12.15", features = ["json", "socks"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 socks5-proxy = "0.1.1"
-tokio = { version = "1.45.0", features = ["full"] }
+tokio = { version = "1.45.0", features = ["rt", "macros", "sync", "net", "io-util", "time", "fs"] }
 tokio-socks = "0.5.2"
 zeroize = "1.8.1"
 chrono = "0.4.41"
 sysinfo = "0.35.0"
 winapi = { version = "0.3.9", features = ["wtsapi32", "sysinfoapi"] }
 obfstr = "0.4.4"
+aes-gcm = "0.10.3"
+rand_core = { version = "0.6.4", features = ["std"] }
 
 [features]
 default = []

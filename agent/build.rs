@@ -86,16 +86,51 @@ fn main() {
     let dest_path = Path::new(&out_dir).join("config.rs");
     log_build(&format!("Writing embedded config to {:?}", dest_path));
     
-    // PATCH: Obfuscate the embedded config string in the generated Rust code
-    let config_code = format!(
-        r###"pub const EMBEDDED_CONFIG: &str = r#"{config}"#;"###,
-        config = config_content
-    );
-
-    if let Err(e) = fs::write(&dest_path, config_code) {
-        log_build(&format!("Failed to write config.rs: {}", e));
-        panic!("Failed to write config.rs: {}", e);
+    // Use payload_id as the XOR key
+    let xor_key_bytes = payload_id.as_bytes();
+    if xor_key_bytes.is_empty() {
+        // Fallback or error if payload_id is empty, as an empty key is bad.
+        // Using a default fixed key here for safety, but ideally, an empty payload_id should be an error.
+        log_build("Warning: payload_id is empty, using a default XOR key. This is not recommended.");
+        // In a real scenario, you might panic here or use a securely generated random key if payload_id must be non-empty.
+        // For this example, let's use a fixed non-empty key to prevent XORing with an empty slice.
+        let fixed_fallback_key = "DefaultFallbackKey123";
+        let mut obfuscated_config_bytes = config_content.as_bytes().to_vec();
+        for (i, byte) in obfuscated_config_bytes.iter_mut().enumerate() {
+            *byte ^= fixed_fallback_key.as_bytes()[i % fixed_fallback_key.as_bytes().len()];
+        }
+        let hex_obfuscated_config = obfuscated_config_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let config_code = format!(
+            r###"pub const EMBEDDED_CONFIG_HEX: &str = r#"{}"#;
+            pub const EMBEDDED_CONFIG_XOR_KEY: &str = r#"{}"#; // Embed the actual key used
+            "###,
+            hex_obfuscated_config,
+            fixed_fallback_key // Embed the key that was actually used for obfuscation
+        );
+        if let Err(e) = fs::write(&dest_path, config_code) {
+            log_build(&format!("Failed to write config.rs: {}", e));
+            panic!("Failed to write config.rs: {}", e);
+        } else {
+            log_build("Embedded config written successfully with fallback XOR key.");
+        }
     } else {
-        log_build("Embedded config written successfully");
+        let mut obfuscated_config_bytes = config_content.as_bytes().to_vec();
+        for (i, byte) in obfuscated_config_bytes.iter_mut().enumerate() {
+            *byte ^= xor_key_bytes[i % xor_key_bytes.len()];
+        }
+        let hex_obfuscated_config = obfuscated_config_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let config_code = format!(
+            r###"pub const EMBEDDED_CONFIG_HEX: &str = r#"{}"#;
+            pub const EMBEDDED_CONFIG_XOR_KEY: &str = r#"{}"#; // Embed the payload_id as the key
+            "###,
+            hex_obfuscated_config,
+            payload_id // Embed the payload_id string itself as the key
+        );
+        if let Err(e) = fs::write(&dest_path, config_code) {
+            log_build(&format!("Failed to write config.rs: {}", e));
+            panic!("Failed to write config.rs: {}", e);
+        } else {
+            log_build("Embedded config written successfully with payload_id as XOR key.");
+        }
     }
 }
