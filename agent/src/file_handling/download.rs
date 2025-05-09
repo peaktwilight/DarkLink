@@ -3,6 +3,7 @@ use std::path::Path;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use reqwest::Client; // Use reqwest::Client
+use log::{info, warn, error, debug};
 
 /// Download a file using reqwest by streaming chunks directly to disk
 pub async fn download_file(url: &str, dest_path: &Path) -> Result<(), Box<dyn Error>> {
@@ -48,7 +49,7 @@ mod tests {
             // Attempt download
             match download_file(test_file_url, &download_path).await {
                 Ok(_) => {
-                    println!("Download successful.");
+                    info!("Download successful.");
                     // Verify file exists
                     assert!(download_path.exists());
                     // Optional: Verify file content if known
@@ -57,7 +58,7 @@ mod tests {
                 }
                 Err(e) => {
                     // If the server isn't running, this error is expected.
-                    println!("Download failed (is test server running at {}?): {}", test_file_url, e);
+                    warn!("Download failed (is test server running at {}?): {}", test_file_url, e);
                     // We don't fail the test here, as the server might not be running.
                     // assert!(false, "Download failed: {}", e);
                 }

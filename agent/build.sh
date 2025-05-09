@@ -250,10 +250,10 @@ cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
 if [ -f "$OUTPUT_DIR/$AGENT_OUT" ]; then
     echo "Stripping binary..."
     strip "$OUTPUT_DIR/$AGENT_OUT" || true
-    if command -v upx &> /dev/null; then
-        echo "Compressing binary with upx..."
-        upx --best --lzma "$OUTPUT_DIR/$AGENT_OUT"
-    fi
+    # if command -v upx &> /dev/null; then
+    #     echo "Compressing binary with upx..."
+    #     upx --best --lzma "$OUTPUT_DIR/$AGENT_OUT"
+    # fi
 fi
 
 # Final output checks
