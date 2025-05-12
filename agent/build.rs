@@ -23,6 +23,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=C2_THRESH_DEC_FACTOR");
     println!("cargo:rerun-if-env-changed=C2_THRESH_ADJ_INTERVAL");
     println!("cargo:rerun-if-env-changed=C2_THRESH_MAX_MULT");
+    println!("cargo:rerun-if-env-changed=PROC_SCAN_INTERVAL_SECS");
 
     // Get configuration from environment variables
     let server_host = env::var("LISTENER_HOST").unwrap_or_default();
@@ -61,10 +62,14 @@ fn main() {
         let min_bg_opsec = env::var("MIN_BG_OPSEC_SECS").unwrap_or_else(|_| "60".to_string());
         let base_max_c2_fails = env::var("BASE_MAX_C2_FAILS").unwrap_or_else(|_| "5".to_string());
         let min_reduced_opsec = env::var("MIN_REDUCED_OPSEC_SECS").unwrap_or_else(|_| "120".to_string());
-        let c2_inc_factor = env::var("C2_THRESH_INC_FACTOR").unwrap_or_else(|_| "1.0".to_string());
-        let c2_dec_factor = env::var("C2_THRESH_DEC_FACTOR").unwrap_or_else(|_| "1.0".to_string());
-        let c2_adj_interval = env::var("C2_THRESH_ADJ_INTERVAL").unwrap_or_else(|_| u64::MAX.to_string());
-        let c2_max_mult = env::var("C2_THRESH_MAX_MULT").unwrap_or_else(|_| "1.0".to_string());
+        let c2_inc_factor = env::var("C2_THRESH_INC_FACTOR").unwrap_or_else(|_| "1.1".to_string());
+        let c2_dec_factor = env::var("C2_THRESH_DEC_FACTOR").unwrap_or_else(|_| "0.9".to_string());
+        let c2_adj_interval = env::var("C2_THRESH_ADJ_INTERVAL").unwrap_or_else(|_| "3600".to_string());
+        let c2_max_mult = env::var("C2_THRESH_MAX_MULT").unwrap_or_else(|_| "2.0".to_string());
+        let proc_scan_interval = env::var("PROC_SCAN_INTERVAL_SECS").unwrap_or_else(|_| "300".to_string());
+
+        let socks5_enabled_str = env::var("SOCKS5_ENABLED").unwrap_or_else(|_| "false".to_string());
+
         format!(
             r#"{{
                 "server_url": "{}:{}",
@@ -84,7 +89,11 @@ fn main() {
                 "c2_failure_threshold_increase_factor": {},
                 "c2_failure_threshold_decrease_factor": {},
                 "c2_threshold_adjust_interval_secs": {},
-                "c2_dynamic_threshold_max_multiplier": {}
+                "c2_dynamic_threshold_max_multiplier": {},
+                "proc_scan_interval_secs": {},
+                "socks5_enabled": {},
+                "socks5_host": "{}",
+                "socks5_port": {}
             }}"#,
             server_host, server_port, sleep_interval, payload_id, protocol,
             socks5_enabled, socks5_host, socks5_port,
@@ -92,7 +101,10 @@ fn main() {
             min_full_opsec, min_bg_opsec,
             base_max_c2_fails,
             min_reduced_opsec,
-            c2_inc_factor, c2_dec_factor, c2_adj_interval, c2_max_mult
+            c2_inc_factor, c2_dec_factor, c2_adj_interval, c2_max_mult,
+            proc_scan_interval,
+            socks5_enabled_str,
+            socks5_host, socks5_port
         )
     } else if let Ok(content) = fs::read_to_string("config.json") {
         log_build("Using config.json file for config");

