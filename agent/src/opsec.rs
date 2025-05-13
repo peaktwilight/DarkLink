@@ -14,7 +14,7 @@ const SCORE_CLAMP_MAX: f32 = 100.0;
 
 // Signal Weights (Example values, tune as needed)
 const WEIGHT_HIGH_THREAT_PROCESS: f32 = 40.0;
-const WEIGHT_BUSINESS_HOURS: f32 = 10.0;
+const WEIGHT_BUSINESS_HOURS: f32 = 2.0;
 const WEIGHT_USER_ACTIVE: f32 = 15.0; // Add score if user is *not* idle
 const WEIGHT_SUSPICIOUS_WINDOW: f32 = 30.0; // NEW Weight
 const WEIGHT_C2_UNSTABLE: f32 = 25.0; // NEW Weight for C2 issues
@@ -28,21 +28,21 @@ const THRESHOLD_MAX_CLAMP: f32 = 90.0; // Prevent thresholds from becoming too h
 
 // --- NEW: Redefined Thresholds for 3 Modes --- 
 // Score ranges: Background < LOW_SCORE_THRESHOLD <= ReducedActivity < HIGH_SCORE_THRESHOLD <= FullOpsec
-const LOW_SCORE_THRESHOLD: f32 = 20.0;  // Threshold between Background and Reduced
-const HIGH_SCORE_THRESHOLD: f32 = 60.0; // Threshold between Reduced and Full
+// These consts are now removed as they will come from AgentConfig
+// const LOW_SCORE_THRESHOLD: f32 = 20.0;  // Threshold between Background and Reduced
+// const HIGH_SCORE_THRESHOLD: f32 = 60.0; // Threshold between Reduced and Full
 // We derive the specific transition thresholds from these boundaries
-const THRESHOLD_ENTER_REDUCED_ACTIVITY: f32 = LOW_SCORE_THRESHOLD; // Go Background -> Reduced if score >= LOW
-const THRESHOLD_EXIT_REDUCED_ACTIVITY: f32 = LOW_SCORE_THRESHOLD;  // Go Reduced -> Background if score < LOW
-const THRESHOLD_ENTER_FULL_OPSEC: f32 = HIGH_SCORE_THRESHOLD;      // Go Reduced -> Full if score >= HIGH
-const THRESHOLD_EXIT_FULL_OPSEC: f32 = HIGH_SCORE_THRESHOLD;       // Go Full -> Reduced if score < HIGH
+// const THRESHOLD_ENTER_REDUCED_ACTIVITY: f32 = LOW_SCORE_THRESHOLD; // Go Background -> Reduced if score >= LOW
+// const THRESHOLD_EXIT_REDUCED_ACTIVITY: f32 = LOW_SCORE_THRESHOLD;  // Go Reduced -> Background if score < LOW
+// const THRESHOLD_ENTER_FULL_OPSEC: f32 = HIGH_SCORE_THRESHOLD;      // Go Reduced -> Full if score >= HIGH
+// const THRESHOLD_EXIT_FULL_OPSEC: f32 = HIGH_SCORE_THRESHOLD;       // Go Full -> Reduced if score < HIGH
 // --- END NEW THRESHOLDS ---
 
 // --- NEW: Correlation Bonus Constants ---
 const CORRELATION_BONUS_ACTIVE_DURING_BUSINESS_HOURS: f32 = 15.0; // User active + Business hours
 const CORRELATION_BONUS_HIGH_THREAT_AND_USER_ACTIVE: f32 = 20.0; // High threat process + User active
 const CORRELATION_BONUS_SUSPICIOUS_WINDOW_AND_ACTIVE: f32 = 25.0; // NEW Bonus
-// Maybe add bonus if C2 is unstable AND user is active?
-// const CORRELATION_BONUS_C2_UNSTABLE_AND_ACTIVE: f32 = 15.0;
+const CORRELATION_BONUS_C2_UNSTABLE_AND_ACTIVE: f32 = 15.0; // Enabled
 // --- END NEW ---
 
 // --- NEW: Noisy Command Recency Threshold ---
@@ -580,6 +580,10 @@ fn update_opsec_score_and_mode(
         score_increase += CORRELATION_BONUS_SUSPICIOUS_WINDOW_AND_ACTIVE;
         debug!("[OPSEC SCORE] +{:.1} (Correlation: Suspicious Window and User Active)", CORRELATION_BONUS_SUSPICIOUS_WINDOW_AND_ACTIVE);
     }
+    if context.c2_connection_unstable && user_is_active { // Enabled this correlation
+        score_increase += CORRELATION_BONUS_C2_UNSTABLE_AND_ACTIVE;
+        debug!("[OPSEC SCORE] +{:.1} (Correlation: C2 Unstable and User Active)", CORRELATION_BONUS_C2_UNSTABLE_AND_ACTIVE);
+    }
 
     opsec_state.current_score += score_increase;
 
@@ -604,10 +608,10 @@ fn update_opsec_score_and_mode(
         };
     // --- End Refactor ---
 
-    // Calculate dynamic boundaries
-    let dynamic_low_threshold = (LOW_SCORE_THRESHOLD + adjustment)
+    // Calculate dynamic boundaries using base thresholds from config
+    let dynamic_low_threshold = (config.base_score_threshold_bg_to_reduced + adjustment)
                                 .clamp(THRESHOLD_MIN_CLAMP, THRESHOLD_MAX_CLAMP);
-    let dynamic_high_threshold = (HIGH_SCORE_THRESHOLD + adjustment)
+    let dynamic_high_threshold = (config.base_score_threshold_reduced_to_full + adjustment)
                                  .clamp(dynamic_low_threshold + 1.0, THRESHOLD_MAX_CLAMP); // Ensure High > Low
 
     // Derive dynamic transition thresholds (could simplify, but explicit for clarity)

