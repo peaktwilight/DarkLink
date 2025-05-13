@@ -13,7 +13,7 @@ SLEEP_INTERVAL=60
 JITTER=2
 FORMAT=""
 PAYLOAD_ID=""
-PROTOCOL="http" # Default protocol
+PROTOCOL="" # Default protocol - will be determined by --protocol flag or default to http
 SOCKS5_ENABLED=false
 SOCKS5_HOST="127.0.0.1"
 SOCKS5_PORT=9050
@@ -122,6 +122,17 @@ if [ -z "$LISTENER_HOST" ] || [ -z "$LISTENER_PORT" ]; then
   exit 1
 fi
 
+# Determine protocol: Prioritize --protocol flag. Default to http if not set.
+if [ -n "$PROTOCOL" ]; then
+  # --protocol flag was provided and is not empty
+  echo "Using specified PROTOCOL from --protocol flag: $PROTOCOL"
+  # The PROTOCOL variable is already set from parsing the arguments
+else
+  # --protocol flag was not provided or was empty
+  echo "Warning: --protocol flag not provided or was empty. Defaulting to 'http'. The server should specify the protocol for the selected listener." >&2
+  PROTOCOL="http"
+fi
+
 # Use environment variables if arguments not provided
 if [ -z "$TARGET" ]; then
     TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}
@@ -213,6 +224,8 @@ echo "Checking dependencies..."
 #     echo "Installing cross..."
 #     cargo install cross
 # fi
+
+echo "[DIAGNOSTIC] Protocol value before config generation: [$PROTOCOL]"
 
 # --- Generate Comprehensive Agent Config JSON --- 
 mkdir -p .config # For build.rs to potentially find config.json here

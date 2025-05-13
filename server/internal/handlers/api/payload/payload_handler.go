@@ -277,6 +277,7 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		"--payload-id", payloadID,
 		"--listener-host", connectHost, // Use advertised host for build args
 		"--listener-port", fmt.Sprintf("%d", listener.Port),
+		"--protocol", listener.Protocol,
 	}
 
 	// Add additional build arguments based on configuration
