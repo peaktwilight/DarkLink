@@ -455,17 +455,37 @@ fn check_business_hours() -> bool {
     hour >= 8 && hour < 18
 }
 
-static PROC_SCAN_CACHE: Lazy<Mutex<(Instant, bool)>> = Lazy::new(|| Mutex::new((Instant::now() - Duration::from_secs(600), false)));
+// Use a very early instant to ensure the first check happens.
+static ARBITRARY_PAST_INSTANT: Lazy<Instant> = Lazy::new(|| {
+    // Get current time, then subtract a large duration (e.g., 1 year in seconds)
+    // This is safer than Instant::EPOCH for older Rust versions and still ensures
+    // the initial timers will have 'elapsed()' significantly.
+    // 365 days * 24 hours * 60 minutes * 60 seconds
+    const ONE_YEAR_IN_SECS: u64 = 365 * 24 * 60 * 60;
+    Instant::now()
+        .checked_sub(Duration::from_secs(ONE_YEAR_IN_SECS))
+        .unwrap_or_else(|| {
+            // Fallback in the *extremely* unlikely case now() is less than ONE_YEAR_IN_SECS
+            // from the Instant's internal epoch (e.g., system clock is wildly off or
+            // on a very constrained embedded system that just booted).
+            // In such a case, just use Instant::now() which means the first check
+            // might be slightly delayed but won't panic.
+            warn!("[OPSEC] ARBITRARY_PAST_INSTANT fallback: Instant::now() was too close to its epoch. Initial checks might be slightly delayed.");
+            Instant::now()
+        })
+});
+
+static PROC_SCAN_CACHE: Lazy<Mutex<(Instant, bool)>> = Lazy::new(|| Mutex::new((*ARBITRARY_PAST_INSTANT, false)));
 
 pub fn check_proc_state(proc_scan_interval: u64) -> bool {
     // Protect against too frequent checks
     {
-        let mut last_check_time = LAST_CHECK_TIME.lock().unwrap();
-        if last_check_time.elapsed() < Duration::from_secs(proc_scan_interval) {
+        let mut last_check_time_guard = LAST_CHECK_TIME.lock().unwrap(); // Renamed for clarity
+        if last_check_time_guard.elapsed() < Duration::from_secs(proc_scan_interval) {
             debug!("[OPSEC] Process check skipped, interval not elapsed.");
             return LAST_PROC_STATE.load(std::sync::atomic::Ordering::Relaxed); // Return last known state
         }
-        *last_check_time = Instant::now(); // Update last check time
+        *last_check_time_guard = Instant::now(); // Update last check time
     }
 
     let mut s = sysinfo::System::new_with_specifics(
@@ -520,7 +540,7 @@ pub fn check_proc_state(proc_scan_interval: u64) -> bool {
     high_threat_found // This will set context.unusual_process only if a high-threat tool is found
 }
 
-static LAST_CHECK_TIME: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1000))); // Initialize to allow first check
+static LAST_CHECK_TIME: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(*ARBITRARY_PAST_INSTANT));
 static LAST_PROC_STATE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 // --- NEW: Scoring and Mode Update Logic ---
@@ -712,7 +732,7 @@ fn update_opsec_score_and_mode(
 //fn check_network_state() -> bool { false }
 
 // --- NEW: Window Check Logic ---
-static LAST_WINDOW_CHECK_TIME: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(Instant::now() - Duration::from_secs(1000)));
+static LAST_WINDOW_CHECK_TIME: Lazy<Mutex<Instant>> = Lazy::new(|| Mutex::new(*ARBITRARY_PAST_INSTANT));
 static LAST_WINDOW_STATE: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 const WINDOW_CHECK_INTERVAL_SECS: u64 = 15; // Check windows more frequently than processes? (tune)
 

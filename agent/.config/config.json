@@ -2,7 +2,7 @@
     "server_url": "172.28.249.104:8443",
     "sleep_interval": 60,
     "jitter": 2,
-    "payload_id": "45bee2c3-81fc-49fc-9a9b-4fedbe990fbd",
+    "payload_id": "5b042169-ff0b-4a23-89a3-b86b28a64a62",
     "protocol": "https",
     "socks5_enabled": false,
     "socks5_host": "127.0.0.1",
