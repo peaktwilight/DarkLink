@@ -17,6 +17,22 @@ type PayloadConfig struct {
 	Socks5Enabled   bool   `json:"socks5_enabled"`
 	Socks5Host      string `json:"socks5_host"`
 	Socks5Port      int    `json:"socks5_port"`
+
+	// OPSEC Configuration
+	ProcScanIntervalSecs              int     `json:"proc_scan_interval_secs"`
+	BaseThresholdEnterFullOpsec       float64 `json:"base_threshold_enter_full_opsec"`
+	BaseThresholdExitFullOpsec        float64 `json:"base_threshold_exit_full_opsec"` // Will be mapped or ignored based on agent logic
+	BaseThresholdEnterReducedActivity float64 `json:"base_threshold_enter_reduced_activity"`
+	BaseThresholdExitReducedActivity  float64 `json:"base_threshold_exit_reduced_activity"` // Will be mapped or ignored
+	MinDurationFullOpsecSecs          int     `json:"min_duration_full_opsec_secs"`
+	MinDurationReducedActivitySecs    int     `json:"min_duration_reduced_activity_secs"`
+	MinDurationBackgroundOpsecSecs    int     `json:"min_duration_background_opsec_secs"`
+	ReducedActivitySleepSecs          int     `json:"reduced_activity_sleep_secs"`
+	BaseMaxConsecutiveC2Failures      int     `json:"base_max_consecutive_c2_failures"`
+	C2FailureThresholdIncreaseFactor  float64 `json:"c2_failure_threshold_increase_factor"`
+	C2FailureThresholdDecreaseFactor  float64 `json:"c2_failure_threshold_decrease_factor"`
+	C2ThresholdAdjustIntervalSecs     int     `json:"c2_threshold_adjust_interval_secs"`
+	C2DynamicThresholdMaxMultiplier   float64 `json:"c2_dynamic_threshold_max_multiplier"`
 }
 
 // PayloadResult contains information about a generated payload

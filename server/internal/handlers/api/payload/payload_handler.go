@@ -233,6 +233,20 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		agentConfig["export_name"] = config.ExportName
 	}
 
+	// Add OPSEC configurations to agentConfig map
+	agentConfig["proc_scan_interval_secs"] = config.ProcScanIntervalSecs
+	agentConfig["base_score_threshold_reduced_to_full"] = config.BaseThresholdEnterFullOpsec     // Map from HTML name
+	agentConfig["base_score_threshold_bg_to_reduced"] = config.BaseThresholdEnterReducedActivity // Map from HTML name
+	agentConfig["min_duration_full_opsec_secs"] = config.MinDurationFullOpsecSecs
+	agentConfig["min_duration_reduced_activity_secs"] = config.MinDurationReducedActivitySecs
+	agentConfig["min_duration_background_opsec_secs"] = config.MinDurationBackgroundOpsecSecs
+	agentConfig["reduced_activity_sleep_secs"] = config.ReducedActivitySleepSecs
+	agentConfig["base_max_consecutive_c2_failures"] = config.BaseMaxConsecutiveC2Failures
+	agentConfig["c2_failure_threshold_increase_factor"] = config.C2FailureThresholdIncreaseFactor
+	agentConfig["c2_failure_threshold_decrease_factor"] = config.C2FailureThresholdDecreaseFactor
+	agentConfig["c2_threshold_adjust_interval_secs"] = config.C2ThresholdAdjustIntervalSecs
+	agentConfig["c2_dynamic_threshold_max_multiplier"] = config.C2DynamicThresholdMaxMultiplier
+
 	configJSON, err := json.MarshalIndent(agentConfig, "", "  ")
 	if err != nil {
 		log.Printf("[ERROR] Failed to marshal agent config: %v", err)
@@ -318,6 +332,20 @@ func (h *PayloadHandler) GeneratePayload(config PayloadConfig) (PayloadResult, e
 		fmt.Sprintf("SOCKS5_ENABLED=%t", config.Socks5Enabled),
 		fmt.Sprintf("SOCKS5_HOST=%s", config.Socks5Host),
 		fmt.Sprintf("SOCKS5_PORT=%d", config.Socks5Port),
+
+		// Add OPSEC ENV VARS
+		fmt.Sprintf("PROC_SCAN_INTERVAL_SECS=%d", config.ProcScanIntervalSecs),
+		fmt.Sprintf("BASE_SCORE_THRESHOLD_REDUCED_TO_FULL=%.1f", config.BaseThresholdEnterFullOpsec),
+		fmt.Sprintf("BASE_SCORE_THRESHOLD_BG_TO_REDUCED=%.1f", config.BaseThresholdEnterReducedActivity),
+		fmt.Sprintf("MIN_FULL_OPSEC_SECS=%d", config.MinDurationFullOpsecSecs),
+		fmt.Sprintf("MIN_REDUCED_OPSEC_SECS=%d", config.MinDurationReducedActivitySecs),
+		fmt.Sprintf("MIN_BG_OPSEC_SECS=%d", config.MinDurationBackgroundOpsecSecs),
+		fmt.Sprintf("REDUCED_ACTIVITY_SLEEP_SECS=%d", config.ReducedActivitySleepSecs),
+		fmt.Sprintf("BASE_MAX_C2_FAILS=%d", config.BaseMaxConsecutiveC2Failures),
+		fmt.Sprintf("C2_THRESH_INC_FACTOR=%.2f", config.C2FailureThresholdIncreaseFactor),
+		fmt.Sprintf("C2_THRESH_DEC_FACTOR=%.2f", config.C2FailureThresholdDecreaseFactor),
+		fmt.Sprintf("C2_THRESH_ADJ_INTERVAL=%d", config.C2ThresholdAdjustIntervalSecs),
+		fmt.Sprintf("C2_THRESH_MAX_MULT=%.1f", config.C2DynamicThresholdMaxMultiplier),
 	)
 
 	log.Printf("[INFO] Environment variables set: TARGET=%s, OUTPUT_DIR=%s, BUILD_TYPE=%s, SLEEP_INTERVAL=%d, SOCKS5_ENABLED=%t, SOCKS5_PORT=%d",

@@ -237,6 +237,7 @@ class PayloadManager {
         config.min_duration_full_opsec_secs = parseInt(config.min_duration_full_opsec_secs, 10) || 300;
         config.min_duration_reduced_activity_secs = parseInt(config.min_duration_reduced_activity_secs, 10) || 120;
         config.min_duration_background_opsec_secs = parseInt(config.min_duration_background_opsec_secs, 10) || 60;
+        config.reduced_activity_sleep_secs = parseInt(config.reduced_activity_sleep_secs, 10) || 120;
         config.base_max_consecutive_c2_failures = parseInt(config.base_max_consecutive_c2_failures, 10) || 5;
         config.c2_failure_threshold_increase_factor = parseFloat(config.c2_failure_threshold_increase_factor) || 1.1;
         config.c2_failure_threshold_decrease_factor = parseFloat(config.c2_failure_threshold_decrease_factor) || 0.9;

