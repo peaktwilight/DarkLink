@@ -227,9 +227,18 @@ func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.
 		http.Error(w, "Invalid result format", http.StatusBadRequest)
 		return
 	}
-	result.Timestamp = time.Now().Format("2006-01-02 15:04:05")
+	result.Timestamp = time.Now().Format(time.RFC3339)
 
-	log.Printf("[TRACE] handleAgentResults: Parsed CommandResult for agent %s: %+v", AgentID, result)
+	// Deobfuscate the output before logging or storing
+	deobfuscatedOutput, err := common.XORDeobfuscate(result.Output, AgentID)
+	if err != nil {
+		log.Printf("[AGENT] Failed to deobfuscate result from %s for command '%s': %v. Storing raw output.", AgentID, result.Command, err)
+		// Store the raw output if deobfuscation fails, so it's not lost
+	} else {
+		result.Output = deobfuscatedOutput
+	}
+
+	log.Printf("[AGENT] Received result from %s for command '%s': %s", AgentID, result.Command, result.Output)
 
 	p.results.Lock()
 	p.results.history[AgentID] = append(p.results.history[AgentID], result)

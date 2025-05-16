@@ -228,6 +228,23 @@ class PayloadManager {
         config.socks5_host = String(config.socks5_host || '').trim();
         config.socks5_port = parseInt(config.socks5_port, 10) || 0;
 
+        // --- NEW: Parse OPSEC fields ---
+        config.proc_scan_interval_secs = parseInt(config.proc_scan_interval_secs, 10) || 300;
+        config.base_threshold_enter_full_opsec = parseFloat(config.base_threshold_enter_full_opsec) || 60.0;
+        config.base_threshold_exit_full_opsec = parseFloat(config.base_threshold_exit_full_opsec) || 60.0;
+        config.base_threshold_enter_reduced_activity = parseFloat(config.base_threshold_enter_reduced_activity) || 20.0;
+        config.base_threshold_exit_reduced_activity = parseFloat(config.base_threshold_exit_reduced_activity) || 20.0;
+        config.min_duration_full_opsec_secs = parseInt(config.min_duration_full_opsec_secs, 10) || 300;
+        config.min_duration_reduced_activity_secs = parseInt(config.min_duration_reduced_activity_secs, 10) || 120;
+        config.min_duration_background_opsec_secs = parseInt(config.min_duration_background_opsec_secs, 10) || 60;
+        config.reduced_activity_sleep_secs = parseInt(config.reduced_activity_sleep_secs, 10) || 120;
+        config.base_max_consecutive_c2_failures = parseInt(config.base_max_consecutive_c2_failures, 10) || 5;
+        config.c2_failure_threshold_increase_factor = parseFloat(config.c2_failure_threshold_increase_factor) || 1.1;
+        config.c2_failure_threshold_decrease_factor = parseFloat(config.c2_failure_threshold_decrease_factor) || 0.9;
+        config.c2_threshold_adjust_interval_secs = parseInt(config.c2_threshold_adjust_interval_secs, 10) || 3600;
+        config.c2_dynamic_threshold_max_multiplier = parseFloat(config.c2_dynamic_threshold_max_multiplier) || 2.0;
+        // --- END NEW OPSEC FIELDS ---
+
         if (config.sleep) {
             config.sleep = parseInt(config.sleep, 10);
         }

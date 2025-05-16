@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"log" // Updated from `networking`
+
 	// Updated from `networking`
 	"microc2/server/internal/behaviour"
 	"microc2/server/pkg/communication"
