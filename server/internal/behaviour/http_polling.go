@@ -76,27 +76,27 @@ func NewHTTPPollingProtocol(config common.BaseProtocolConfig) *HTTPPollingProtoc
 func (p *HTTPPollingProtocol) registerRoutes() {
 	// Register agent communication routes with /api prefix
 	p.mux.HandleFunc("/api/agent/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[DEBUG] /api/agent/ handler triggered: %s %s", r.Method, r.URL.Path)
+		// log.Printf("[DEBUG] /api/agent/ handler triggered: %s %s", r.Method, r.URL.Path)
 		p.handleAgentRequests(w, r)
 	})
 	p.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[DEBUG] Unmatched HTTP request: %s %s", r.Method, r.URL.Path)
+		// log.Printf("[DEBUG] Unmatched HTTP request: %s %s", r.Method, r.URL.Path)
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 not found"))
 	})
-	log.Printf("[DEBUG] Registered agent routes on HTTP polling protocol (mux: %p)", p.mux)
+	// log.Printf("[DEBUG] Registered agent routes on HTTP polling protocol (mux: %p)", p.mux)
 }
 
 // GetHTTPHandler returns the ServeMux that handles HTTP requests
 func (p *HTTPPollingProtocol) GetHTTPHandler() http.Handler {
-	log.Printf("[DEBUG] GetHTTPHandler called for HTTPPollingProtocol (mux: %p)", p.mux)
+	// log.Printf("[DEBUG] GetHTTPHandler called for HTTPPollingProtocol (mux: %p)", p.mux)
 	return p.mux
 }
 
 func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 
-	log.Printf("[DEBUG] HandleAgentRequests called: %s %s", r.Method, r.URL.Path)
+	// log.Printf("[DEBUG] HandleAgentRequests called: %s %s", r.Method, r.URL.Path)
 
 	// Handle preflight OPTIONS requests
 	if r.Method == http.MethodOptions {
@@ -116,7 +116,7 @@ func (p *HTTPPollingProtocol) handleAgentRequests(w http.ResponseWriter, r *http
 	AgentID := parts[3]
 	action := parts[4]
 
-	log.Printf("[DEBUG] Handling %s request from agent %s", action, AgentID)
+	// log.Printf("[DEBUG] Handling %s request from agent %s", action, AgentID)
 
 	switch action {
 	case "heartbeat":
@@ -158,7 +158,7 @@ func (p *HTTPPollingProtocol) handleAgentHeartbeat(w http.ResponseWriter, r *htt
 		return
 	}
 
-	log.Printf("[DEBUG] Processing heartbeat from agent %s", AgentID)
+	// log.Printf("[DEBUG] Processing heartbeat from agent %s", AgentID)
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -195,7 +195,7 @@ func (p *HTTPPollingProtocol) handleAgentTasks(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	log.Printf("[DEBUG] Agent %s requesting tasks", AgentID)
+	// log.Printf("[DEBUG] Agent %s requesting tasks", AgentID)
 
 	// For now, return empty task list
 	w.Header().Set("Content-Type", "application/json")
@@ -203,7 +203,7 @@ func (p *HTTPPollingProtocol) handleAgentTasks(w http.ResponseWriter, r *http.Re
 }
 
 func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.Request, AgentID string) {
-	log.Printf("[TRACE] Entered handleAgentResults for AgentID=%s, method=%s", AgentID, r.Method)
+	// log.Printf("[TRACE] Entered handleAgentResults for AgentID=%s, method=%s", AgentID, r.Method)
 
 	if r.Method != http.MethodPost {
 		log.Printf("[WARN] handleAgentResults: Invalid method %s for agent %s", r.Method, AgentID)
@@ -219,7 +219,7 @@ func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.
 		return
 	}
 
-	log.Printf("[TRACE] handleAgentResults: Raw body from agent %s: %s", AgentID, string(body))
+	// log.Printf("[TRACE] handleAgentResults: Raw body from agent %s: %s", AgentID, string(body))
 
 	var result CommandResult
 	if err := json.Unmarshal(body, &result); err != nil {
@@ -242,23 +242,23 @@ func (p *HTTPPollingProtocol) handleAgentResults(w http.ResponseWriter, r *http.
 
 	p.results.Lock()
 	p.results.history[AgentID] = append(p.results.history[AgentID], result)
-	log.Printf("[TRACE] handleAgentResults: Results history length for agent %s after append: %d", AgentID, len(p.results.history[AgentID]))
+	// log.Printf("[TRACE] handleAgentResults: Results history length for agent %s after append: %d", AgentID, len(p.results.history[AgentID]))
 	p.results.Unlock()
 
 	// Acknowledge receipt
 	w.WriteHeader(http.StatusOK)
-	log.Printf("[TRACE] handleAgentResults: Sent HTTP 200 OK to agent %s", AgentID)
+	// log.Printf("[TRACE] handleAgentResults: Sent HTTP 200 OK to agent %s", AgentID)
 }
 
 // Start implements the Protocol interface
 func (p *HTTPPollingProtocol) Start() error {
-	log.Printf("[DEBUG] Starting HTTP polling protocol")
+	// log.Printf("[DEBUG] Starting HTTP polling protocol")
 	return nil
 }
 
 // Stop implements the Protocol interface
 func (p *HTTPPollingProtocol) Stop() error {
-	log.Printf("[DEBUG] Stopping HTTP polling protocol")
+	// log.Printf("[DEBUG] Stopping HTTP polling protocol")
 	return nil
 }
 
@@ -351,7 +351,7 @@ func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Re
 	p.commands.Lock()
 	defer p.commands.Unlock()
 	queue := p.commands.queue[AgentID]
-	log.Printf("[DEBUG] handleGetCommand: AgentID=%s, queueLen=%d", AgentID, len(queue))
+	// log.Printf("[DEBUG] handleGetCommand: AgentID=%s, queueLen=%d", AgentID, len(queue))
 	if len(queue) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
@@ -359,7 +359,7 @@ func (p *HTTPPollingProtocol) handleGetCommand(w http.ResponseWriter, r *http.Re
 	cmd := queue[0]
 	p.commands.queue[AgentID] = queue[1:]
 	if len(queue) > 0 {
-		log.Printf("[DEBUG] handleGetCommand: returning command to agent %s: %s", AgentID, cmd)
+		// log.Printf("[DEBUG] handleGetCommand: returning command to agent %s: %s", AgentID, cmd)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"command": cmd})
@@ -381,17 +381,17 @@ func (p *HTTPPollingProtocol) handleGetResults(w http.ResponseWriter, r *http.Re
 	history := p.results.history[AgentID]
 	p.results.Unlock()
 
-	log.Printf("[TRACE] handleGetResults: Results history length for agent %s: %d", AgentID, len(history))
+	// log.Printf("[TRACE] handleGetResults: Results history length for agent %s: %d", AgentID, len(history))
 
 	if len(history) == 0 {
-		log.Printf("[TRACE] handleGetResults: No results to return for agent %s", AgentID)
+		// log.Printf("[TRACE] handleGetResults: No results to return for agent %s", AgentID)
 		w.Write([]byte("[]"))
 		return
 	}
 
-	for i, res := range history {
-		log.Printf("[TRACE] handleGetResults: Returning result %d for agent %s: %+v", i, AgentID, res)
-	}
+	// for i, res := range history {
+	// log.Printf("[TRACE] handleGetResults: Returning result %d for agent %s: %+v", i, AgentID, res)
+	// }
 
 	json.NewEncoder(w).Encode(history)
 }
@@ -514,7 +514,7 @@ func (p *HTTPPollingProtocol) GetResultsHistoryKeys() []string {
 }
 
 func (p *HTTPPollingProtocol) GetResults(AgentID string) []map[string]interface{} {
-	log.Printf("[DEBUG] GetResults called for AgentID=%s", AgentID)
+	// log.Printf("[DEBUG] GetResults called for AgentID=%s", AgentID)
 	p.results.Lock()
 	defer p.results.Unlock()
 	// Log keys directly to avoid deadlock
@@ -522,9 +522,9 @@ func (p *HTTPPollingProtocol) GetResults(AgentID string) []map[string]interface{
 	for k := range p.results.history {
 		keys = append(keys, k)
 	}
-	log.Printf("[DEBUG] Results history keys: %v", keys)
+	// log.Printf("[DEBUG] Results history keys: %v", keys)
 	history := p.results.history[AgentID]
-	log.Printf("[DEBUG] Results history for AgentID=%s: %+v", AgentID, history)
+	// log.Printf("[DEBUG] Results history for AgentID=%s: %+v", AgentID, history)
 	var results []map[string]interface{}
 	for i, res := range history {
 		log.Printf("[DEBUG] Result %d for AgentID=%s: command=%s, output=%s, timestamp=%s", i, AgentID, res.Command, res.Output, res.Timestamp)
@@ -534,7 +534,7 @@ func (p *HTTPPollingProtocol) GetResults(AgentID string) []map[string]interface{
 			"timestamp": res.Timestamp,
 		})
 	}
-	log.Printf("[DEBUG] Returning %d results for AgentID=%s", len(results), AgentID)
+	// log.Printf("[DEBUG] Returning %d results for AgentID=%s", len(results), AgentID)
 	return results
 }
 

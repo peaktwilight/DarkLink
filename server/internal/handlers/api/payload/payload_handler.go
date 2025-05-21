@@ -482,7 +482,7 @@ func (h *PayloadHandler) loadListenerConfig(listenerID string) (ListenerConfig, 
 		configPath := filepath.Join("static", "listeners", entry.Name(), "config.json")
 		configData, err := os.ReadFile(configPath)
 		if err != nil {
-			log.Printf("[DEBUG] Skipping directory %s: %v", entry.Name(), err)
+			log.Printf("[INFO] Skipping directory %s: %v", entry.Name(), err)
 			continue
 		}
 

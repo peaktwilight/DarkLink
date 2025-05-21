@@ -146,7 +146,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 			log.Fatalf("[FATAL] HTTPPollingProtocol.GetHTTPHandler() returned nil for listener %s on %s", config.Name, bindAddr)
 			panic("HTTPPollingProtocol.GetHTTPHandler() returned nil")
 		}
-		log.Printf("[DEBUG] Starting HTTP server for listener %s on %s with handler type: %T", config.Name, bindAddr, handler)
+		log.Printf("[INFO] Starting HTTP server for listener %s on %s with handler type: %T", config.Name, bindAddr, handler)
 		go func() {
 			if config.TLSConfig != nil {
 				log.Printf("[INFO] Starting HTTPS polling listener %s on %s", config.Name, bindAddr)

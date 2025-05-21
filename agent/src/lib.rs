@@ -1,7 +1,9 @@
-mod commands;
-mod config;
-mod networking;
-mod opsec;
-mod util;
+pub mod commands;
+pub mod config;
+pub mod networking;
+pub mod opsec;
+pub mod util;
 pub mod dormant;
 pub mod state;
+#[cfg(target_os = "windows")]
+pub mod win_api_hiding;

