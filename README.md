@@ -1,5 +1,7 @@
 # DarkLink Framework - Academic Research Project
 
+**DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
+
 ## 🚨 ETHICAL DISCLAIMER AND LEGAL NOTICE
 
 **This software is for academic research, cybersecurity education, and authorized defensive security testing ONLY. Unauthorized, malicious, or illegal use is strictly prohibited and may lead to severe legal consequences.**
