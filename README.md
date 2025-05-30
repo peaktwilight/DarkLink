@@ -1,4 +1,6 @@
-# MicroC2 Framework - Academic Research Project
+# DarkLink Framework - Academic Research Project
+
+**DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
 
 **This thesis proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework utilizes covert communication, encryption and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness is evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.**
 
@@ -104,7 +106,7 @@ This framework can be used to:
 ## Getting Started
 
 ### Prerequisites
-- **Go** (v1.20+ recommended)
+- **Go** (v1.23+ recommended)
 - **Rust** (for agent builds)
 - **Node.js & npm** (for web UI development, if you plan to modify frontend)
 - **Git** (to clone the repository)
@@ -113,10 +115,10 @@ This framework can be used to:
 ### Installation
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/yourusername/MicroC2.git
-   cd MicroC2
+   git clone https://github.com/yourusername/DarkLink.git
+   cd DarkLink
    ```
-2. **Build the server:**
+2. **Build the server:**cd 
    ```sh
    cd server
    go build -o server ./cmd/server.go
@@ -143,14 +145,14 @@ This framework can be used to:
    ./server
    ```
 2. **Access the web interface:**
-   - Open your browser and go to: [http://localhost:8080/home/](http://localhost:8080/home/) (or the port you configured).
+   - Open your browser and go to: [https://localhost:8080/home/](https://localhost:8080/home/) (or the port you configured).
 
 ### Configuration
 - Edit `server/config/settings.yaml` for server settings.
 - Edit `agent/src/config.rs` or use environment variables for agent configuration.
 
 ### TLS certificates for using HTTPS
-- Run the following in MicroC2/server/ to generate TLS certificates
+- Run the following in DarkLink/server/ to generate TLS certificates
     ```
     openssl req -x509 -newkey rsa:4096 -keyout certs/server.key -out certs/server.crt -days 365 -nodes -subj "/CN=localhost"
     ```
@@ -163,11 +165,11 @@ This framework can be used to:
 - Use the Payload Generator in the web UI to generate agent binaries for your target OS/architecture.
 
 ### File Drop
-    - Upload and download files via the File Drop section in the web UI. Folder in codebase is `server/uploads/`
+- Upload and download files via the File Drop section in the web UI. Folder in codebase is /server/uploads/
 
 ## SOCKS5 Proxy Pivoting Setup (Multi-Hop Example)
 
-MicroC2 supports SOCKS5 proxy pivoting, including multi-hop scenarios. Below is a tested workflow for chaining agents and listeners to pivot through multiple internal hosts.
+DarkLink supports SOCKS5 proxy pivoting, including multi-hop scenarios. Below is a tested workflow for chaining agents and listeners to pivot through multiple internal hosts.
 
 ### Topology Example
 
@@ -175,7 +177,7 @@ MicroC2 supports SOCKS5 proxy pivoting, including multi-hop scenarios. Below is 
 Client <-> Server <-> VM1 <-> VM2
 ```
 
-- **Server**: Runs MicroC2 server and first agent (pivot entry point)
+- **Server**: Runs DarkLink server and first agent (pivot entry point)
 - **VM1**: First virtual machine, runs agent and acts as a SOCKS5 pivot server and uses a socks reverse proxy to connect to the c2 server
 - **VM2**: second virtual machine, runs second agent
 
@@ -185,7 +187,7 @@ Client <-> Server <-> VM1 <-> VM2
 
 #### 1. **Set Up Two SOCKS5 Listeners**
 
-- In the MicroC2 web UI, create two SOCKS5 listeners (everything apart from URI setup is free to be configured): 
+- In the DarkLink web UI, create two SOCKS5 listeners (everything apart from URI setup is free to be configured): 
   - **Listener 1**: For the agent on VM1 (e.g., port 8443)
   - **Listener 2**: For the agent on VM2 (e.g., port 8444)
 
@@ -193,7 +195,7 @@ Client <-> Server <-> VM1 <-> VM2
 
 - **On VM1:**
   - Build an agent payload in the web UI, enabling SOCKS5 configuration.
-  - Set the SOCKS5 proxy host/port to point to the MicroC2 server and Listener 1.
+  - Set the SOCKS5 proxy host/port to point to the DarkLink server and Listener 1.
   - Deploy and run the agent on VM1.
   - Start the SOCKS5 pivot on VM1:
     ```sh

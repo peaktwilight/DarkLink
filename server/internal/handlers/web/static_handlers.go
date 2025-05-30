@@ -27,27 +27,29 @@ func New(staticDir string) (*StaticHandler, error) {
 	}, nil
 }
 
-// HandleRoot serves the root path and static files
+// HandleRoot redirects the root path to /home and serves static files
 //
 // Pre-conditions:
 //   - Valid HTTP request and response writer
-//   - webDir exists and contains necessary files (particularly index.html)
+//   - webDir exists and contains necessary files
 //
 // Post-conditions:
-//   - Serves index.html for the root path
+//   - Redirects root path to /home/
 //   - Serves requested static files from web directory
 //   - Returns 404 Not Found for non-existent files
 func (h *StaticHandler) HandleRoot(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		// Serve other static files from the web directory
-		if _, err := os.Stat(filepath.Join(h.webDir, r.URL.Path)); err == nil {
-			http.ServeFile(w, r, filepath.Join(h.webDir, r.URL.Path))
-			return
-		}
-		http.NotFound(w, r)
+	if r.URL.Path == "/" {
+		// Redirect root to /home/
+		http.Redirect(w, r, "/home/", http.StatusMovedPermanently)
 		return
 	}
-	http.ServeFile(w, r, filepath.Join(h.webDir, "index.html"))
+	
+	// Serve other static files from the web directory
+	if _, err := os.Stat(filepath.Join(h.webDir, r.URL.Path)); err == nil {
+		http.ServeFile(w, r, filepath.Join(h.webDir, r.URL.Path))
+		return
+	}
+	http.NotFound(w, r)
 }
 
 // SetupStaticRoutes sets up routes for static file serving

@@ -1,11 +1,15 @@
 server:
   port: 8080
+  httpsPort: 8443
   uploadDir: "uploads"
   staticDir: "static"
   tls:
     enabled: true
     certFile: "certs/server.crt"
     keyFile: "certs/server.key"
+  redirect:
+    enabled: true
+    httpPort: 8080
   
 communication:
   # Available protocols: http
