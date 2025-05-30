@@ -137,24 +137,32 @@ func main() {
 	// --- HTTPS Support ---
 	certFile := cfg.Server.TLS.CertFile
 	keyFile := cfg.Server.TLS.KeyFile
-	addr := ":" + cfg.Server.Port
+	
+	// Determine ports based on redirect configuration
+	var httpAddr, httpsAddr string
+	if cfg.Server.Redirect.Enabled {
+		httpAddr = ":" + cfg.Server.Redirect.HTTPPort
+		httpsAddr = ":" + cfg.Server.HTTPSPort
+	} else {
+		// If redirect is disabled, use main port for HTTPS
+		httpsAddr = ":" + cfg.Server.Port
+	}
 
 	// Start HTTP to HTTPS redirect server if enabled
 	if cfg.Server.Redirect.Enabled {
 		go func() {
-			httpAddr := ":" + cfg.Server.Redirect.HTTPPort
-			log.Printf("[STARTUP] Starting HTTP redirect server on %s -> HTTPS %s", httpAddr, addr)
+			log.Printf("[STARTUP] Starting HTTP redirect server on %s -> HTTPS %s", httpAddr, httpsAddr)
 			
 			redirectHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Build target URL, handling both with and without port in Host header
 				host := r.Host
 				if host == "" {
-					host = "localhost" + addr
+					host = "localhost" + httpsAddr
 				}
 				
-				// Remove HTTP port if it matches our redirect port
+				// Remove HTTP port and replace with HTTPS port
 				if host == "localhost:"+cfg.Server.Redirect.HTTPPort {
-					host = "localhost" + addr
+					host = "localhost" + httpsAddr
 				}
 				
 				target := "https://" + host + r.URL.RequestURI()
@@ -169,8 +177,8 @@ func main() {
 	}
 
 	// Start HTTPS server
-	log.Printf("[STARTUP] Starting HTTPS server on %s ...", addr)
-	if err := http.ListenAndServeTLS(addr, certFile, keyFile, nil); err != nil {
+	log.Printf("[STARTUP] Starting HTTPS server on %s ...", httpsAddr)
+	if err := http.ListenAndServeTLS(httpsAddr, certFile, keyFile, nil); err != nil {
 		log.Fatalf("[ERROR] HTTPS server error: %v", err)
 	}
 	// Remove or comment out the old serverManager.Start() call:

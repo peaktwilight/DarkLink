@@ -3,6 +3,7 @@ package config
 type Config struct {
 	Server struct {
 		Port      string `yaml:"port"`
+		HTTPSPort string `yaml:"httpsPort"`
 		UploadDir string `yaml:"uploadDir"`
 		StaticDir string `yaml:"staticDir"`
 		TLS struct {
