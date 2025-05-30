@@ -181,8 +181,4 @@ func main() {
 	if err := http.ListenAndServeTLS(httpsAddr, certFile, keyFile, nil); err != nil {
 		log.Fatalf("[ERROR] HTTPS server error: %v", err)
 	}
-	// Remove or comment out the old serverManager.Start() call:
-	// if err := serverManager.Start(); err != nil {
-	// 	log.Fatalf("[ERROR] Server error: %v", err)
-	// }
 }
