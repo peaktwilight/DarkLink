@@ -109,8 +109,8 @@ func main() {
 	// Set up payload generator routes
 	payloadHandler.SetupRoutes()
 
-	// Remove the redundant registration of the `/` route.
-	// http.HandleFunc("/", staticHandlers.HandleRoot)
+	// Set up root route to redirect / to /home/
+	http.HandleFunc("/", staticHandlers.HandleRoot)
 
 	// Set up API routes
 	apiHandler := api.NewAPIHandler(serverManager)
@@ -135,22 +135,38 @@ func main() {
 	log.Printf("[NETWORK] Port: %s", cfg.Server.Port)
 
 	// --- HTTPS Support ---
-	certFile := "certs/server.crt"
-	keyFile := "certs/server.key"
+	certFile := cfg.Server.TLS.CertFile
+	keyFile := cfg.Server.TLS.KeyFile
 	addr := ":" + cfg.Server.Port
 
-	/*
-		// Redirect HTTP to HTTPS
+	// Start HTTP to HTTPS redirect server if enabled
+	if cfg.Server.Redirect.Enabled {
 		go func() {
-			// Listen on port 8081 and redirect all requests to HTTPS
-			if err := http.ListenAndServe(":8081", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				target := "https://" + r.Host + r.URL.RequestURI()
+			httpAddr := ":" + cfg.Server.Redirect.HTTPPort
+			log.Printf("[STARTUP] Starting HTTP redirect server on %s -> HTTPS %s", httpAddr, addr)
+			
+			redirectHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Build target URL, handling both with and without port in Host header
+				host := r.Host
+				if host == "" {
+					host = "localhost" + addr
+				}
+				
+				// Remove HTTP port if it matches our redirect port
+				if host == "localhost:"+cfg.Server.Redirect.HTTPPort {
+					host = "localhost" + addr
+				}
+				
+				target := "https://" + host + r.URL.RequestURI()
+				log.Printf("[REDIRECT] %s -> %s", r.URL.String(), target)
 				http.Redirect(w, r, target, http.StatusMovedPermanently)
-			})); err != nil {
+			})
+			
+			if err := http.ListenAndServe(httpAddr, redirectHandler); err != nil {
 				log.Printf("[ERROR] HTTP redirect server error: %v", err)
 			}
 		}()
-	*/
+	}
 
 	// Start HTTPS server
 	log.Printf("[STARTUP] Starting HTTPS server on %s ...", addr)
