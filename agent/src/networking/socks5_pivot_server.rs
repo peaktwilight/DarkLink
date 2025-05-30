@@ -14,6 +14,7 @@ pub struct Socks5PivotServer {
     pivot_tx: mpsc::Sender<PivotFrame>,
 }
 
+// Socks5PivotServer implements a SOCKS5 proxy server that relays connections to a C2 server.
 impl Socks5PivotServer {
     pub fn new(listen_addr: String, listen_port: u16, pivot_tx: mpsc::Sender<PivotFrame>) -> Self {
         Self { listen_addr, listen_port, pivot_tx }

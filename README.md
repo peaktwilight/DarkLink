@@ -1,8 +1,67 @@
-This project proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework will utilize covert communication, encryption, and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness will be evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.
+# MicroC2 Framework - Academic Research Project
+
+## 🚨 ETHICAL DISCLAIMER AND LEGAL NOTICE
+
+**This software is for academic research, cybersecurity education, and authorized defensive security testing ONLY. Unauthorized, malicious, or illegal use is strictly prohibited and may lead to severe legal consequences.**
+
+This research, supervised by the **Cyber-Defence Campus Switzerland**, adheres to responsible research principles, institutional ethics, and relevant guidelines. **All development and testing occurred in isolated, controlled lab environments.**
+
+**Permitted Uses:**
+- Academic research and education.
+- Authorized penetration testing (with explicit written permission).
+- Authorized red team exercises.
+- Defensive cybersecurity R&D.
+- Supervised student learning.
+
+**Prohibited Uses:**
+- Unauthorized system/network access.
+- Deployment without explicit permission.
+- Malicious activities or cybercrime.
+- Commercial exploitation without license.
+- Distribution without this notice.
+
+**User Responsibilities:**
+By using this software, you agree to:
+1. Comply with all applicable laws.
+2. Use for authorized, legal, and ethical purposes only.
+3. Understand its dual-use nature.
+4. Maintain these guidelines in derivative works.
+5. Report vulnerabilities responsibly.
 
 ---
 
-# I DO NOT RECOMMEND DEPLOYING THIS IN THE WILD
+## ⚠️ Known Limitations and Security Considerations
+
+Developed under academic constraints (timeline, research focus, lab testing), this framework prioritizes proof-of-concept over production-ready security.
+
+**Key Limitations:**
+- Incomplete input validation.
+- Basic error handling.
+- Research-grade cryptographic implementations.
+- Functionality-focused network security (not hardened).
+- Basic authentication.
+- Limited operational logging/monitoring.
+
+**For Authorized Testing:**
+- Use ONLY in isolated, air-gapped environments.
+- Implement robust monitoring and logging.
+- Secure explicit written authorization.
+- Adhere to institutional research protocols.
+- Coordinate with network/security teams.
+
+---
+
+## 🛡️ Defensive Research Applications
+
+This framework can be used to:
+- **Develop Detection Signatures**: Analyze C2 communication patterns for defensive purposes
+- **Improve Security Monitoring**: Understand evasion techniques to enhance detection capabilities
+- **Train Security Professionals**: Provide hands-on experience in controlled environments
+- **Academic Research**: Support thesis work and cybersecurity education
+
+---
+
+## 🔧 Technical Documentation
 
 ## Getting Started
 
@@ -124,3 +183,12 @@ Client <-> Server <-> VM1 <-> VM2
     ```
 
 ---
+
+## 📄 License and Academic Use
+
+**This project is released under GNU GPL + NON COMMERCIAL for academic and research purposes only.**
+Details in the LICENSE.md file.
+
+---
+
+**Remember: With great power comes great responsibility. Use this knowledge to build a more secure digital world.**
