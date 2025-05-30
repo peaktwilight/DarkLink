@@ -107,7 +107,7 @@ This framework can be used to:
    ./server
    ```
 2. **Access the web interface:**
-   - Open your browser and go to: [http://localhost:8080/home/](http://localhost:8080/home/) (or the port you configured).
+   - Open your browser and go to: [https://localhost:8080/home/](https://localhost:8080/home/) (or the port you configured).
 
 ### Configuration
 - Edit `server/config/settings.yaml` for server settings.
