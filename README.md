@@ -2,6 +2,9 @@
 
 **DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
 
+**This thesis proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework utilizes covert communication, encryption and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness is evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.**
+
+
 ## 🚨 ETHICAL DISCLAIMER AND LEGAL NOTICE
 
 **This software is for academic research, cybersecurity education, and authorized defensive security testing ONLY. Unauthorized, malicious, or illegal use is strictly prohibited and may lead to severe legal consequences.**
@@ -65,6 +68,41 @@ This framework can be used to:
 
 ## 🔧 Technical Documentation
 
+---
+
+## 🏗️ Architecture Overview
+
+### Server (Go)
+- **RESTful API**: Listener management, agent communication, file operations
+- **WebSocket Endpoints**: Real-time logging and shell access
+- **TLS Support**: Encrypted communications with certificate generation
+- **Modular Design**: Extensible protocol handlers and listener management
+
+### Agent (Rust)
+- **Adaptive OPSEC**: Dynamic operational mode adjustment based on threat scoring
+- **Memory Protection**: In-memory encryption of sensitive state data
+- **Anti-Analysis**: String obfuscation, process monitoring, sandbox evasion
+- **Network Flexibility**: HTTP(S) polling, SOCKS5 proxy support, reverse tunneling
+
+### Web Interface
+- **Dashboard**: Real-time agent status and system monitoring
+- **Listener Management**: HTTP(S) and SOCKS5 listener configuration
+- **Payload Generation**: Cross-platform agent compilation with custom configuration
+- **File Operations**: Secure upload/download functionality
+
+---
+
+## ✨ Key Features
+
+- **Adaptive OPSEC Engine**: Dynamic behavioral adjustment based on environmental threat assessment
+- **Memory Protection**: AES-256-GCM encryption of sensitive state with immediate zeroization
+- **Platform-Specific Evasion**: Windows API hiding and Linux session detection mechanisms
+- **SOCKS5 Proxy Pivoting**: Multi-hop network traversal with reverse tunneling capabilities
+- **Minimal Footprint**: Optimized Rust agent with aggressive size reduction and anti-analysis features
+- **Modular Architecture**: Extensible framework supporting multiple communication protocols
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -127,7 +165,7 @@ This framework can be used to:
 - Use the Payload Generator in the web UI to generate agent binaries for your target OS/architecture.
 
 ### File Drop
-    - Upload and download files via the File Drop section in the web UI. Folder in codebase is DarkLink/server/uploads/
+- Upload and download files via the File Drop section in the web UI. Folder in codebase is /server/uploads/
 
 ## SOCKS5 Proxy Pivoting Setup (Multi-Hop Example)
 
@@ -188,8 +226,7 @@ Client <-> Server <-> VM1 <-> VM2
 
 ## 📄 License and Academic Use
 
-**This project is released under GNU GPL + NON COMMERCIAL for academic and research purposes only.**
-Details in the LICENSE.md file.
+**This project is released under BSD-3-Clause with Non-Commercial Restriction for academic and research purposes only.**
 
 ---
 
