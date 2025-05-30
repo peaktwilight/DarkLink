@@ -70,6 +70,13 @@
     color: var(--error-color);
 }
 
+.completion-output {
+    color: #888;
+    font-style: italic;
+    padding-left: 10px;
+    margin: 2px 0;
+}
+
 /* Custom terminal scrollbar */
 #terminal-output::-webkit-scrollbar {
     width: 8px;
