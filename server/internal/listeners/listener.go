@@ -1,5 +1,3 @@
-// This file will be moved to the new 'listeners' folder as 'listener.go'.
-
 package listeners
 
 import (
@@ -226,11 +224,8 @@ func (l *Listener) Start() error {
 		if l.Config.Protocol == "https" {
 			certFile := "certs/server.crt"
 			keyFile := "certs/server.key"
-			// log.Printf("[DEBUG] Loading TLS configuration from %s and %s", certFile, keyFile)
-			// log.Printf("[DEBUG] Starting HTTPS server on %s", addr)
 			err = server.ListenAndServeTLS(certFile, keyFile)
 		} else {
-			// log.Printf("[DEBUG] Starting HTTP server on %s", addr)
 			err = server.ListenAndServe()
 		}
 		if err != nil && err != http.ErrServerClosed {

@@ -1,5 +1,3 @@
-// This file will be moved to the new 'handlers' folder as 'command_handler.go'.
-
 package handlers
 
 import (

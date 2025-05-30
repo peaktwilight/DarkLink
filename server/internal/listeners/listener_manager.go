@@ -1,4 +1,3 @@
-// This file will be moved to the new 'listeners' folder as 'listener_management.go'.
 package listeners
 
 import (

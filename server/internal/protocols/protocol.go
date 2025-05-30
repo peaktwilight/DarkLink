@@ -1,5 +1,3 @@
-// This file will be moved to the new 'protocols' folder as 'protocol.go'.
-
 package protocols
 
 import (

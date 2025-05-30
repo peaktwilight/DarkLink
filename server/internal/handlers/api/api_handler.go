@@ -2,10 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log" // Updated from `networking`
-
-	// Updated from `networking`
-
+	"log"
 	"microc2/server/pkg/communication"
 	"net/http"
 	"strings"
@@ -18,7 +15,6 @@ func NewAPIHandler(manager *communication.ServerManager) *APIHandler {
 }
 
 func (h *APIHandler) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	// log.Printf("[DEBUG] HandleRequest called: %s %s", r.Method, r.URL.Path)
 	if r.URL.Path == "/api/agents/list" {
 		h.handleListAgents(w, r)
 		return
@@ -61,17 +57,14 @@ func (h *APIHandler) handleListAgents(w http.ResponseWriter, r *http.Request) {
 
 // handleQueueAgentCommand handles POST /api/agents/{AgentID}/command
 func (h *APIHandler) handleQueueAgentCommand(w http.ResponseWriter, r *http.Request, AgentID string) {
-	// log.Printf("[DEBUG] handleQueueAgentCommand entered for AgentID=%s", AgentID)
 	type cmdReq struct {
 		Command string `json:"command"`
 	}
 	var req cmdReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Command == "" {
-		log.Printf("[DEBUG] JSON decode failed or empty command: err=%v, req=%+v", err, req)
 		http.Error(w, "Invalid command", http.StatusBadRequest)
 		return
 	}
-	// log.Printf("[DEBUG] handleQueueAgentCommand: AgentID=%s, command=%s", AgentID, req.Command)
 
 	// Find the listener/protocol for this agent
 	listenerMgr := h.serverManager.GetListenerManager()
@@ -80,7 +73,6 @@ func (h *APIHandler) handleQueueAgentCommand(w http.ResponseWriter, r *http.Requ
 		if listener.Protocol != nil {
 			if agenter, ok := listener.Protocol.(interface{ GetAllAgents() map[string]interface{} }); ok {
 				agents := agenter.GetAllAgents()
-				// log.Printf("[DEBUG] Listener %s has agents: %v", listener.Config.ID, reflect.ValueOf(agents).MapKeys())
 				if _, exists := agents[AgentID]; exists {
 					if commander, ok := listener.Protocol.(interface {
 						QueueCommand(AgentID, cmd string)
@@ -94,7 +86,6 @@ func (h *APIHandler) handleQueueAgentCommand(w http.ResponseWriter, r *http.Requ
 		}
 	}
 
-	// log.Printf("[DEBUG] Command queued for agent %s: %s (queued=%v)", AgentID, req.Command, queued)
 
 	if queued {
 		w.WriteHeader(http.StatusOK)
@@ -106,25 +97,17 @@ func (h *APIHandler) handleQueueAgentCommand(w http.ResponseWriter, r *http.Requ
 
 // Add handler for agent results
 func (h *APIHandler) handleGetAgentResults(w http.ResponseWriter, AgentID string) {
-	// log.Printf("[DEBUG] handleGetAgentResults called for AgentID=%s", AgentID)
 	listenerMgr := h.serverManager.GetListenerManager()
 	for _, listener := range listenerMgr.ListListeners() {
 		if listener.Protocol != nil {
 			if agenter, ok := listener.Protocol.(interface{ GetAllAgents() map[string]interface{} }); ok {
 				agents := agenter.GetAllAgents()
-				// log.Printf("[DEBUG] Available agent IDs: %v", reflect.ValueOf(agents).MapKeys())
 				if _, exists := agents[AgentID]; exists {
 					if resultGetter, ok := listener.Protocol.(interface {
 						GetResults(AgentID string) []map[string]interface{}
 					}); ok {
-						// Add debug: print keys in results.history
-						// if hp, ok := listener.Protocol.(*behaviour.HTTPPollingProtocol); ok {
-						// keys := hp.GetResultsHistoryKeys()
-						// log.Printf("[DEBUG] Results history keys: %v", keys)
-						// }
 						results := resultGetter.GetResults(AgentID)
-						// log.Printf("[DEBUG] Results for AgentID=%s: %+v", AgentID, results)
-						w.Header().Set("Content-Type", "application/json")
+							w.Header().Set("Content-Type", "application/json")
 						json.NewEncoder(w).Encode(results)
 						return
 					}

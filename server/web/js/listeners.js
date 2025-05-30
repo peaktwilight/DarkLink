@@ -1,10 +1,8 @@
-// Helper: safely parse JSON text to object or null
 function safeParseJson(text) {
     try { return JSON.parse(text); }
     catch (e) { console.error('JSON parse error:', e); return null; }
 }
 
-// Helper: parse headers lines (key:value) into an object
 function parseHeaderLines(raw) {
     return raw.split('\n')
       .map(l => l.trim())
@@ -24,7 +22,6 @@ class ListenerManager {
     }
 
     setupEventListeners() {
-        // Enable/disable proxy settings
         document.getElementById('enableProxy').addEventListener('change', function() {
             const proxySettings = document.getElementById('proxySettings');
             proxySettings.classList.toggle('hidden', !this.checked);
@@ -52,7 +49,6 @@ class ListenerManager {
             }
         });
 
-        // Form submission
         document.getElementById('listenerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleFormSubmit(e);
@@ -537,7 +533,6 @@ class ListenerManager {
     }
 }
 
-// Initialize the listener manager when the page loads
 let listenerManager;
 document.addEventListener('DOMContentLoaded', () => {
     listenerManager = new ListenerManager();

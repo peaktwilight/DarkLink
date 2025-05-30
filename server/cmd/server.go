@@ -12,7 +12,7 @@ import (
 	"microc2/server/internal/handlers/api"
 	"microc2/server/internal/handlers/web"
 	"microc2/server/internal/handlers/ws"
-	"microc2/server/internal/protocols" // Updated from `networking`
+	"microc2/server/internal/protocols"
 	"microc2/server/internal/websocket"
 	"microc2/server/pkg/communication"
 )

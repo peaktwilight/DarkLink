@@ -43,7 +43,6 @@ class DashboardManager {
 
         this.logWebSocket = new WebSocket(wsUrl);
         
-        // Set a timeout for the initial connection
         const connectionTimeout = setTimeout(() => {
             if (this.logWebSocket.readyState !== WebSocket.OPEN) {
                 this.logWebSocket.close();
@@ -61,7 +60,6 @@ class DashboardManager {
                 source: 'system'
             });
 
-            // Set up ping interval
             const pingInterval = setInterval(() => {
                 if (this.logWebSocket.readyState === WebSocket.OPEN) {
                     this.logWebSocket.send('ping');
@@ -70,7 +68,6 @@ class DashboardManager {
                 }
             }, 30000);
 
-            // Clean up ping interval when socket closes
             this.logWebSocket.addEventListener('close', () => clearInterval(pingInterval));
         };
 
@@ -116,12 +113,10 @@ class DashboardManager {
             source: 'system'
         });
 
-        // Clear any existing reconnect timer
         if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer);
         }
 
-        // Set new reconnect timer
         this.reconnectTimer = setTimeout(() => {
             if (document.visibilityState === 'visible') {
                 this.initializeWebSocket();
@@ -621,7 +616,6 @@ class DashboardManager {
     }
 }
 
-// Initialize the dashboard manager when the page loads
 let dashboardManager;
 document.addEventListener('DOMContentLoaded', () => {
     dashboardManager = new DashboardManager();

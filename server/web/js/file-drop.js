@@ -29,17 +29,15 @@ class FileDropManager {
             }
         });
 
-        // Improve the browse button click handler
         const browseButton = document.querySelector('.browse-button');
         if (browseButton) {
             browseButton.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent event bubbling
+                e.stopPropagation();
                 this.fileInput.click();
             });
         }
 
-        // Make the entire drop zone clickable to select files
         this.dropZone.addEventListener('click', (e) => {
             if (!e.target.closest('.browse-button')) {
                 this.fileInput.click();
@@ -211,14 +209,12 @@ class FileDropManager {
             es.onmessage = () => this.fetchFileList();
             es.onerror = () => console.warn('SSE connection error, falling back to polling');
         }
-        // Fallback to polling
         else {
             setInterval(() => this.fetchFileList(), 30000);
         }
     }
 }
 
-// Initialize the file drop manager when the page loads
 let fileDropManager;
 document.addEventListener('DOMContentLoaded', () => {
     fileDropManager = new FileDropManager();

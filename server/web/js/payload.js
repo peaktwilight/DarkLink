@@ -4,7 +4,6 @@ class PayloadManager {
         this.isGeneratingPayload = false;
         this.currentPayloadId = null;
         this.logDisplay = document.getElementById('build-log-display');
-        // The buildLogs element doesn't exist in the HTML, removing this reference
         this.autoScrollEnabled = true;
         this.wsReconnectAttempts = 0;
         this.MAX_RECONNECT_ATTEMPTS = 10;
@@ -15,21 +14,17 @@ class PayloadManager {
     }
 
     setupEventListeners() {
-        // DLL sideloading toggle
         document.getElementById('dllSideloading').addEventListener('change', function() {
             document.getElementById('sideloadingOptions').classList.toggle('hidden', !this.checked);
         });
-        // SOCKS5 proxy toggle
         document.getElementById('socks5_enabled').addEventListener('change', function() {
             document.getElementById('socks5Options').classList.toggle('hidden', !this.checked);
         });
 
-        // Architecture change handler
         document.getElementById('architecture').addEventListener('change', (e) => {
             this.updateAvailableFormats(e.target.value);
         });
 
-        // Form submission handler
         document.getElementById('payloadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleFormSubmission(e);
@@ -120,7 +115,6 @@ class PayloadManager {
     }
 
     addToBuildLogs(logEntry) {
-        // Instead of using this.buildLogs which doesn't exist, use this.logDisplay
         const logElement = document.createElement('div');
         logElement.className = 'log-entry';
         
@@ -133,7 +127,6 @@ class PayloadManager {
             <span class="log-message">${logEntry.message}</span>
         `;
         
-        // Use this.logDisplay instead of this.buildLogs
         this.logDisplay.appendChild(logElement);
         
         if (this.autoScrollEnabled) {
@@ -215,20 +208,17 @@ class PayloadManager {
     async handleFormSubmission(e) {
         const formData = new FormData(e.target);
         const config = Object.fromEntries(formData);
-        // Enforce listener selection
         if (!config.listener || config.listener === "") {
             alert("You must select a listener before generating a payload. Agents must connect to a valid listener port, not the web server port.");
             this.addLogEntry('payload', 'No listener selected. Payload generation aborted.', 'ERROR');
             return;
         }
-        // Convert checkbox values to boolean
         config.indirectSyscall = config.indirectSyscall === 'on';
         config.dllSideloading = config.dllSideloading === 'on';
         config.socks5_enabled = config.socks5_enabled === 'on';
         config.socks5_host = String(config.socks5_host || '').trim();
         config.socks5_port = parseInt(config.socks5_port, 10) || 0;
 
-        // ---  Parse OPSEC fields ---
         config.proc_scan_interval_secs = parseInt(config.proc_scan_interval_secs, 10) || 300;
         config.base_threshold_enter_full_opsec = parseFloat(config.base_threshold_enter_full_opsec) || 60.0;
         config.base_threshold_exit_full_opsec = parseFloat(config.base_threshold_exit_full_opsec) || 60.0;
@@ -243,7 +233,6 @@ class PayloadManager {
         config.c2_failure_threshold_decrease_factor = parseFloat(config.c2_failure_threshold_decrease_factor) || 0.9;
         config.c2_threshold_adjust_interval_secs = parseInt(config.c2_threshold_adjust_interval_secs, 10) || 3600;
         config.c2_dynamic_threshold_max_multiplier = parseFloat(config.c2_dynamic_threshold_max_multiplier) || 2.0;
-        // --- END NEW OPSEC FIELDS ---
 
         if (config.sleep) {
             config.sleep = parseInt(config.sleep, 10);
@@ -316,7 +305,6 @@ class PayloadManager {
     }
 
     clearBuildLogs() {
-        // Use this.logDisplay instead of this.buildLogs
         if (this.logDisplay) {
             this.logDisplay.innerHTML = '';
         }
@@ -336,7 +324,6 @@ class PayloadManager {
     }
 }
 
-// Initialize the payload manager when the page loads
 let payloadManager;
 document.addEventListener('DOMContentLoaded', () => {
     payloadManager = new PayloadManager();

@@ -244,7 +244,6 @@ class TerminalManager {
     }
 }
 
-// Initialize the terminal manager when the page loads
 let terminalManager;
 document.addEventListener('DOMContentLoaded', () => {
     terminalManager = new TerminalManager();

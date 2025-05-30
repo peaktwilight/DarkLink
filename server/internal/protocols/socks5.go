@@ -1,4 +1,3 @@
-// This file will be moved to the new 'protocols' folder as 'socks5.go'.
 package protocols
 
 import (
