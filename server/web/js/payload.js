@@ -228,7 +228,7 @@ class PayloadManager {
         config.socks5_host = String(config.socks5_host || '').trim();
         config.socks5_port = parseInt(config.socks5_port, 10) || 0;
 
-        // --- NEW: Parse OPSEC fields ---
+        // ---  Parse OPSEC fields ---
         config.proc_scan_interval_secs = parseInt(config.proc_scan_interval_secs, 10) || 300;
         config.base_threshold_enter_full_opsec = parseFloat(config.base_threshold_enter_full_opsec) || 60.0;
         config.base_threshold_exit_full_opsec = parseFloat(config.base_threshold_exit_full_opsec) || 60.0;

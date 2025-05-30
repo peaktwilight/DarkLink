@@ -43,7 +43,7 @@ impl Default for AesProtector {
     }
 }
 
-//  NEW: True in-memory protection - only encrypted storage
+//   True in-memory protection - only encrypted storage
 pub struct MemoryProtector {
     protector: AesProtector,
     //  ONLY encrypted storage - no plaintext fields
@@ -110,7 +110,7 @@ impl MemoryProtector {
             let decrypted = self.protector.decrypt(nonce, ciphertext)?;
             bincode::deserialize(&decrypted)?
         } else {
-            // Return default state if none exists
+            // CREATE PROPER DEFAULT STATE WITH ALL FIELDS
             crate::opsec::OpsecState {
                 mode: crate::opsec::AgentMode::FullOpsec,
                 current_score: 100.0,
@@ -126,17 +126,23 @@ impl MemoryProtector {
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_secs(),
+                // === ADD MISSING DYNAMIC THRESHOLD FIELDS ===
+                dyn_enter_full: 60.0,           // Default from config
+                dyn_exit_full: 55.0,            // Default with hysteresis buffer
+                dyn_enter_reduced: 20.0,        // Default from config 
+                dyn_exit_reduced: 15.0,         // Default with hysteresis buffer
+                threshold_adjustment_history: 0,
             }
         };
         
         let result = f(&mut state);
         
-        //  Re-encrypt the modified state
+        // Re-encrypt the modified state
         let serialized = bincode::serialize(&state)?;
         let (nonce, ciphertext) = self.protector.encrypt(&serialized)?;
         self.encrypted_opsec_state = Some((nonce, ciphertext));
         
-        //  Immediately zeroize plaintext
+        // Immediately zeroize plaintext
         state.zeroize();
         std::mem::drop(state);
         

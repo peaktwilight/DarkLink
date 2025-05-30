@@ -1,3 +1,6 @@
 pub fn random_jitter(base: u64, jitter: u64) -> u64 {
-    base + rand::random_range(0..=jitter)
+    if jitter == 0 {
+        return base;
+    }
+    base + (rand::random::<u64>() % (jitter + 1))
 }

