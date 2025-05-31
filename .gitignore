@@ -9,4 +9,5 @@
 /server/uploads/*
 /server/certs/
 
+node_modules/
 Claude.md
