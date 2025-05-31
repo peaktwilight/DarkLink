@@ -1,6 +1,6 @@
 # DarkLink Framework - Academic Research Project
 
-**DarkLink is a fork of the DarkLink framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
+**DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
 
 **This thesis proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework utilizes covert communication, encryption and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness is evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.**
 
@@ -115,7 +115,7 @@ This framework can be used to:
 ### Installation
 1. **Clone the repository:**
    ```sh
-   git clone https://github.com/yourusername/DarkLink.git
+   git clone https://github.com/peaktwilight/DarkLink.git
    cd DarkLink
    ```
 2. **Build the server:**cd 

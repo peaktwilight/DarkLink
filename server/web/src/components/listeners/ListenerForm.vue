@@ -400,13 +400,39 @@ function handleUriKeyPress(event) {
 function submitForm() {
   if (!isFormValid.value) return
   
+  // Convert headers array to map format expected by Go backend
+  const headersMap = {}
+  form.headers.forEach(header => {
+    const [key, ...valueParts] = header.split(':')
+    if (key && valueParts.length > 0) {
+      headersMap[key.trim()] = valueParts.join(':').trim()
+    }
+  })
+  
   const config = {
-    ...form,
-    // Convert arrays to strings if needed
-    hosts: form.hosts.join(','),
-    headers: form.headers.join(','),
-    uris: form.uris.join(',')
+    name: form.name,
+    protocol: form.protocol,
+    bindHost: form.bindHost || '0.0.0.0',
+    port: form.port,
+    uris: form.uris,           // Keep as array
+    headers: headersMap,       // Convert to map/object
+    userAgent: form.userAgent,
+    hostRotation: form.hostRotation,
+    hosts: form.hosts,         // Keep as array
+    // Add proxy config as nested object if enabled
+    ...(form.enableProxy && {
+      proxy: {
+        type: form.proxyType,
+        host: form.proxyHost,
+        port: form.proxyPort,
+        username: form.proxyUsername || undefined,
+        password: form.proxyPassword || undefined
+      }
+    })
   }
+  
+  // Debug: Log the exact config being sent
+  console.log('🐛 Submitting listener config:', JSON.stringify(config, null, 2))
   
   emit('submit', config)
 }
