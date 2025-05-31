@@ -1,5 +1,5 @@
 /*
- * MicroC2 Main Stylesheet
+ * DarkLink Main Stylesheet
  * Organized: Layout, Navigation, Cards, Forms, Buttons, Status, Utilities, Responsive
  * All color and sizing via CSS variables for consistency
  */
@@ -35,7 +35,7 @@ body {
     line-height: 1.5;
 }
 
-.microc2-container {
+.darklink-container {
     display: flex;
     min-height: 100vh;
 }
@@ -329,7 +329,7 @@ button.danger:hover, .action-button.danger:hover, .file-actions button.delete:ho
 
 /* ========== Responsive ========== */
 @media (max-width: 1024px) {
-    .microc2-container {
+    .darklink-container {
         grid-template-columns: 200px 1fr;
     }
     .split-panel {
@@ -342,7 +342,7 @@ button.danger:hover, .action-button.danger:hover, .file-actions button.delete:ho
 }
 
 @media (max-width: 768px) {
-    .microc2-container {
+    .darklink-container {
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr;
         height: auto;

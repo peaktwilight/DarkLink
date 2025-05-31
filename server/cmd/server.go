@@ -8,17 +8,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"microc2/server/config"
-	"microc2/server/internal/filestore"
-	"microc2/server/internal/handlers/api"
-	"microc2/server/internal/handlers/web"
-	"microc2/server/internal/handlers/ws"
-	"microc2/server/internal/protocols"
-	"microc2/server/internal/websocket"
-	"microc2/server/pkg/communication"
+	"darklink/server/config"
+	"darklink/server/internal/filestore"
+	"darklink/server/internal/handlers/api"
+	"darklink/server/internal/handlers/web"
+	"darklink/server/internal/handlers/ws"
+	"darklink/server/internal/protocols"
+	"darklink/server/internal/websocket"
+	"darklink/server/pkg/communication"
 )
 
-// main is the entry point of the MicroC2 server application
+// main is the entry point of the DarkLink server application
 //
 // Pre-conditions:
 //   - Configuration file exists at the specified path or default location

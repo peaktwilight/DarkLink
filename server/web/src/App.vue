@@ -1,5 +1,5 @@
 <template>
-  <div class="microc2-container">
+  <div class="darklink-container">
     <Sidebar />
     <main class="content">
       <router-view />
@@ -13,7 +13,7 @@ import Sidebar from './components/layout/Sidebar.vue'
 
 <style>
 /* Global app styles */
-.microc2-container {
+.darklink-container {
   display: flex;
   min-height: 100vh;
 }

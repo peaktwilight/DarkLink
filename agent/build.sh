@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "MicroC2 Agent Builder"
+echo "DarkLink Agent Builder"
 echo "============================="
 
 # --- Configuration Defaults ---

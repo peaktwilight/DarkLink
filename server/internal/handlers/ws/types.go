@@ -1,6 +1,6 @@
 package ws
 
-import "microc2/server/internal/websocket"
+import "darklink/server/internal/websocket"
 
 // Handler manages websocket connections for the server application
 // It provides handlers for log streaming and terminal sessions.

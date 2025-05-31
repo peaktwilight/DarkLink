@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"microc2/server/internal/behaviour" // Corrected path to the `listeners` package
-	"microc2/server/internal/common"    // Import the `common` package for BaseProtocolConfig
+	"darklink/server/internal/behaviour" // Corrected path to the `listeners` package
+	"darklink/server/internal/common"    // Import the `common` package for BaseProtocolConfig
 
 	"github.com/google/uuid"
 )

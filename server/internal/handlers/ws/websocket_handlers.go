@@ -3,7 +3,7 @@ package ws
 import (
 	"net/http"
 
-	"microc2/server/internal/websocket"
+	"darklink/server/internal/websocket"
 )
 
 // New creates a new websocket handler with the provided log streamer

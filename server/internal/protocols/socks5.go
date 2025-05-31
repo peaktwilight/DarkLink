@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"microc2/server/internal/common" // Import BaseProtocolConfig
+	"darklink/server/internal/common" // Import BaseProtocolConfig
 
 	"github.com/google/uuid"
 )

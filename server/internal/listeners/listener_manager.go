@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	behaviour "microc2/server/internal/behaviour"
-	"microc2/server/internal/common"
+	behaviour "darklink/server/internal/behaviour"
+	"darklink/server/internal/common"
 
 	"github.com/google/uuid"
 )

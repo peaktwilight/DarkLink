@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/internal/filestore"
-	"microc2/server/internal/handlers/api/payload"
-	"microc2/server/internal/listeners" // Updated from `networking`
+	"darklink/server/internal/filestore"
+	"darklink/server/internal/handlers/api/payload"
+	"darklink/server/internal/listeners" // Updated from `networking`
 	"net/http"
 	"os"
 	"strings"

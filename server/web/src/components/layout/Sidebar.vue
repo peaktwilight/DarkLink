@@ -1,6 +1,6 @@
 <template>
   <aside class="sidebar">
-    <div class="nav-header">MICROC2 CONSOLE</div>
+    <div class="nav-header">DARKLINK CONSOLE</div>
     <nav class="nav-items">
       <router-link 
         v-for="item in navItems" 

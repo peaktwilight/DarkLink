@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/internal/listeners" // Updated from `networking`
+	"darklink/server/internal/listeners" // Updated from `networking`
 	"net/http"
 	"strings"
 )

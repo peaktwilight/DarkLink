@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/pkg/communication"
+	"darklink/server/pkg/communication"
 	"net/http"
 	"strings"
 )

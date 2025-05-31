@@ -1,4 +1,4 @@
-module microc2/server
+module darklink/server
 
 go 1.23.0
 

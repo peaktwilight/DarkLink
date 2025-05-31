@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"microc2/server/internal/behaviour"
-	"microc2/server/internal/common"
-	"microc2/server/internal/listeners"
-	"microc2/server/internal/protocols"
+	"darklink/server/internal/behaviour"
+	"darklink/server/internal/common"
+	"darklink/server/internal/listeners"
+	"darklink/server/internal/protocols"
 )
 
 type ServerManager struct {

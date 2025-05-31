@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"microc2/server/internal/common"
+	"darklink/server/internal/common"
 	"net/http"
 	"os"
 	"path/filepath"

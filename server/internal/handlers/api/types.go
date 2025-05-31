@@ -1,10 +1,10 @@
 package api
 
 import (
-	"microc2/server/internal/filestore"
-	"microc2/server/internal/listeners" // Updated from `networking`
-	"microc2/server/internal/protocols" // Updated from `networking`
-	"microc2/server/pkg/communication"
+	"darklink/server/internal/filestore"
+	"darklink/server/internal/listeners" // Updated from `networking`
+	"darklink/server/internal/protocols" // Updated from `networking`
+	"darklink/server/pkg/communication"
 )
 
 // APIHandler handles API requests and responses

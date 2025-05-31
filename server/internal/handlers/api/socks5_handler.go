@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"microc2/server/internal/protocols" // Updated from `networking`
+	"darklink/server/internal/protocols" // Updated from `networking`
 	"net/http"
 )
 
