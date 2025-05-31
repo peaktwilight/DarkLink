@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 	behaviour "microc2/server/internal/behaviour"
-	"microc2/server/internal/common" // Import BaseProtocolConfig
+	"microc2/server/internal/common"
 	"net"
 	"net/http"
 	"os"
@@ -16,70 +16,30 @@ import (
 	"time"
 )
 
-// ListenerStatus represents the current operational state of a listener
-type ListenerStatus string
+// Use types from common package
+type ListenerConfig = common.ListenerConfig
+type ListenerStatus = common.ListenerStatus
+type ListenerStats = common.ListenerStats
+type ProxyConfig = common.ProxyConfig
+type TLSConfig = common.TLSConfig
+type SOCKS5ListenerConfig = common.SOCKS5ListenerConfig
 
+// Re-export constants for convenience
 const (
-	// StatusActive indicates the listener is running and accepting connections
-	StatusActive ListenerStatus = "ACTIVE"
-
-	// StatusStopped indicates the listener is not running
-	StatusStopped ListenerStatus = "STOPPED"
-
-	// StatusError indicates the listener encountered an error
-	StatusError ListenerStatus = "ERROR"
+	StatusActive  = common.StatusActive
+	StatusStopped = common.StatusStopped
+	StatusError   = common.StatusError
 )
-
-// ListenerConfig holds the configuration for a C2 listener
-type ListenerConfig struct {
-	ID           string                `json:"id"`
-	Name         string                `json:"name"`
-	Protocol     string                `json:"protocol"`
-	BindHost     string                `json:"host"`
-	Port         int                   `json:"port"`
-	URIs         []string              `json:"uris,omitempty"`
-	Headers      map[string]string     `json:"headers,omitempty"`
-	UserAgent    string                `json:"user_agent,omitempty"`
-	HostRotation string                `json:"host_rotation,omitempty"`
-	Hosts        []string              `json:"hosts,omitempty"`
-	Proxy        *ProxyConfig          `json:"proxy,omitempty"`
-	TLSConfig    *TLSConfig            `json:"tls_config,omitempty"`
-	SOCKS5Config *SOCKS5ListenerConfig `json:"socks5_config,omitempty"`
-}
-
-// ProxyConfig holds proxy-related configuration
-type ProxyConfig struct {
-	Type     string `json:"type"`
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-}
-
-// TLSConfig holds TLS configuration for secure listeners
-type TLSConfig struct {
-	CertFile          string `json:"cert_file"`
-	KeyFile           string `json:"key_file"`
-	RequireClientCert bool   `json:"requireClientCert"`
-}
-
-// SOCKS5ListenerConfig holds SOCKS5-specific listener configuration
-type SOCKS5ListenerConfig struct {
-	RequireAuth     bool     `json:"require_auth"`
-	AllowedIPs      []string `json:"allowed_ips,omitempty"`
-	DisallowedPorts []int    `json:"disallowed_ports,omitempty"`
-	IdleTimeout     int      `json:"idle_timeout,omitempty"` // Timeout in seconds
-}
 
 // Listener represents a communication protocol listener that agents connect to
 // It manages the lifecycle of the listening service and tracks its operational state.
 type Listener struct {
-	Config          ListenerConfig    `json:"config"`
-	Status          ListenerStatus    `json:"status"`
-	Error           string            `json:"error,omitempty"`
-	StartTime       time.Time         `json:"start_time"`
-	StopTime        time.Time         `json:"stop_time,omitempty"`
-	Stats           ListenerStats     `json:"stats"`
+	Config          common.ListenerConfig `json:"config"`
+	Status          common.ListenerStatus `json:"status"`
+	Error           string                 `json:"error,omitempty"`
+	StartTime       time.Time              `json:"start_time"`
+	StopTime        time.Time              `json:"stop_time,omitempty"`
+	Stats           common.ListenerStats   `json:"stats"`
 	URIs            []string          `json:"uris,omitempty"`
 	Headers         map[string]string `json:"headers,omitempty"`
 	UserAgent       string            `json:"user_agent,omitempty"`
@@ -93,15 +53,6 @@ type Listener struct {
 	Protocol        Protocol     // underlying protocol instance
 }
 
-// ListenerStats tracks operational statistics for a listener
-type ListenerStats struct {
-	TotalConnections  int64     `json:"total_connections"`
-	ActiveConnections int64     `json:"active_connections"`
-	LastConnection    time.Time `json:"last_connection,omitempty"`
-	BytesReceived     int64     `json:"bytes_received"`
-	BytesSent         int64     `json:"bytes_sent"`
-	FailedConnections int64     `json:"failed_connections"`
-}
 
 // NewListener creates a new listener instance with the given configuration
 //
@@ -113,7 +64,7 @@ type ListenerStats struct {
 //   - Returns an initialized Listener instance with appropriate protocol handler
 //   - Listener is in stopped state
 //   - Returns error if the protocol is not supported or configuration is invalid
-func NewListener(config ListenerConfig) (*Listener, error) {
+func NewListener(config common.ListenerConfig) (*Listener, error) {
 	// Create listener-specific directory in static/listeners
 	listenerDir := filepath.Join("static", "listeners", config.Name)
 	if err := os.MkdirAll(listenerDir, 0755); err != nil {
@@ -159,9 +110,9 @@ func NewListener(config ListenerConfig) (*Listener, error) {
 	// Construct listener instance
 	l := &Listener{
 		Config:          config,
-		Status:          StatusStopped,
+		Status:          common.StatusStopped,
 		stopChan:        make(chan struct{}),
-		Stats:           ListenerStats{},
+		Stats:           common.ListenerStats{},
 		fileHandler:     fileHandler,
 		cmdQueue:        NewCommandQueue(),
 		protocolHandler: protoHandler,
@@ -207,7 +158,7 @@ func (l *Listener) Start() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if l.Status == StatusActive {
+	if l.Status == common.StatusActive {
 		return fmt.Errorf("listener %s is already running", l.Config.Name)
 	}
 
@@ -234,7 +185,7 @@ func (l *Listener) Start() error {
 		}
 	}()
 
-	l.Status = StatusActive
+	l.Status = common.StatusActive
 	l.StartTime = time.Now()
 	l.StopTime = time.Time{}
 	return nil
@@ -255,7 +206,7 @@ func (l *Listener) Stop() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if l.Status != StatusActive {
+	if l.Status != common.StatusActive {
 		return fmt.Errorf("listener %s is not running", l.Config.Name)
 	}
 
@@ -267,7 +218,7 @@ func (l *Listener) Stop() error {
 		return fmt.Errorf("error stopping listener: %v", err)
 	}
 
-	l.Status = StatusStopped
+	l.Status = common.StatusStopped
 	l.StopTime = time.Now()
 	log.Printf("[INFO] Stopped listener %s", l.Config.Name)
 	return nil
@@ -280,7 +231,7 @@ func (l *Listener) Stop() error {
 //
 // Post-conditions:
 //   - Returns the current listener status in a thread-safe manner
-func (l *Listener) GetStatus() ListenerStatus {
+func (l *Listener) GetStatus() common.ListenerStatus {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	return l.Status
@@ -312,7 +263,7 @@ func (l *Listener) SetError(err error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	l.Status = StatusError
+	l.Status = common.StatusError
 	if err != nil {
 		l.Error = err.Error()
 	} else {

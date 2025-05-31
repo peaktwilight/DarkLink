@@ -3,7 +3,6 @@ package listeners
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -17,21 +16,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// Define missing types
-// BaseProtocolConfig is a placeholder for the actual implementation
-// Removed local definition of BaseProtocolConfig
-
-// Define missing Protocol interface
-// Protocol defines the interface that all communication protocols must implement
-type Protocol interface {
-	Initialize() error
-	HandleCommand(cmd string) error
-	HandleFileUpload(filename string, fileData io.Reader) error
-	HandleFileDownload(filename string) (io.Reader, error)
-	HandleAgentHeartbeat(agentData []byte) error
-	GetRoutes() map[string]http.HandlerFunc
-	GetHTTPHandler() http.Handler
-}
+// Use types from common package
+type Protocol = common.Protocol
 
 // ListenerManager handles the creation, management, and tracking of protocol listeners.
 // It maintains a thread-safe registry of all active and stopped listeners.
@@ -72,14 +58,14 @@ func NewListenerManager(proto Protocol) *ListenerManager { // Accept protocol in
 			continue
 		}
 
-		var config ListenerConfig
+		var config common.ListenerConfig
 		if err := json.Unmarshal(configData, &config); err != nil {
 			log.Printf("[WARNING] Failed to parse config for listener %s: %v", entry.Name, err)
 			continue
 		}
 
-		// Create a new listener instance with STOPPED status, passing the manager
-		listener, err := NewListener(config) // Updated function signature
+		// Create a new listener instance with STOPPED status
+		listener, err := NewListener(config)
 		if err != nil {
 			log.Printf("[WARNING] Failed to create listener instance for %s: %v", config.Name, err)
 			continue
@@ -106,7 +92,7 @@ func (m *ListenerManager) GetProtocol() Protocol {
 // Post-conditions:
 //   - A new listener is created, started, and added to the manager
 //   - Returns error if the configuration is invalid or the port is already in use
-func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, error) {
+func (m *ListenerManager) CreateListener(config common.ListenerConfig) (*Listener, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -142,8 +128,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 		bindAddr := fmt.Sprintf("%s:%d", bindHost, config.Port)
 		handler := httpProto.GetHTTPHandler()
 		if handler == nil {
-			log.Fatalf("[FATAL] HTTPPollingProtocol.GetHTTPHandler() returned nil for listener %s on %s", config.Name, bindAddr)
-			panic("HTTPPollingProtocol.GetHTTPHandler() returned nil")
+			return nil, fmt.Errorf("HTTPPollingProtocol.GetHTTPHandler() returned nil for listener %s on %s", config.Name, bindAddr)
 		}
 		log.Printf("[INFO] Starting HTTP server for listener %s on %s with handler type: %T", config.Name, bindAddr, handler)
 		go func() {
@@ -155,7 +140,7 @@ func (m *ListenerManager) CreateListener(config ListenerConfig) (*Listener, erro
 				http.ListenAndServe(bindAddr, handler)
 			}
 		}()
-		l := &Listener{Config: config, Status: StatusActive, StartTime: time.Now(), Protocol: httpProto}
+		l := &Listener{Config: config, Status: common.StatusActive, StartTime: time.Now(), Protocol: httpProto}
 		m.listeners[config.ID] = l
 		return l, nil
 	}
@@ -418,7 +403,7 @@ func (m *ListenerManager) DeleteAll() []error {
 //
 // Post-conditions:
 //   - Returns error if the configuration is invalid
-func (m *ListenerManager) validateListenerConfig(config ListenerConfig) error {
+func (m *ListenerManager) validateListenerConfig(config common.ListenerConfig) error {
 	if config.Name == "" {
 		log.Printf("[ERROR] Listener validation failed: name is required")
 		return fmt.Errorf("listener name is required")

@@ -2,8 +2,8 @@ package config
 
 type Config struct {
 	Server struct {
-		Port      string `yaml:"port"`
-		HTTPSPort string `yaml:"httpsPort"`
+		Port      int `yaml:"port"`
+		HTTPSPort int `yaml:"httpsPort"`
 		UploadDir string `yaml:"uploadDir"`
 		StaticDir string `yaml:"staticDir"`
 		TLS struct {
@@ -13,7 +13,7 @@ type Config struct {
 		} `yaml:"tls"`
 		Redirect struct {
 			Enabled  bool   `yaml:"enabled"`
-			HTTPPort string `yaml:"httpPort"`
+			HTTPPort int `yaml:"httpPort"`
 		} `yaml:"redirect"`
 	} `yaml:"server"`
 

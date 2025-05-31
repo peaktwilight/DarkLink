@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -132,7 +133,7 @@ func main() {
 	log.Printf("[CONFIG] Static directory: %s", cfg.Server.StaticDir)
 	log.Printf("[CONFIG] File Drop directory: %s/file_drop", cfg.Server.StaticDir)
 	log.Printf("[CONFIG] Payloads directory: %s", payloadDir)
-	log.Printf("[NETWORK] Port: %s", cfg.Server.Port)
+	log.Printf("[NETWORK] Port: %d", cfg.Server.Port)
 
 	// --- HTTPS Support ---
 	certFile := cfg.Server.TLS.CertFile
@@ -141,11 +142,11 @@ func main() {
 	// Determine ports based on redirect configuration
 	var httpAddr, httpsAddr string
 	if cfg.Server.Redirect.Enabled {
-		httpAddr = ":" + cfg.Server.Redirect.HTTPPort
-		httpsAddr = ":" + cfg.Server.HTTPSPort
+		httpAddr = fmt.Sprintf(":%d", cfg.Server.Redirect.HTTPPort)
+		httpsAddr = fmt.Sprintf(":%d", cfg.Server.HTTPSPort)
 	} else {
 		// If redirect is disabled, use main port for HTTPS
-		httpsAddr = ":" + cfg.Server.Port
+		httpsAddr = fmt.Sprintf(":%d", cfg.Server.Port)
 	}
 
 	// Start HTTP to HTTPS redirect server if enabled
@@ -161,7 +162,7 @@ func main() {
 				}
 				
 				// Remove HTTP port and replace with HTTPS port
-				if host == "localhost:"+cfg.Server.Redirect.HTTPPort {
+				if host == fmt.Sprintf("localhost:%d", cfg.Server.Redirect.HTTPPort) {
 					host = "localhost" + httpsAddr
 				}
 				

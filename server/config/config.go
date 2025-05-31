@@ -55,8 +55,14 @@ func validateConfig(config *Config) error {
 	}
 
 	// Set defaults if not specified
-	if config.Server.Port == "" {
-		config.Server.Port = "8080"
+	if config.Server.Port == 0 {
+		config.Server.Port = 8080
+	}
+	if config.Server.HTTPSPort == 0 {
+		config.Server.HTTPSPort = 8443
+	}
+	if config.Server.Redirect.HTTPPort == 0 {
+		config.Server.Redirect.HTTPPort = 8080
 	}
 
 	if config.Communication.HTTPPolling.HeartbeatInterval == 0 {

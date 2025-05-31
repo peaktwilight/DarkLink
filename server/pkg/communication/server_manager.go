@@ -21,7 +21,7 @@ type ServerManager struct {
 
 type ServerConfig struct {
 	UploadDir    string
-	Port         string
+	Port         int
 	StaticDir    string
 	ProtocolType string
 }
@@ -33,7 +33,7 @@ func NewServerManager(config *ServerConfig) (*ServerManager, error) {
 
 	baseConfig := common.BaseProtocolConfig{
 		UploadDir: config.UploadDir,
-		Port:      config.Port,
+		Port:      fmt.Sprintf("%d", config.Port),
 	}
 
 	var protocol listeners.Protocol
@@ -83,9 +83,9 @@ func (sm *ServerManager) Start() error {
 	log.Printf("[CONFIG] Upload directory: %s", sm.config.UploadDir)
 	log.Printf("[CONFIG] Static directory: %s", sm.config.StaticDir)
 	log.Printf("[CONFIG] File Drop directory: %s/file_drop", sm.config.StaticDir)
-	log.Printf("[NETWORK] Port: %s", sm.config.Port)
+	log.Printf("[NETWORK] Port: %d", sm.config.Port)
 
-	return http.ListenAndServe(":"+sm.config.Port, nil)
+	return http.ListenAndServe(fmt.Sprintf(":%d", sm.config.Port), nil)
 }
 
 func (sm *ServerManager) GetListenerManager() *listeners.ListenerManager {

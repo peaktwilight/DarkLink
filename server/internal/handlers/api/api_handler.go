@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"microc2/server/pkg/communication"
 	"net/http"
 	"strings"
