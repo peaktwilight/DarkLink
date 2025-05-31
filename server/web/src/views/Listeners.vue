@@ -5,6 +5,9 @@
       <Button variant="primary" icon="refresh" @click="loadListeners">
         Refresh
       </Button>
+      <Button variant="secondary" @click="testMinimalListener">
+        Test Minimal
+      </Button>
     </div>
 
     <StatusMessage 
@@ -134,6 +137,24 @@ async function deleteListener(listenerId, listenerName) {
 function editListener(listener) {
   // TODO: Implement edit functionality
   showStatusMessage('Edit functionality coming soon', 'info')
+}
+
+async function testMinimalListener() {
+  const minimalConfig = {
+    Name: "test-listener",
+    Protocol: "http",
+    Port: 9999
+  }
+  
+  console.log('🧪 Testing minimal listener config:', JSON.stringify(minimalConfig, null, 2))
+  
+  try {
+    await apiPost('/api/listeners/create', minimalConfig)
+    showStatusMessage('Minimal listener created successfully!', 'success')
+    await loadListeners()
+  } catch (error) {
+    showStatusMessage(`Minimal test failed: ${error.message}`, 'error')
+  }
 }
 
 function showStatusMessage(text, type = 'info') {

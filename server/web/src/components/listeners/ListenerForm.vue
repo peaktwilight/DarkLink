@@ -410,23 +410,23 @@ function submitForm() {
   })
   
   const config = {
-    name: form.name,
-    protocol: form.protocol,
-    bindHost: form.bindHost || '0.0.0.0',
-    port: form.port,
-    uris: form.uris,           // Keep as array
-    headers: headersMap,       // Convert to map/object
-    userAgent: form.userAgent,
-    hostRotation: form.hostRotation,
-    hosts: form.hosts,         // Keep as array
+    Name: form.name,
+    Protocol: form.protocol,
+    BindHost: form.bindHost || '0.0.0.0',
+    Port: form.port,
+    URIs: form.uris.length > 0 ? form.uris : null,           // Keep as array or null
+    Headers: Object.keys(headersMap).length > 0 ? headersMap : null,       // Convert to map/object or null
+    UserAgent: form.userAgent || null,
+    HostRotation: form.hostRotation || null,
+    Hosts: form.hosts.length > 0 ? form.hosts : null,         // Keep as array or null
     // Add proxy config as nested object if enabled
     ...(form.enableProxy && {
-      proxy: {
-        type: form.proxyType,
-        host: form.proxyHost,
-        port: form.proxyPort,
-        username: form.proxyUsername || undefined,
-        password: form.proxyPassword || undefined
+      Proxy: {
+        Type: form.proxyType,
+        Host: form.proxyHost,
+        Port: form.proxyPort,
+        Username: form.proxyUsername || null,
+        Password: form.proxyPassword || null
       }
     })
   }

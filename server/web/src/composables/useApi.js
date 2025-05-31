@@ -2,7 +2,16 @@ import { ref } from 'vue'
 import { useMockData } from './useMockData.js'
 
 const isDevelopment = import.meta.env.DEV
-const USE_MOCK_DATA = isDevelopment && !window.location.port.includes('8080')
+// Use mock data only when running on Vite dev server (port 3000)
+// When on real server ports (8080/8443), always use real API
+const USE_MOCK_DATA = isDevelopment && window.location.port === '3000'
+
+console.log('🐛 API Mode:', {
+  isDevelopment,
+  port: window.location.port,
+  USE_MOCK_DATA,
+  location: window.location.href
+})
 
 export function useApi() {
   const loading = ref(false)
@@ -17,6 +26,14 @@ export function useApi() {
     if (USE_MOCK_DATA) {
       return handleMockRequest(url, options)
     }
+    
+    // Debug: Log all API requests
+    console.log('🌐 API Request:', {
+      url,
+      method: options.method,
+      body: options.body ? JSON.parse(options.body) : null,
+      headers: options.headers
+    })
     
     try {
       const response = await fetch(url, {

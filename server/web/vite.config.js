@@ -3,21 +3,16 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  root: 'src',
   build: {
-    outDir: '.',
+    outDir: '../',
     assetsDir: 'assets',
     emptyOutDir: false,
     rollupOptions: {
-      input: 'src/index.html',
       output: {
         entryFileNames: 'assets/main-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name === 'index.html') {
-            return '[name][extname]'
-          }
-          return 'assets/[name]-[hash][extname]'
-        }
+        assetFileNames: 'assets/[name]-[hash][extname]'
       }
     }
   },
