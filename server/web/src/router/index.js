@@ -9,32 +9,27 @@ const routes = [
   {
     path: '/',
     name: 'Dashboard',
-    component: Dashboard,
-    alias: '/home/index.html'
+    component: Dashboard
   },
   {
     path: '/listeners',
     name: 'Listeners',
-    component: Listeners,
-    alias: '/home/listeners.html'
+    component: Listeners
   },
   {
     path: '/payload',
     name: 'Payload',
-    component: Payload,
-    alias: '/home/payload.html'
+    component: Payload
   },
   {
     path: '/file-drop',
     name: 'FileDrop',
-    component: FileDrop,
-    alias: '/home/file_drop.html'
+    component: FileDrop
   },
   {
     path: '/terminal',
     name: 'Terminal',
-    component: Terminal,
-    alias: '/home/server_terminal.html'
+    component: Terminal
   }
 ]
 

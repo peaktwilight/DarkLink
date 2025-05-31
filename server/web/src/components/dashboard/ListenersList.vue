@@ -96,7 +96,8 @@ function getListenerName(listener) {
 }
 
 function getListenerProtocol(listener) {
-  return (listener.config?.Protocol || listener.config?.protocol || listener.Protocol || listener.type || 'Unknown').toUpperCase()
+  const protocol = listener.config?.Protocol || listener.config?.protocol || listener.type || 'Unknown'
+  return (typeof protocol === 'string' ? protocol : 'Unknown').toUpperCase()
 }
 
 function getListenerHost(listener) {

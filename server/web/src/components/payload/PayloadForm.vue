@@ -367,15 +367,16 @@ const isFormValid = computed(() => {
 })
 
 function getListenerId(listener) {
-  return listener.config?.id || listener.id
+  return listener.config?.ID || listener.config?.id || listener.id
 }
 
 function getListenerName(listener) {
-  return listener.config?.name || listener.name || 'Unnamed'
+  return listener.config?.Name || listener.config?.name || listener.name || 'Unnamed'
 }
 
 function getListenerProtocol(listener) {
-  return (listener.config?.protocol || listener.Protocol || 'Unknown').toUpperCase()
+  const protocol = listener.config?.Protocol || listener.config?.protocol || 'Unknown'
+  return (typeof protocol === 'string' ? protocol : 'Unknown').toUpperCase()
 }
 
 function generatePayload() {
