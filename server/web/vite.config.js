@@ -4,11 +4,20 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   build: {
-    outDir: 'dist',
+    outDir: '.',
     assetsDir: 'assets',
+    emptyOutDir: false,
     rollupOptions: {
-      input: {
-        main: 'index-new.html'
+      input: 'src/index.html',
+      output: {
+        entryFileNames: 'assets/main-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'index.html') {
+            return '[name][extname]'
+          }
+          return 'assets/[name]-[hash][extname]'
+        }
       }
     }
   },

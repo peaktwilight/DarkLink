@@ -32,6 +32,9 @@ defineProps({
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .card-hover:hover {
@@ -48,10 +51,14 @@ defineProps({
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
   background: var(--secondary-bg);
+  flex-shrink: 0;
 }
 
 .card-content {
   padding: 20px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .card-actions {
@@ -61,5 +68,6 @@ defineProps({
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 </style>

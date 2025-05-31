@@ -11,3 +11,8 @@
 
 node_modules/
 Claude.md
+
+# Frontend build artifacts
+/server/web/index.html
+/server/web/assets/
+/server/web/dist/

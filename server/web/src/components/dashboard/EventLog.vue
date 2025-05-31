@@ -1,12 +1,12 @@
 <template>
-  <div class="event-log" ref="logContainer">
+  <div class="event-log">
     <div v-if="!events.length" class="empty-state">
       <Icon name="activity" size="48" class="empty-icon" />
       <p>No events yet</p>
       <p class="text-secondary text-sm">Server events will appear here</p>
     </div>
     
-    <div v-else class="events-container">
+    <div v-else class="events-container" ref="logContainer">
       <div 
         v-for="event in events" 
         :key="event.id"
@@ -67,10 +67,11 @@ function formatTime(timestamp) {
 <style scoped>
 .event-log {
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   background: var(--secondary-bg);
   border-radius: var(--radius);
-  padding: var(--space-2);
+  overflow: hidden;
 }
 
 .empty-state {
@@ -78,8 +79,9 @@ function formatTime(timestamp) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  flex: 1;
   text-align: center;
+  padding: var(--space-4);
 }
 
 .empty-icon {
@@ -88,6 +90,9 @@ function formatTime(timestamp) {
 }
 
 .events-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);

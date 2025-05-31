@@ -355,7 +355,9 @@ async function refreshListeners() {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  height: 100%;
+  height: 100vh;
+  padding: var(--space-4);
+  box-sizing: border-box;
 }
 
 .dashboard-grid {
@@ -364,16 +366,26 @@ async function refreshListeners() {
   gap: var(--space-6);
   flex: 1;
   min-height: 0;
+  max-height: calc(100vh - 350px); /* Reserve space for command shell */
 }
 
 .agents-section,
-.listeners-section,
+.listeners-section {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .events-section {
-  min-height: 400px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
 }
 
 .command-shell {
-  height: 250px;
+  height: 280px;
+  flex-shrink: 0;
 }
 
 .section-header {
