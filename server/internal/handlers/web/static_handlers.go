@@ -27,20 +27,20 @@ func New(staticDir string) (*StaticHandler, error) {
 	}, nil
 }
 
-// HandleRoot redirects the root path to /home and serves static files
+// HandleRoot serves the Vue SPA and static files
 //
 // Pre-conditions:
 //   - Valid HTTP request and response writer
 //   - webDir exists and contains necessary files
 //
 // Post-conditions:
-//   - Redirects root path to /home/
+//   - Serves index.html for root path (Vue SPA)
 //   - Serves requested static files from web directory
 //   - Returns 404 Not Found for non-existent files
 func (h *StaticHandler) HandleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
-		// Redirect root to /home/
-		http.Redirect(w, r, "/home/", http.StatusMovedPermanently)
+		// Serve index.html for Vue SPA
+		http.ServeFile(w, r, filepath.Join(h.webDir, "index.html"))
 		return
 	}
 	
@@ -60,13 +60,8 @@ func (h *StaticHandler) HandleRoot(w http.ResponseWriter, r *http.Request) {
 // Post-conditions:
 //   - Routes are registered with the HTTP server
 //   - /static/ paths are served from staticDir
-//   - /home/ paths are served from webDir
 func (h *StaticHandler) SetupStaticRoutes() {
 	// Handle /static/ paths for backward compatibility
 	fs := http.FileServer(http.Dir(h.staticDir))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// Serve web assets from the web directory
-	webFs := http.FileServer(http.Dir(h.webDir))
-	http.Handle("/home/", http.StripPrefix("/home/", webFs))
 }

@@ -110,7 +110,7 @@ func main() {
 	// Set up payload generator routes
 	payloadHandler.SetupRoutes()
 
-	// Set up root route to redirect / to /home/
+	// Set up root route
 	http.HandleFunc("/", staticHandlers.HandleRoot)
 
 	// Set up API routes
