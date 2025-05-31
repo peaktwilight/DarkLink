@@ -127,23 +127,23 @@ const props = defineProps({
 defineEmits(['start-listener', 'stop-listener', 'delete-listener', 'edit-listener'])
 
 function getListenerId(listener) {
-  return listener.config?.id || listener.id || 'Unknown'
+  return listener.config?.ID || listener.config?.id || listener.id || 'Unknown'
 }
 
 function getListenerName(listener) {
-  return listener.config?.name || listener.name || 'Unnamed'
+  return listener.config?.Name || listener.config?.name || listener.name || 'Unnamed'
 }
 
 function getListenerProtocol(listener) {
-  return (listener.config?.protocol || listener.Protocol || listener.type || 'Unknown').toUpperCase()
+  return (listener.config?.Protocol || listener.config?.protocol || listener.Protocol || listener.type || 'Unknown').toUpperCase()
 }
 
 function getListenerHost(listener) {
-  return listener.config?.host || listener.config?.bindHost || listener.host || '0.0.0.0'
+  return listener.config?.BindHost || listener.config?.host || listener.config?.bindHost || listener.host || '0.0.0.0'
 }
 
 function getListenerPort(listener) {
-  return listener.config?.port || listener.port || 'Unknown'
+  return listener.config?.Port || listener.config?.port || listener.port || 'Unknown'
 }
 
 function getListenerStatus(listener) {
