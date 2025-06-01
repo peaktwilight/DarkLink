@@ -1,24 +1,42 @@
 <template>
   <div class="agents-list">
     <div v-if="!agents.length" class="empty-state">
-      <Icon name="user" size="48" class="empty-icon" />
-      <p>No active agents</p>
-      <p class="text-secondary text-sm">Generate a payload to get started</p>
+      <div class="empty-content">
+        <div class="empty-icon-container">
+          <Icon name="user" size="48" class="empty-icon" />
+          <div class="icon-glow"></div>
+        </div>
+        <h3 class="empty-title">No Active Agents</h3>
+        <p class="empty-description">Deploy payloads to establish connections with target systems</p>
+        <div class="empty-actions">
+          <Button 
+            variant="primary" 
+            @click="$router.push('/payload')"
+            class="cta-button"
+          >
+            <Icon name="plus" />Generate Payload
+          </Button>
+        </div>
+      </div>
     </div>
     
     <div v-else class="agents-grid">
       <Card 
-        v-for="agent in agents" 
+        v-for="(agent, index) in agents" 
         :key="agent.id"
         :selected="selectedAgent?.id === agent.id"
-        class="agent-card"
+        class="agent-card animate-fadeIn"
+        :style="{ animationDelay: `${index * 100}ms` }"
         hover
       >
         <template #header>
           <div class="agent-header">
             <div class="agent-title">
-              <div :class="['agent-status', agentStatus(agent)]"></div>
+              <div :class="['agent-status', agentStatus(agent)]">
+                <div v-if="agentStatus(agent) === 'active'" class="status-pulse"></div>
+              </div>
               <span class="agent-name">{{ agent.id }}</span>
+              <Icon v-if="agentStatus(agent) === 'active'" name="zap" class="activity-icon" />
             </div>
             <span class="agent-type">{{ agent.type || 'Standard' }}</span>
           </div>
@@ -104,13 +122,81 @@ function formatDate(dateString) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  height: 280px;
   text-align: center;
+  padding: var(--space-6);
+}
+
+.empty-content {
+  max-width: 300px;
+}
+
+.empty-icon-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: var(--space-6);
 }
 
 .empty-icon {
-  opacity: 0.5;
-  margin-bottom: var(--space-4);
+  color: var(--text-secondary);
+  opacity: 0.6;
+  filter: drop-shadow(0 0 10px rgba(139, 148, 158, 0.3));
+}
+
+.icon-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle, rgba(88, 166, 255, 0.1), transparent 70%);
+  border-radius: 50%;
+  animation: gentle-pulse 4s infinite;
+}
+
+@keyframes gentle-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+}
+
+.empty-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.empty-description {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 var(--space-6) 0;
+}
+
+.empty-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.cta-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  transform: translateY(0);
+  transition: all 0.3s ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(35, 134, 54, 0.4);
 }
 
 .agents-grid {
@@ -121,6 +207,13 @@ function formatDate(dateString) {
 
 .agent-card {
   cursor: pointer;
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+
+.agent-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), 0 0 20px rgba(88, 166, 255, 0.1);
 }
 
 .agent-header {
@@ -135,16 +228,56 @@ function formatDate(dateString) {
   gap: var(--space-2);
 }
 
+.activity-icon {
+  color: var(--warning-color);
+  font-size: 0.875rem;
+  animation: flash 2s infinite;
+}
+
+@keyframes flash {
+  0%, 50%, 100% {
+    opacity: 1;
+  }
+  25%, 75% {
+    opacity: 0.3;
+  }
+}
+
 .agent-status {
-  width: 8px;
-  height: 8px;
+  position: relative;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.status-pulse {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--success-color);
+  animation: pulse-ring 2s infinite;
+  opacity: 0.6;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
 }
 
 .agent-status.active {
   background-color: var(--success-color);
-  box-shadow: 0 0 6px var(--success-color);
+  box-shadow: 0 0 12px var(--success-color), 0 0 24px rgba(63, 185, 80, 0.3);
 }
 
 .agent-status.disconnected {
