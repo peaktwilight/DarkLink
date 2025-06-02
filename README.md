@@ -1,8 +1,8 @@
 # DarkLink Framework - Academic Research Project
 
-**DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis to provide improved functionality, front-end, OPSEC capabilities, and stability.**
+**DarkLink is a fork of the MicroC2 framework, building upon the original bachelor's thesis in collaboration with the [Cyber-Defense-Campus](https://www.cydcampus.admin.ch/en) to provide improved functionality, front-end, OPSEC capabilities, and stability.**
 
-**This thesis proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework utilizes covert communication, encryption and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness is evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.**
+**This project proposes the design of a lightweight C2 framework for penetration testing and red team operations, emphasizing stealth and a low system footprint. The framework utilizes covert communication, encryption and obfuscation to evade detection by security tools like EDR and IDS. Its effectiveness is evaluated in simulated environments, offering insights into evasion techniques and improving defensive strategies.**
 
 
 ## 🚨 ETHICAL DISCLAIMER AND LEGAL NOTICE
