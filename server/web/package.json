@@ -16,5 +16,12 @@
   "devDependencies": {
     "vite": "^5.0.0",
     "@vitejs/plugin-vue": "^4.5.0"
+  },
+  "overrides": {
+    "@vue/server-renderer": "3.5.42",
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23",
+    "rollup": "4.59.0",
+    "source-map-js": "1.2.2"
   }
 }
